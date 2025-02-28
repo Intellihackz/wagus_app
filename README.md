@@ -1,6 +1,7 @@
 # WAGUS - The Ultimate Utility App for Token Holders
+<img src="https://github.com/user-attachments/assets/979f8415-4161-4ca6-9d7c-a161f0308dcb" width="300">
 
-![WAGUS Logo](path-to-logo.png)  
+
 **WAGUS is a next-generation utility app built exclusively for WAGUS token holders, powered by the Solana blockchain.** It provides real-world use cases for the token by integrating high-value features such as a lottery system, AI-powered tools, a decentralized betting platform, and a rewards ecosystem. 
 
 ## 🚀 What is WAGUS?
