@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wagus/features/home/bloc/home_bloc.dart';
+import 'package:wagus/router.dart';
 import 'package:wagus/theme/app_palette.dart';
 
 void main() {
@@ -10,18 +13,25 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'WAGUS',
-      theme: ThemeData(
-        primaryColor: AppPalette.neonPurple, // Set primary color
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppPalette.neonPurple,
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<HomeBloc>(
+          create: (_) => HomeBloc(),
         ),
-        extensions: <ThemeExtension<dynamic>>[
-          AppColors(),
-        ],
+      ],
+      child: MaterialApp.router(
+        title: 'WAGUS',
+        theme: ThemeData(
+          primaryColor: AppPalette.neonPurple,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: AppPalette.neonPurple,
+          ),
+          extensions: <ThemeExtension<dynamic>>[
+            AppColors(),
+          ],
+        ),
+        routerConfig: router,
       ),
-      home: const Scaffold(),
     );
   }
 }
