@@ -1,4 +1,6 @@
 PODS:
+  - app_links (0.0.2):
+    - Flutter
   - Flutter (1.0.0)
   - path_provider_foundation (0.0.1):
     - Flutter
@@ -8,8 +10,6 @@ PODS:
     - FlutterMacOS
   - solana_wallet_adapter_ios (0.0.1):
     - Flutter
-  - uni_links3 (0.0.1):
-    - Flutter
   - url_launcher_ios (0.0.1):
     - Flutter
   - webcrypto (0.1.1):
@@ -17,15 +17,17 @@ PODS:
     - FlutterMacOS
 
 DEPENDENCIES:
+  - app_links (from `.symlinks/plugins/app_links/ios`)
   - Flutter (from `Flutter`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - solana_wallet_adapter_ios (from `.symlinks/plugins/solana_wallet_adapter_ios/ios`)
-  - uni_links3 (from `.symlinks/plugins/uni_links3/ios`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
   - webcrypto (from `.symlinks/plugins/webcrypto/darwin`)
 
 EXTERNAL SOURCES:
+  app_links:
+    :path: ".symlinks/plugins/app_links/ios"
   Flutter:
     :path: Flutter
   path_provider_foundation:
@@ -34,19 +36,17 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
   solana_wallet_adapter_ios:
     :path: ".symlinks/plugins/solana_wallet_adapter_ios/ios"
-  uni_links3:
-    :path: ".symlinks/plugins/uni_links3/ios"
   url_launcher_ios:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
   webcrypto:
     :path: ".symlinks/plugins/webcrypto/darwin"
 
 SPEC CHECKSUMS:
+  app_links: f3e17e4ee5e357b39d8b95290a9b2c299fca71c6
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
   shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
   solana_wallet_adapter_ios: 81801f1823b9a5870ead396706efd663b530e6fe
-  uni_links3: 19ad693a056bd6feae1154b6d8eaa81383b849fe
   url_launcher_ios: 5334b05cef931de560670eeae103fd3e431ac3fe
   webcrypto: aa788ff6b0a956e5d6e613b35b99c13e220ca2d0
 

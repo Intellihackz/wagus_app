@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wagus/theme/app_palette.dart';
 
 class Lottery extends StatelessWidget {
   const Lottery({super.key});
@@ -6,9 +7,8 @@ class Lottery extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SizedBox.expand(
-          child:
-              Image.asset('assets/background/lottery.png', fit: BoxFit.cover)),
+      backgroundColor: context.appColors.deepMidnightBlue,
+      body: Center(child: Image.asset('assets/background/image.png')),
     );
   }
 }
