@@ -1,0 +1,10 @@
+{
+    "applinks": {
+        "details": [
+            {
+                "appID": "287CZZPQAV.com.silnt.wagus",
+                "paths": ["/wallet/*"]
+            }
+        ]
+    }
+}

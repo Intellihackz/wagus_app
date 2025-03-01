@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:wagus/features/home/bloc/home_bloc.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/theme/app_palette.dart';
@@ -29,6 +30,7 @@ class MyApp extends StatelessWidget {
           extensions: <ThemeExtension<dynamic>>[
             AppColors(),
           ],
+          textTheme: GoogleFonts.pressStart2pTextTheme(),
         ),
         routerConfig: router,
       ),
