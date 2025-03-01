@@ -28,10 +28,24 @@ class Portal extends StatelessWidget {
                   Center(
                     child: GestureDetector(
                       onTap: () async {
-                        final result =
-                            await context.read<PortalRepository>().connect();
+                        final repository = context.read<PortalRepository>();
+
+                        final result = await repository.connect();
 
                         if (result != null && context.mounted) {
+                          if (!repository.isAuthorized && context.mounted) {
+                            final authorized =
+                                await repository.requestAuthorization();
+                            if (!authorized && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        'Wallet authorization failed. Please try again.')),
+                              );
+                              return;
+                            }
+                          }
+
                           context.go(home);
                         }
                       },
