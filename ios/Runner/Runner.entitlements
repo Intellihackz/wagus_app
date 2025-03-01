@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:c010-2601-98a-c81-c140-f881-be76-3d5c-1b25.ngrok-free.app</string>
+		<string>applinks:wagus-app.com</string>
 	</array>
 </dict>
 </plist>

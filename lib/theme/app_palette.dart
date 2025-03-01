@@ -13,26 +13,53 @@ class AppPalette {
     Color(0xFF3A3E4A),
   ], begin: Alignment.topLeft, end: Alignment.bottomRight);
   static const softMagenta = Color(0xFFFF00A6);
+
+  // background contrasts
+  static const contrastLight = Color(0xFFFFFFFF);
+  static const slightlyGrey = Color.fromARGB(255, 185, 184, 184);
 }
 
 class AppColors extends ThemeExtension<AppColors> {
   final Color neonPurple;
   final Color electricBlue;
   final Color neonGreen;
+  final Color deepMidnightBlue;
+  final LinearGradient metallicGradient;
+  final Color softMagenta;
+  final Color contrastLight;
+  final Color slightlyGrey;
 
   AppColors({
     this.neonPurple = AppPalette.neonPurple,
     this.electricBlue = AppPalette.electricBlue,
     this.neonGreen = AppPalette.neonGreen,
+    this.deepMidnightBlue = AppPalette.deepMidnightBlue,
+    this.metallicGradient = AppPalette.metallicGradient,
+    this.softMagenta = AppPalette.softMagenta,
+    this.contrastLight = AppPalette.contrastLight,
+    this.slightlyGrey = AppPalette.slightlyGrey,
   });
 
   @override
-  AppColors copyWith(
-      {Color? neonPurple, Color? electricBlue, Color? neonGreen}) {
+  AppColors copyWith({
+    Color? neonPurple,
+    Color? electricBlue,
+    Color? neonGreen,
+    Color? deepMidnightBlue,
+    LinearGradient? metallicGradient,
+    Color? softMagenta,
+    Color? contrastLight,
+    Color? slightlyGrey,
+  }) {
     return AppColors(
       neonPurple: neonPurple ?? this.neonPurple,
       electricBlue: electricBlue ?? this.electricBlue,
       neonGreen: neonGreen ?? this.neonGreen,
+      deepMidnightBlue: deepMidnightBlue ?? this.deepMidnightBlue,
+      metallicGradient: metallicGradient ?? this.metallicGradient,
+      softMagenta: softMagenta ?? this.softMagenta,
+      contrastLight: contrastLight ?? this.contrastLight,
+      slightlyGrey: slightlyGrey ?? this.slightlyGrey,
     );
   }
 

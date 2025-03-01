@@ -3,7 +3,7 @@
         "details": [
             {
                 "appID": "287CZZPQAV.com.silnt.wagus",
-                "paths": ["/wallet/*"]
+                "paths": ["/wallet"]
             }
         ]
     }
