@@ -9,7 +9,7 @@ class Lottery extends StatelessWidget {
       body: Center(
           child: Image.asset(
         'assets/background/lottery_logo.png',
-        height: 200,
+        height: 250,
         fit: BoxFit.cover,
       )),
     );
