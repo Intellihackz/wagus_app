@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "168597906578",
+    "project_id": "wagus-app",
+    "storage_bucket": "wagus-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:168597906578:android:551766fc9c907c5e1bb24b",
+        "android_client_info": {
+          "package_name": "com.silnt.wagus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3K28W3XcY68DVb_cW0qVAP6EkS1LK1hU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

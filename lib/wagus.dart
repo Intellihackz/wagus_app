@@ -65,9 +65,6 @@ class Wagus extends HookWidget {
               data: Theme.of(context).copyWith(
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,
-                hoverColor: Colors.transparent,
-                focusColor: Colors.transparent,
-                shadowColor: Colors.transparent,
               ),
               child: BottomNavigationBar(
                 backgroundColor: context.appColors.deepMidnightBlue,
@@ -77,8 +74,6 @@ class Wagus extends HookWidget {
                   currentPage.value = index;
                   pageController.jumpToPage(index);
                 },
-                // remove splash effect
-
                 selectedLabelStyle: TextStyle(fontSize: 8),
                 unselectedLabelStyle: TextStyle(fontSize: 8),
                 landscapeLayout: BottomNavigationBarLandscapeLayout.spread,
