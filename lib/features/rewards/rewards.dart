@@ -10,6 +10,7 @@ class Rewards extends StatelessWidget {
           child: Image.asset(
         'assets/background/rewards_logo.png',
         height: 200,
+        fit: BoxFit.cover,
       )),
     );
   }

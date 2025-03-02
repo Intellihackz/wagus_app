@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/router.dart';
-import 'package:wagus/theme/app_palette.dart';
 
 class Portal extends StatelessWidget {
   const Portal({super.key});

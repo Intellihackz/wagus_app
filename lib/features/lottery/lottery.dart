@@ -10,6 +10,7 @@ class Lottery extends StatelessWidget {
           child: Image.asset(
         'assets/background/lottery_logo.png',
         height: 200,
+        fit: BoxFit.cover,
       )),
     );
   }

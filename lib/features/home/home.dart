@@ -18,6 +18,7 @@ class Home extends HookWidget {
             child: Image.asset(
               'assets/background/home_logo.png',
               height: 200,
+              fit: BoxFit.cover,
             ),
           ),
           Align(

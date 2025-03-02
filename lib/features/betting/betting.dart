@@ -10,6 +10,7 @@ class Betting extends StatelessWidget {
           child: Image.asset(
         'assets/background/betting_logo.png',
         height: 200,
+        fit: BoxFit.cover,
       )),
     );
   }

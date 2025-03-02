@@ -67,7 +67,7 @@ class Wagus extends HookWidget {
                 highlightColor: Colors.transparent,
               ),
               child: BottomNavigationBar(
-                backgroundColor: context.appColors.deepMidnightBlue,
+                backgroundColor: context.appColors.contrastDark,
                 type: BottomNavigationBarType.fixed,
                 currentIndex: currentPage.value,
                 onTap: (index) {
