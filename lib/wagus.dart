@@ -29,6 +29,9 @@ class Wagus extends HookWidget {
               children: [
                 PageView(
                   controller: pageController,
+                  onPageChanged: (currentIndex) {
+                    currentPage.value = currentIndex;
+                  },
                   children: const [
                     Home(),
                     Betting(),
@@ -58,37 +61,48 @@ class Wagus extends HookWidget {
                 ),
               ],
             ),
-            bottomNavigationBar: BottomNavigationBar(
-              backgroundColor: context.appColors.deepMidnightBlue,
-              type: BottomNavigationBarType.fixed,
-              currentIndex: currentPage.value,
-              onTap: (index) {
-                currentPage.value = index;
-                pageController.jumpToPage(index);
-              },
-              selectedLabelStyle: TextStyle(fontSize: 8),
-              unselectedLabelStyle: TextStyle(fontSize: 8),
-              landscapeLayout: BottomNavigationBarLandscapeLayout.spread,
-              selectedItemColor: context.appColors.contrastLight,
-              unselectedItemColor: context.appColors.slightlyGrey,
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.home),
-                  label: 'Home',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.emoji_events),
-                  label: 'Betting',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.casino),
-                  label: 'Lottery',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.star),
-                  label: 'Rewards',
-                ),
-              ],
+            bottomNavigationBar: Theme(
+              data: Theme.of(context).copyWith(
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+                hoverColor: Colors.transparent,
+                focusColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+              ),
+              child: BottomNavigationBar(
+                backgroundColor: context.appColors.deepMidnightBlue,
+                type: BottomNavigationBarType.fixed,
+                currentIndex: currentPage.value,
+                onTap: (index) {
+                  currentPage.value = index;
+                  pageController.jumpToPage(index);
+                },
+                // remove splash effect
+
+                selectedLabelStyle: TextStyle(fontSize: 8),
+                unselectedLabelStyle: TextStyle(fontSize: 8),
+                landscapeLayout: BottomNavigationBarLandscapeLayout.spread,
+                selectedItemColor: context.appColors.contrastLight,
+                unselectedItemColor: context.appColors.slightlyGrey,
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.home),
+                    label: 'Home',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.emoji_events),
+                    label: 'Betting',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.casino),
+                    label: 'Lottery',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.star),
+                    label: 'Rewards',
+                  ),
+                ],
+              ),
             ),
           );
         },
