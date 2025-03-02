@@ -17,7 +17,6 @@ class Portal extends StatelessWidget {
         child: BlocBuilder<PortalBloc, PortalState>(
           builder: (context, state) {
             return Scaffold(
-              backgroundColor: context.appColors.deepMidnightBlue,
               body: Stack(
                 children: [
                   Image.asset(

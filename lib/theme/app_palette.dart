@@ -17,6 +17,7 @@ class AppPalette {
   // background contrasts
   static const contrastLight = Color(0xFFFFFFFF);
   static const slightlyGrey = Color.fromARGB(255, 185, 184, 184);
+  static const contrastDark = Color(0xFF000000);
 }
 
 class AppColors extends ThemeExtension<AppColors> {
@@ -28,6 +29,7 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color softMagenta;
   final Color contrastLight;
   final Color slightlyGrey;
+  final Color contrastDark;
 
   AppColors({
     this.neonPurple = AppPalette.neonPurple,
@@ -38,6 +40,7 @@ class AppColors extends ThemeExtension<AppColors> {
     this.softMagenta = AppPalette.softMagenta,
     this.contrastLight = AppPalette.contrastLight,
     this.slightlyGrey = AppPalette.slightlyGrey,
+    this.contrastDark = AppPalette.contrastDark,
   });
 
   @override
@@ -50,6 +53,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? softMagenta,
     Color? contrastLight,
     Color? slightlyGrey,
+    Color? contrastDark,
   }) {
     return AppColors(
       neonPurple: neonPurple ?? this.neonPurple,
@@ -60,6 +64,7 @@ class AppColors extends ThemeExtension<AppColors> {
       softMagenta: softMagenta ?? this.softMagenta,
       contrastLight: contrastLight ?? this.contrastLight,
       slightlyGrey: slightlyGrey ?? this.slightlyGrey,
+      contrastDark: contrastDark ?? this.contrastDark,
     );
   }
 

@@ -12,7 +12,6 @@ class Home extends HookWidget {
     final inputController = useTextEditingController();
 
     return Scaffold(
-      backgroundColor: context.appColors.deepMidnightBlue,
       body: Stack(
         children: [
           Center(

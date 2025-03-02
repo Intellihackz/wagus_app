@@ -48,6 +48,7 @@ class MyApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(
             seedColor: AppPalette.neonPurple,
           ),
+          scaffoldBackgroundColor: AppPalette.contrastDark,
           extensions: <ThemeExtension<dynamic>>[
             AppColors(),
           ],
