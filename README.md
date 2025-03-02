@@ -34,7 +34,7 @@ The WAGUS app is designed for an **intuitive, fast, and rewarding** experience:
 
 ## 🌎 Join the WAGUS Community
 Be part of the WAGUS revolution! Stay connected:
-- **Twitter:** [@WAGUSofficial](https://x.com/WAGUS_APP)
+- **Twitter:** [@WAGUS_APP](https://x.com/WAGUS_APP)
 - **Discord:** [Join the Server](https://discord.gg/ypPzNgJNXC)
 
 ## 🛠️ Roadmap
