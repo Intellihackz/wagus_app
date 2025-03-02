@@ -16,7 +16,10 @@ class Home extends HookWidget {
       body: Stack(
         children: [
           Center(
-            child: Image.asset('assets/background/image.png'),
+            child: Image.asset(
+              'assets/background/home_logo.png',
+              height: 200,
+            ),
           ),
           Align(
             alignment: Alignment.bottomCenter,

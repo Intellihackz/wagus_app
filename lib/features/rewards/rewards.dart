@@ -8,7 +8,11 @@ class Rewards extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.appColors.deepMidnightBlue,
-      body: Center(child: Image.asset('assets/background/image.png')),
+      body: Center(
+          child: Image.asset(
+        'assets/background/rewards_logo.png',
+        height: 200,
+      )),
     );
   }
 }
