@@ -8,14 +8,23 @@ part 'portal_state.dart';
 
 class PortalBloc extends Bloc<PortalEvent, PortalState> {
   final PortalRepository portalRepository;
-  PortalBloc({required this.portalRepository})
-      : super(PortalState(adapter: portalRepository.adapter)) {
-    on<PortalInitialEvent>((event, emit) async {
-      await portalRepository.init();
-    });
+
+  PortalBloc({required this.portalRepository}) : super(const PortalState()) {
+    on<PortalInitialEvent>(_onPortalInitialEvent);
 
     on<PortalAuthorizeEvent>((event, emit) async {
       await portalRepository.connect();
     });
+  }
+
+  Future<void> _onPortalInitialEvent(
+    PortalInitialEvent event,
+    Emitter<PortalState> emit,
+  ) async {
+    // Initialize portal
+    await portalRepository.init();
+
+    // You can add more initialization logic here
+    emit(state.copyWith(holdersCount: 1000)); // Example data
   }
 }

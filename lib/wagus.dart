@@ -10,6 +10,7 @@ import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/features/rewards/rewards.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/theme/app_palette.dart';
+import 'package:wagus/services/privy_service.dart';
 
 class Wagus extends HookWidget {
   const Wagus({super.key});
@@ -54,12 +55,10 @@ class Wagus extends HookWidget {
                           ),
                           TextButton(
                             onPressed: () async {
-                              final result = await context
-                                  .read<PortalRepository>()
-                                  .disconnect();
+                              final result = await PrivyService().logout();
 
-                              if (result != null && context.mounted) {
-                                context.go(portal);
+                              if (result && context.mounted) {
+                                context.go(login);
                               }
                             },
                             child: Text(

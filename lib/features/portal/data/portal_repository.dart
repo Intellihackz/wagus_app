@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:solana_wallet_adapter/solana_wallet_adapter.dart';
+import 'package:wagus/services/privy_service.dart';
 
 class PortalRepository {
   PortalRepository();
@@ -15,27 +16,26 @@ class PortalRepository {
     hostAuthority: null,
   );
 
+  final _privyService = PrivyService();
+
   Future<void> init() async {
     await SolanaWalletAdapter.initialize();
   }
 
   /// [connect] function to connect the wallet
-  Future<AuthorizeResult?> connect() async {
-    try {
-      final result = await adapter.authorize(
-        walletUriBase: adapter.store.apps[0].walletUriBase,
-      );
-
-      return result;
-    } catch (e) {
-      return null;
+  Future<bool?> connect() async {
+    // If already authenticated, return true
+    if (_privyService.isAuthenticated()) {
+      return true;
     }
+
+    // Otherwise, return null to indicate we need to go to login
+    return null;
   }
 
   /// [disconnect] function to disconnect the wallet
-  Future<DeauthorizeResult?> disconnect() async {
-    final result = await adapter.deauthorize();
-
-    return result;
+  Future<bool?> disconnect() async {
+    final success = await _privyService.logout();
+    return success ? true : null;
   }
 }
