@@ -42,19 +42,33 @@ class Wagus extends HookWidget {
                 Positioned.fill(
                   child: Align(
                     alignment: Alignment.topRight,
-                    child: TextButton(
-                      onPressed: () async {
-                        final result =
-                            await context.read<PortalRepository>().disconnect();
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 32.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Holders: ${state.holdersCount}',
+                            style: TextStyle(
+                                color: context.appColors.contrastLight),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              final result = await context
+                                  .read<PortalRepository>()
+                                  .disconnect();
 
-                        if (result != null && context.mounted) {
-                          context.go(portal);
-                        }
-                      },
-                      child: Text(
-                        'Disconnect',
-                        style:
-                            TextStyle(color: context.appColors.contrastLight),
+                              if (result != null && context.mounted) {
+                                context.go(portal);
+                              }
+                            },
+                            child: Text(
+                              'Disconnect',
+                              style: TextStyle(
+                                  color: context.appColors.contrastLight),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

@@ -1,6 +1,17 @@
 part of 'home_bloc.dart';
 
-@immutable
-sealed class HomeState {}
+class HomeState {
+  final List<List<Transaction>> groupedTransactions;
 
-final class HomeInitial extends HomeState {}
+  const HomeState({
+    required this.groupedTransactions,
+  });
+
+  HomeState copyWith({
+    List<List<Transaction>>? groupedTransactions,
+  }) {
+    return HomeState(
+      groupedTransactions: groupedTransactions ?? this.groupedTransactions,
+    );
+  }
+}
