@@ -8,16 +8,13 @@ import 'package:wagus/features/home/chat/bloc/chat_bloc.dart';
 import 'package:wagus/features/home/chat/data/chat_repository.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
-import 'package:wagus/firebase_options.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/theme/app_palette.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
