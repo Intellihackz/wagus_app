@@ -5,4 +5,8 @@ sealed class PortalEvent {}
 
 class PortalInitialEvent extends PortalEvent {}
 
-class PortalAuthorizeEvent extends PortalEvent {}
+class PortalAuthorizeEvent extends PortalEvent {
+  final BuildContext context;
+
+  PortalAuthorizeEvent(this.context);
+}

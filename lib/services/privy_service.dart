@@ -65,6 +65,7 @@ class PrivyService {
 
       result.fold(
         onSuccess: (user) {
+
           // User authenticated successfully
           debugPrint('User authenticated successfully: ${user.id}');
           if (context.mounted) {
