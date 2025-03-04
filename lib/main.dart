@@ -15,6 +15,7 @@ import 'package:wagus/theme/app_palette.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
   await Firebase.initializeApp();
   runApp(const MyApp());
 }

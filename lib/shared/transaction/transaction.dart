@@ -1,14 +1,16 @@
+import 'package:wagus/shared/holder/holder.dart';
+
 class Transaction {
-  final String asset;
+  final Holder holder;
   final double amount;
 
   Transaction({
-    required this.asset,
+    required this.holder,
     required this.amount,
   });
 
   @override
   String toString() {
-    return 'Transaction(asset: $asset, amount: $amount)';
+    return 'Transaction(asset: $holder, amount: $amount)';
   }
 }

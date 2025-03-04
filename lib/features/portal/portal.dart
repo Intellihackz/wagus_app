@@ -19,7 +19,7 @@ class Portal extends StatelessWidget {
               body: Stack(
                 children: [
                   Image.asset(
-                    'assets/background/logo.png',
+                    'assets/icons/logo.png',
                     height: 200,
                     fit: BoxFit.cover,
                   ),
