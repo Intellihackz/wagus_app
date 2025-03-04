@@ -181,6 +181,7 @@ class LoginScreen extends HookWidget {
                                   PrivyService().verifyOtp(
                                     emailController.text.trim(),
                                     otpController.text.trim(),
+                                    context,
                                   );
                                 }
                               } finally {

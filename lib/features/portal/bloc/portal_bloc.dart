@@ -1,6 +1,5 @@
 import 'package:bloc/bloc.dart';
 import 'package:meta/meta.dart';
-import 'package:solana_wallet_adapter/solana_wallet_adapter.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
 
 part 'portal_event.dart';

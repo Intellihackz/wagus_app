@@ -40,7 +40,6 @@ dependencies:
   flutter_hooks: ^0.21.2
   url_launcher: ^6.3.1
   google_fonts: ^6.2.1
-  solana_wallet_adapter: ^0.1.5
   app_links: ^6.4.0
   firebase_core: ^3.4.0
   cloud_firestore: ^5.4.0

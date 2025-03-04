@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter/material.dart';
+import 'package:wagus/router.dart';
 
 class PrivyService {
   static final PrivyService _instance = PrivyService._internal();
@@ -53,7 +56,7 @@ class PrivyService {
     }
   }
 
-  void verifyOtp(String email, String otp) async {
+  void verifyOtp(String email, String otp, BuildContext context) async {
     try {
       final Result<PrivyUser> result = await privy.email.loginWithCode(
         code: otp,
@@ -64,6 +67,9 @@ class PrivyService {
         onSuccess: (user) {
           // User authenticated successfully
           debugPrint('User authenticated successfully: ${user.id}');
+          if (context.mounted) {
+            context.go(portal);
+          }
         },
         onFailure: (error) {
           // Handle authentication error
