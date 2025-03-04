@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:go_router/go_router.dart';
-import 'package:wagus/router.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/theme/app_palette.dart';
 
@@ -23,7 +21,7 @@ class LoginScreen extends HookWidget {
           // Background image
           Positioned.fill(
             child: Image.asset(
-              'assets/background/logo.png',
+              'assets/icons/logo.png',
               fit: BoxFit.cover,
               opacity: const AlwaysStoppedAnimation(0.3),
             ),

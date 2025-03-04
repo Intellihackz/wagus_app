@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wagus/features/auth/login_screen.dart';
 import 'package:wagus/features/portal/portal.dart';
