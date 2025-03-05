@@ -17,11 +17,12 @@ dependencies:
   flutter_hooks: ^0.21.2
   url_launcher: ^6.3.1
   google_fonts: ^6.2.1
-  solana_wallet_adapter: ^0.1.5
   app_links: ^6.4.0
   firebase_core: ^3.4.0
   cloud_firestore: ^5.4.0
   carousel_slider: ^5.0.0
+  flutter_dotenv: ^5.1.0
+  privy_flutter: ^0.0.2
 
 dev_dependencies:
   flutter_test:
@@ -34,4 +35,5 @@ flutter:
 
   assets:
     - assets/background/
+    - .env
     - assets/icons/

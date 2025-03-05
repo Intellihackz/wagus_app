@@ -10,7 +10,6 @@
 #include <cloud_firestore/cloud_firestore_plugin_c_api.h>
 #include <firebase_core/firebase_core_plugin_c_api.h>
 #include <url_launcher_windows/url_launcher_windows.h>
-#include <webcrypto/webcrypto_plugin.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
   AppLinksPluginCApiRegisterWithRegistrar(
@@ -21,6 +20,4 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("FirebaseCorePluginCApi"));
   UrlLauncherWindowsRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("UrlLauncherWindows"));
-  WebcryptoPluginRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("WebcryptoPlugin"));
 }

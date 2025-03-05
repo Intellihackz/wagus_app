@@ -1,41 +1,49 @@
 import 'dart:async';
-
-import 'package:solana_wallet_adapter/solana_wallet_adapter.dart';
+import 'package:privy_flutter/privy_flutter.dart';
+import 'package:wagus/services/privy_service.dart';
+import 'package:flutter/material.dart';
 
 class PortalRepository {
   PortalRepository();
+  final _privyService = PrivyService();
 
-  static final Cluster cluster = Cluster.devnet;
-  final adapter = SolanaWalletAdapter(
-    AppIdentity(
-      uri: Uri.parse('com.silnt.wagus://wallet'),
-      name: 'wallet',
-    ),
-    cluster: cluster,
-    hostAuthority: null,
-  );
+  Future<void> init() async {}
 
-  Future<void> init() async {
-    await SolanaWalletAdapter.initialize();
-  }
-
-  /// [connect] function to connect the wallet
-  Future<AuthorizeResult?> connect() async {
+  Future<PrivyUser?> connect() async {
     try {
-      final result = await adapter.authorize(
-        walletUriBase: adapter.store.apps[0].walletUriBase,
-      );
+      final user = _privyService.privy.user;
+      if (user != null) {
+        var solanaWallet = user.embeddedSolanaWallets;
+        if (solanaWallet.isNotEmpty) {
+          debugPrint('Solana wallet already exists');
+          return user;
+        }
 
-      return result;
+        final Completer<PrivyUser?> completer = Completer<PrivyUser?>();
+
+        final walletResult = await user.createSolanaWallet();
+        walletResult.fold(
+          onSuccess: (wallet) {
+            debugPrint('Solana wallet created successfully');
+            completer.complete(user);
+          },
+          onFailure: (error) {
+            debugPrint('Error creating Solana wallet: ${error.message}');
+            completer.complete(null);
+          },
+        );
+
+        return completer.future;
+      }
     } catch (e) {
-      return null;
+      debugPrint('Error connecting wallet: $e');
     }
+    return null;
   }
 
   /// [disconnect] function to disconnect the wallet
-  Future<DeauthorizeResult?> disconnect() async {
-    final result = await adapter.deauthorize();
-
-    return result;
+  Future<bool?> disconnect() async {
+    final success = await _privyService.logout();
+    return success ? true : null;
   }
 }
