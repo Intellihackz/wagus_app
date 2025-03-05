@@ -23,83 +23,90 @@ class Portal extends HookWidget {
 
     return RepositoryProvider(
       create: (context) => PortalRepository(),
-      child: BlocBuilder<PortalBloc, PortalState>(
-        builder: (context, state) {
-          return Scaffold(
-            backgroundColor: context.appColors.contrastDark,
-            body: Stack(
-              children: [
-                Image.asset(
-                  'assets/background/logo.png',
-                  height: 200,
-                  fit: BoxFit.cover,
-                ),
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      GestureDetector(
-                        onTap: isLoading.value
-                            ? null
-                            : () async {
-                                try {
-                                  isLoading.value = true;
-                                  errorMessage.value = null;
-
-                                  context
-                                      .read<PortalBloc>()
-                                      .add(PortalAuthorizeEvent(context));
-                                } finally {
-                                  isLoading.value = false;
-                                }
-                              },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: context.appColors.contrastLight,
-                              width: 1,
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: isLoading.value
-                              ? SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: context.appColors.contrastLight,
-                                  ),
-                                )
-                              : Text(
-                                  '[ Connect Wallet ]',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: context.appColors.contrastLight,
-                                  ),
-                                ),
-                        ),
-                      ),
-                      if (errorMessage.value != null) ...[
-                        const SizedBox(height: 16),
-                        Text(
-                          errorMessage.value!,
-                          style: TextStyle(
-                            color: Colors.red[300],
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
+      child: BlocListener<PortalBloc, PortalState>(
+        listener: (context, state) {
+          if (state.user != null) {
+            context.go(home);
+          }
         },
+        child: BlocBuilder<PortalBloc, PortalState>(
+          builder: (context, state) {
+            return Scaffold(
+              backgroundColor: context.appColors.contrastDark,
+              body: Stack(
+                children: [
+                  Image.asset(
+                    'assets/background/logo.png',
+                    height: 200,
+                    fit: BoxFit.cover,
+                  ),
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: isLoading.value
+                              ? null
+                              : () async {
+                                  try {
+                                    isLoading.value = true;
+                                    errorMessage.value = null;
+
+                                    context
+                                        .read<PortalBloc>()
+                                        .add(PortalAuthorizeEvent(context));
+                                  } finally {
+                                    isLoading.value = false;
+                                  }
+                                },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: context.appColors.contrastLight,
+                                width: 1,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: isLoading.value
+                                ? SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: context.appColors.contrastLight,
+                                    ),
+                                  )
+                                : Text(
+                                    '[ Create Wallet ]',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: context.appColors.contrastLight,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        if (errorMessage.value != null) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            errorMessage.value!,
+                            style: TextStyle(
+                              color: Colors.red[300],
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }

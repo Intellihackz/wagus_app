@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:meta/meta.dart';
 import 'package:flutter/material.dart';
+import 'package:privy_flutter/privy_flutter.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
 
 part 'portal_event.dart';
@@ -13,7 +14,9 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     on<PortalInitialEvent>(_onPortalInitialEvent);
 
     on<PortalAuthorizeEvent>((event, emit) async {
-      await portalRepository.connect(event.context);
+      final user = await portalRepository.connect();
+
+      emit(state.copyWith(user: () => user));
     });
   }
 
