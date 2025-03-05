@@ -65,7 +65,6 @@ class PrivyService {
 
       result.fold(
         onSuccess: (user) {
-
           // User authenticated successfully
           debugPrint('User authenticated successfully: ${user.id}');
           if (context.mounted) {
@@ -86,6 +85,7 @@ class PrivyService {
   Future<bool> logout() async {
     try {
       await privy.logout();
+      _isInitialized = false;
       return true;
     } catch (e) {
       debugPrint('Error logging out: $e');

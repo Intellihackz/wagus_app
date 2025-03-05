@@ -42,7 +42,10 @@ class App extends StatelessWidget {
           extensions: <ThemeExtension<dynamic>>[
             AppColors(),
           ],
-          textTheme: GoogleFonts.pressStart2pTextTheme(),
+          textTheme: GoogleFonts.pressStart2pTextTheme().apply(
+            bodyColor: AppPalette.contrastLight,
+            displayColor: AppPalette.contrastLight,
+          ),
         ),
         routerConfig: appRouter,
       ),

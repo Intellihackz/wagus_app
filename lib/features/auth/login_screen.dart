@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:go_router/go_router.dart';
-import 'package:wagus/router.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/theme/app_palette.dart';
 
@@ -23,7 +21,7 @@ class LoginScreen extends HookWidget {
           // Background image
           Positioned.fill(
             child: Image.asset(
-              'assets/background/logo.png',
+              'assets/icons/logo.png',
               fit: BoxFit.cover,
               opacity: const AlwaysStoppedAnimation(0.3),
             ),
@@ -71,8 +69,8 @@ class LoginScreen extends HookWidget {
                           hintStyle:
                               TextStyle(color: context.appColors.slightlyGrey),
                           filled: true,
-                          fillColor:
-                              context.appColors.contrastDark.withOpacity(0.7),
+                          fillColor: context.appColors.contrastDark
+                              .withValues(alpha: 0.7),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide(
@@ -109,8 +107,8 @@ class LoginScreen extends HookWidget {
                           hintStyle:
                               TextStyle(color: context.appColors.slightlyGrey),
                           filled: true,
-                          fillColor:
-                              context.appColors.contrastDark.withOpacity(0.7),
+                          fillColor: context.appColors.contrastDark
+                              .withValues(alpha: 0.7),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide(

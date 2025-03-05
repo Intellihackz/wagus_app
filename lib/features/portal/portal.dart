@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/router.dart';
-import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/theme/app_palette.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
@@ -16,18 +15,15 @@ class Portal extends HookWidget {
     final isLoading = useState(false);
     final errorMessage = useState<String?>(null);
 
-    // Check if user is authenticated
-    if (!PrivyService().isAuthenticated() && context.mounted) {
-      context.go(login);
-    }
-
     return RepositoryProvider(
       create: (context) => PortalRepository(),
       child: BlocListener<PortalBloc, PortalState>(
         listener: (context, state) {
-          if (state.user != null) {
-            context.go(home);
-          }
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (state.user != null && context.mounted) {
+              context.go(home);
+            }
+          });
         },
         child: BlocBuilder<PortalBloc, PortalState>(
           builder: (context, state) {
