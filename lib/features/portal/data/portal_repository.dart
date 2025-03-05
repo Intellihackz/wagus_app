@@ -15,8 +15,12 @@ class PortalRepository {
     try {
       final user = _privyService.privy.user;
       if (user != null) {
+        var solanaWallet = user.embeddedSolanaWallets;
+        if(solanaWallet.isNotEmpty){
+          debugPrint('Solana wallet already exists');
+          return;
+        }
         final walletResult = await user.createSolanaWallet();
-
         return walletResult.fold(
           onSuccess: (wallet) {
             print(wallet);
