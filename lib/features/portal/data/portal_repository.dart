@@ -7,7 +7,11 @@ class PortalRepository {
   PortalRepository();
   final _privyService = PrivyService();
 
-  Future<void> init() async {}
+  Future<PrivyUser?> init() async {
+    final user = await PrivyService().initialize();
+
+    return user;
+  }
 
   Future<PrivyUser?> connect() async {
     try {

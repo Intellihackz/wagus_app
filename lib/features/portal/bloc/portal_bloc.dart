@@ -25,9 +25,9 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     Emitter<PortalState> emit,
   ) async {
     // Initialize portal
-    await portalRepository.init();
+    final user = await portalRepository.init();
 
     // You can add more initialization logic here
-    emit(state.copyWith(holdersCount: 1000)); // Example data
+    emit(state.copyWith(holdersCount: 1000, user: () => user));
   }
 }

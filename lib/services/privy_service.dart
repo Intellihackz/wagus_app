@@ -17,8 +17,8 @@ class PrivyService {
   // Private constructor
   PrivyService._internal();
 
-  Future<void> initialize() async {
-    if (_isInitialized) return;
+  Future<PrivyUser?> initialize() async {
+    if (_isInitialized) return privy.user;
 
     final privyConfig = PrivyConfig(
       appId: dotenv.env['PRIVY_APP_ID'] ?? '',
@@ -29,6 +29,8 @@ class PrivyService {
     privy = Privy.init(config: privyConfig);
     await privy.awaitReady();
     _isInitialized = true;
+
+    return privy.user;
   }
 
   // Check if user is authenticated
