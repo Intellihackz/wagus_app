@@ -7,28 +7,28 @@ WAGUS is designed to create a balanced and sustainable token ecosystem that rewa
 The total supply will be manually distributed across different allocations, ensuring stability and long-term growth while maintaining fairness between public investors and internal stakeholders.
 
 ## 2. Token Allocation
-To maintain fairness and avoid insider dominance, we have adjusted the distribution to ensure a more balanced **50% public / 50% internal allocation**.
+To maintain fairness and avoid insider dominance, we have adjusted the distribution to reflect a **30% allocation to the team** while ensuring a sustainable structure for the ecosystem.
 
 | **Category**               | **Percentage** | **Token Amount**  | **Vesting/Release Schedule** |
 |---------------------------|--------------|----------------|--------------------------------|
-| **Public Sale & Liquidity** | 50%          | 500,000,000    | Fully unlocked at launch, liquidity pool partially locked |
-| **Team & Advisors**       | 10%          | 100,000,000    | 1-year cliff, then 10% unlock per quarter via Streamflow |
-| **Rewards & Staking**     | 25%          | 250,000,000    | Gradually distributed as staking incentives |
+| **Public Sale & Liquidity** | 35%          | 350,000,000    | Fully unlocked at launch, liquidity pool partially locked |
+| **Team & Advisors**       | 30%          | 300,000,000    | 1-year cliff, then 10% unlock per quarter via Streamflow |
+| **Rewards & Staking**     | 20%          | 200,000,000    | Gradually distributed as staking incentives |
 | **Marketing & Growth**    | 7.5%         | 75,000,000     | Monthly controlled releases based on growth milestones |
 | **Treasury & Buybacks**   | 7.5%         | 75,000,000     | DAO-governed releases for ecosystem development |
 
 ## 3. Ensuring Fairness & Long-Term Sustainability
 To maintain a fair and trustable tokenomics model, the following measures are in place:
 
-- **Public Sale & Liquidity (50%)**: A higher allocation ensures that the majority of tokens are available for public investors, reducing insider control.
-- **Team & Advisor Vesting (10%)**: To prevent early dumps, team tokens will have a **1-year cliff** followed by **gradual 10% unlocks per quarter** via **Streamflow Finance**.
-- **Staking Rewards (25%)**: These tokens are not controlled by the team but **distributed to public stakers over time**.
+- **Public Sale & Liquidity (35%)**: Ensures that a significant portion of tokens is available for public investors while balancing team allocation.
+- **Team & Advisor Vesting (30%)**: To prevent early dumps, team tokens will have a **1-year cliff** followed by **gradual 10% unlocks per quarter** via **Streamflow Finance**.
+- **Staking Rewards (20%)**: These tokens are not controlled by the team but **distributed to public stakers over time**.
 - **Marketing & Treasury (15%)**: These funds will be strategically released based on milestones and managed transparently through **DAO governance**.
 
 ## 4. Incentives for Holding & Participation
 We will implement a variety of incentives to encourage long-term participation:
 
-### 1. Staking Rewards (25% of Supply)
+### 1. Staking Rewards (20% of Supply)
 - Users who stake tokens will earn rewards based on their staking duration.
 - Higher APY for **long-term stakers**.
 - Staking rewards are released in a controlled manner to prevent inflation.
@@ -43,5 +43,5 @@ We will implement a variety of incentives to encourage long-term participation:
 
 ## 5. Graphical Representation
 Below is a **visual breakdown** of the token allocation:
-![output](https://github.com/user-attachments/assets/e3f30c8c-0e70-4e19-a50a-661b8494a318)
+![tokenomics](https://github.com/user-attachments/assets/119a19ca-e7d7-44d4-8863-9761cdd35d25)
 
