@@ -1,8 +1,7 @@
-import 'dart:math';
-
 import 'package:bloc/bloc.dart';
 import 'package:meta/meta.dart';
 import 'package:wagus/features/home/data/home_repository.dart';
+import 'package:wagus/shared/holder/holder.dart';
 import 'package:wagus/shared/transaction/transaction.dart';
 
 part 'home_event.dart';
@@ -17,44 +16,81 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         groupedTransactions: [
           [
             Transaction(
-                asset: 'assets/background/large_holder.png',
-                amount: Random().nextDouble() * 1000),
+              holder: Holder(
+                holderType: HolderType.plankton,
+                holdings: 0.15,
+              ),
+              amount: 0.15,
+            ),
             Transaction(
-                asset: 'assets/background/large_holder.png',
-                amount: Random().nextDouble() * 1000),
+              holder: Holder(
+                holderType: HolderType.plankton,
+                holdings: 0.30,
+              ),
+              amount: 0.30,
+            ),
             Transaction(
-                asset: 'assets/background/large_holder.png',
-                amount: Random().nextDouble() * 1000),
+              holder: Holder(
+                holderType: HolderType.shark,
+                holdings: 412.45,
+              ),
+              amount: 146.78,
+            ),
           ],
           [
             Transaction(
-                asset: 'assets/background/large_holder.png',
-                amount: Random().nextDouble() * 1000),
+              holder: Holder(
+                holderType: HolderType.shark,
+                holdings: 620.00,
+              ),
+              amount: 219.85,
+            ),
             Transaction(
-                asset: 'assets/background/large_holder.png',
-                amount: Random().nextDouble() * 1000),
+              holder: Holder(
+                holderType: HolderType.whale,
+                holdings: 1023.88,
+              ),
+              amount: 404.31,
+            ),
             Transaction(
-                asset: 'assets/background/large_holder.png',
-                amount: Random().nextDouble() * 1000),
+              holder: Holder(
+                holderType: HolderType.whale,
+                holdings: 950.67,
+              ),
+              amount: 378.92,
+            ),
           ],
           [
             Transaction(
-                asset: 'assets/background/large_holder.png',
-                amount: Random().nextDouble() * 1000),
+              holder: Holder(
+                holderType: HolderType.plankton,
+                holdings: 0.05,
+              ),
+              amount: 0.05,
+            ),
             Transaction(
-                asset: 'assets/background/large_holder.png',
-                amount: Random().nextDouble() * 1000),
+              holder: Holder(
+                holderType: HolderType.shark,
+                holdings: 529.88,
+              ),
+              amount: 183.45,
+            ),
             Transaction(
-                asset: 'assets/background/large_holder.png',
-                amount: Random().nextDouble() * 1000),
+              holder: Holder(
+                holderType: HolderType.whale,
+                holdings: 1200.00,
+              ),
+              amount: 500.12,
+            ),
           ],
           [
             Transaction(
-                asset: 'assets/background/large_holder.png',
-                amount: Random().nextDouble() * 1000),
-            Transaction(
-                asset: 'assets/background/large_holder.png',
-                amount: Random().nextDouble() * 1000),
+              holder: Holder(
+                holderType: HolderType.whale,
+                holdings: 1105.55,
+              ),
+              amount: 450.89,
+            ),
           ]
         ],
       ));

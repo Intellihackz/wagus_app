@@ -48,10 +48,13 @@ class Wagus extends HookWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Holders: ${state.holdersCount}',
-                            style: TextStyle(
-                                color: context.appColors.contrastLight),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: Text(
+                              'Holders: ${state.holdersCount}',
+                              style: TextStyle(
+                                  color: context.appColors.contrastLight),
+                            ),
                           ),
                           TextButton(
                             onPressed: () async {

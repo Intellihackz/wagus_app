@@ -22,7 +22,7 @@ class Home extends HookWidget {
               GestureDetector(
                 child: Container(
                   alignment: Alignment.topCenter,
-                  margin: EdgeInsets.only(top: 64),
+                  margin: EdgeInsets.only(top: 32),
                   width: double.infinity,
                   child: CarouselSlider(
                     carouselController: carouselController,
@@ -40,13 +40,16 @@ class Home extends HookWidget {
                                   child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Image.asset(transaction.asset,
-                                      height: 100, fit: BoxFit.cover),
+                                  Image.asset(
+                                      transaction.holder.holderType.asset,
+                                      height: 50,
+                                      fit: BoxFit.cover),
                                   Text(
-                                    transaction.amount.toStringAsFixed(2),
+                                    '\$ ${transaction.amount.toStringAsFixed(2)}',
                                     style: TextStyle(
-                                        color: AppPalette.contrastLight,
-                                        fontSize: 12),
+                                      color: AppPalette.contrastLight,
+                                      fontSize: 10,
+                                    ),
                                   ),
                                 ],
                               ));
@@ -112,7 +115,11 @@ class Home extends HookWidget {
                           ),
                           suffixIcon: GestureDetector(
                             onTap: () {
-                              // Handle message sending
+                              context.read<ChatBloc>().add(ChatSendMessageEvent(
+                                  message: inputController.text));
+
+                              inputController.clear();
+                              FocusScope.of(context).unfocus();
                             },
                             child: Icon(
                               Icons.send,
