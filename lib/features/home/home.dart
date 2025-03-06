@@ -121,7 +121,7 @@ class Home extends HookWidget {
                                       .toList(),
                                 ),
                                 Text(
-                                  'You have ${snapshot.data!.tokenAmount} tokens',
+                                  'You have ${snapshot.data!.tokenAmount} \$WAGUS tokens',
                                   style: TextStyle(
                                     color: AppPalette.contrastLight,
                                     fontSize: 12,

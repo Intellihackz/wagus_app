@@ -33,12 +33,10 @@ class Rewards extends StatelessWidget {
                 ),
               ),
             ),
-            Expanded(
-              child: Image.asset(
-                'assets/background/rewards_logo.png',
-                height: 200,
-                fit: BoxFit.cover,
-              ),
+            Image.asset(
+              'assets/background/rewards_logo.png',
+              height: 200,
+              fit: BoxFit.cover,
             ),
             Expanded(
               child: Padding(
@@ -52,6 +50,7 @@ class Rewards extends StatelessWidget {
                     Text('2. Earn rewards in real time'),
                     Text('3. Rewards are distributed every 5 minutes'),
                     Text('4. Rewards are in \$WAGUS'),
+                    Text('5. Claim your rewards anytime'),
                   ],
                 ),
               ),
