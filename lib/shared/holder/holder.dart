@@ -1,19 +1,23 @@
 class Holder {
   final HolderType holderType;
   final double holdings;
+  final int tokenAmount;
 
   Holder({
     required this.holderType,
     required this.holdings,
+    required this.tokenAmount,
   });
 
   Holder copyWith({
     HolderType? holderType,
     double? holdings,
+    int? tokenAmount,
   }) {
     return Holder(
       holderType: holderType ?? this.holderType,
       holdings: holdings ?? this.holdings,
+      tokenAmount: tokenAmount ?? this.tokenAmount,
     );
   }
 }

@@ -19,6 +19,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               holder: Holder(
                 holderType: HolderType.plankton,
                 holdings: 0.15,
+                tokenAmount: 0,
               ),
               amount: 0.15,
             ),
@@ -26,6 +27,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               holder: Holder(
                 holderType: HolderType.plankton,
                 holdings: 0.30,
+                tokenAmount: 0,
               ),
               amount: 0.30,
             ),
@@ -33,6 +35,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               holder: Holder(
                 holderType: HolderType.shark,
                 holdings: 412.45,
+                tokenAmount: 0,
               ),
               amount: 146.78,
             ),
@@ -42,6 +45,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               holder: Holder(
                 holderType: HolderType.shark,
                 holdings: 620.00,
+                tokenAmount: 0,
               ),
               amount: 219.85,
             ),
@@ -49,6 +53,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               holder: Holder(
                 holderType: HolderType.whale,
                 holdings: 1023.88,
+                tokenAmount: 0,
               ),
               amount: 404.31,
             ),
@@ -56,6 +61,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               holder: Holder(
                 holderType: HolderType.whale,
                 holdings: 950.67,
+                tokenAmount: 0,
               ),
               amount: 378.92,
             ),
@@ -65,6 +71,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               holder: Holder(
                 holderType: HolderType.plankton,
                 holdings: 0.05,
+                tokenAmount: 0,
               ),
               amount: 0.05,
             ),
@@ -72,6 +79,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               holder: Holder(
                 holderType: HolderType.shark,
                 holdings: 529.88,
+                tokenAmount: 0,
               ),
               amount: 183.45,
             ),
@@ -79,6 +87,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               holder: Holder(
                 holderType: HolderType.whale,
                 holdings: 1200.00,
+                tokenAmount: 0,
               ),
               amount: 500.12,
             ),
@@ -88,6 +97,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               holder: Holder(
                 holderType: HolderType.whale,
                 holdings: 1105.55,
+                tokenAmount: 0,
               ),
               amount: 450.89,
             ),
