@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:wagus/features/ai/bloc/ai_bloc.dart';
+import 'package:wagus/features/ai/data/ai_repository.dart';
 import 'package:wagus/features/home/bloc/home_bloc.dart';
 import 'package:wagus/features/home/chat/bloc/chat_bloc.dart';
 import 'package:wagus/features/home/chat/data/chat_repository.dart';
@@ -33,7 +35,10 @@ class App extends StatelessWidget {
         ),
         BlocProvider(
           create: (_) => LotteryBloc(lotteryRepository: LotteryRepository()),
-        )
+        ),
+        BlocProvider(
+          create: (_) => AiBloc(repository: AIRepository()),
+        ),
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,

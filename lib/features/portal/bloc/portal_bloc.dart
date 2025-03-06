@@ -33,7 +33,7 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     }
 
     emit(state.copyWith(
-        holdersCount: 1000, user: () => user, holder: () => holder));
+        holdersCount: 238, user: () => user, holder: () => holder));
   }
 
   Future<Holder> getTokenAccounts(String address) async {

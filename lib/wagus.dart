@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
-import 'package:wagus/features/betting/betting.dart';
+import 'package:wagus/features/ai/ai.dart';
 import 'package:wagus/features/home/home.dart';
 import 'package:wagus/features/lottery/lottery.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
@@ -35,7 +35,7 @@ class Wagus extends HookWidget {
                   },
                   children: const [
                     Home(),
-                    Betting(),
+                    AI(),
                     Lottery(),
                     Rewards(),
                   ],
@@ -100,9 +100,10 @@ class Wagus extends HookWidget {
                     icon: Icon(Icons.home),
                     label: 'Home',
                   ),
+                  // dot connection icon
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.emoji_events),
-                    label: 'Betting',
+                    icon: Icon(Icons.analytics),
+                    label: 'Analysis',
                   ),
                   BottomNavigationBarItem(
                     icon: Icon(Icons.casino),
