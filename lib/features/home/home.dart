@@ -9,6 +9,7 @@ import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/shared/holder/holder.dart';
 import 'package:wagus/theme/app_palette.dart';
 import 'package:solana_web3/solana_web3.dart' as web3;
+import 'package:wagus/features/home/chat/domain/message.dart' as chat;
 
 class Home extends HookWidget {
   const Home({super.key});
@@ -154,7 +155,7 @@ class Home extends HookWidget {
                               children: [
                                 Expanded(
                                   child: BlocSelector<ChatBloc, ChatState,
-                                      List<String>>(
+                                      List<chat.Message>>(
                                     selector: (state) {
                                       return state.messages;
                                     },
@@ -163,12 +164,35 @@ class Home extends HookWidget {
                                         reverse: true,
                                         itemCount: messages.length,
                                         itemBuilder: (context, index) {
-                                          return Text(
-                                            messages[index],
-                                            style: TextStyle(
-                                              color: AppPalette.contrastLight,
-                                              fontSize: 12,
-                                            ),
+                                          return Row(
+                                            mainAxisAlignment: messages[index]
+                                                        .sender ==
+                                                    portalState
+                                                        .user!
+                                                        .embeddedSolanaWallets
+                                                        .first
+                                                        .address
+                                                ? MainAxisAlignment.end
+                                                : MainAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '[${messages[index].sender.substring(0, 3)}..${messages[index].sender.substring(messages[index].sender.length - 3)}]',
+                                                style: TextStyle(
+                                                  color:
+                                                      AppPalette.contrastLight,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                messages[index].message,
+                                                style: TextStyle(
+                                                  color:
+                                                      AppPalette.contrastLight,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
                                           );
                                         },
                                       );
@@ -197,8 +221,17 @@ class Home extends HookWidget {
                                     suffixIcon: GestureDetector(
                                       onTap: () {
                                         context.read<ChatBloc>().add(
-                                            ChatSendMessageEvent(
-                                                message: inputController.text));
+                                              ChatSendMessageEvent(
+                                                message: chat.Message(
+                                                  message: inputController.text,
+                                                  sender: portalState
+                                                      .user!
+                                                      .embeddedSolanaWallets
+                                                      .first
+                                                      .address,
+                                                ),
+                                              ),
+                                            );
 
                                         inputController.clear();
                                         FocusScope.of(context).unfocus();

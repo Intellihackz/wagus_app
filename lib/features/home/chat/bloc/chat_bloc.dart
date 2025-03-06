@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:meta/meta.dart';
 import 'package:wagus/features/home/chat/data/chat_repository.dart';
+import 'package:wagus/features/home/chat/domain/message.dart';
 
 part 'chat_event.dart';
 part 'chat_state.dart';
@@ -21,7 +22,12 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
             .cast<Map<String, dynamic>>();
 
         return state.copyWith(
-          messages: messages.map((e) => e['message'] as String).toList(),
+          messages: messages
+              .map((message) => Message(
+                    message: message['message'],
+                    sender: message['sender'],
+                  ))
+              .toList(),
         );
       });
     });

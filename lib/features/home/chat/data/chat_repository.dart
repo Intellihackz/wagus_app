@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:wagus/features/home/chat/domain/message.dart';
 
 class ChatRepository {
   final chatCollection = FirebaseFirestore.instance.collection('chat');
@@ -9,10 +10,11 @@ class ChatRepository {
     return chatCollection.orderBy('timestamp', descending: true).snapshots();
   }
 
-  Future<void> sendMessage(String message) async {
+  Future<void> sendMessage(Message message) async {
     try {
       await chatCollection.add({
-        'message': message,
+        'message': message.message,
+        'sender': message.sender,
         'timestamp': FieldValue.serverTimestamp(),
       });
     } catch (e) {
