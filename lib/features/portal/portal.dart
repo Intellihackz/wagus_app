@@ -32,7 +32,7 @@ class Portal extends HookWidget {
               body: Stack(
                 children: [
                   Image.asset(
-                    'assets/icons/logo.png',
+                    'assets/icons/logo_text.png',
                     height: 200,
                     fit: BoxFit.cover,
                   ),

@@ -31,7 +31,7 @@ class LoginScreen extends HookWidget {
             // Background image
             Positioned.fill(
               child: Image.asset(
-                'assets/icons/logo.png',
+                'assets/icons/logo_text.png',
                 fit: BoxFit.cover,
                 opacity: const AlwaysStoppedAnimation(0.3),
               ),

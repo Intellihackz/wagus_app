@@ -7,7 +7,6 @@ class Betting extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Initializing bet information
     final betAmount = useState<int>(0);
     final selectedBet = useState<String>('');
 
@@ -23,11 +22,9 @@ class Betting extends HookWidget {
                 child: Column(
                   spacing: 12.0,
                   children: [
-                    // Bet Question
                     Text('Bet:'),
                     Text('Who will win the World Series?'),
                     SizedBox(height: 10),
-                    // Betting options with odds
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
@@ -119,19 +116,24 @@ class Betting extends HookWidget {
                                             onPressed: () {
                                               Navigator.of(context).pop();
                                             },
-                                            child: Text('OK',
-                                                style: TextStyle(
-                                                    color: context.appColors
-                                                        .contrastDark)),
+                                            child: Text(
+                                              'OK',
+                                              style: TextStyle(
+                                                  color: context
+                                                      .appColors.contrastDark),
+                                            ),
                                           ),
                                         ],
                                       );
                                     },
                                   );
                                 },
-                                child: Text('Confirm',
-                                    style: TextStyle(
-                                        color: context.appColors.contrastDark)),
+                                child: Text(
+                                  'Confirm',
+                                  style: TextStyle(
+                                    color: context.appColors.contrastDark,
+                                  ),
+                                ),
                               ),
                             ],
                           );

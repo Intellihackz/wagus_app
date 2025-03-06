@@ -5,6 +5,8 @@ import 'package:wagus/features/home/bloc/home_bloc.dart';
 import 'package:wagus/features/home/chat/bloc/chat_bloc.dart';
 import 'package:wagus/features/home/chat/data/chat_repository.dart';
 import 'package:wagus/features/home/data/home_repository.dart';
+import 'package:wagus/features/lottery/bloc/lottery_bloc.dart';
+import 'package:wagus/features/lottery/data/lottery_repository.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/router.dart';
@@ -29,6 +31,9 @@ class App extends StatelessWidget {
           create: (_) => ChatBloc(chatRepository: ChatRepository())
             ..add(ChatInitialEvent()),
         ),
+        BlocProvider(
+          create: (_) => LotteryBloc(lotteryRepository: LotteryRepository()),
+        )
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
