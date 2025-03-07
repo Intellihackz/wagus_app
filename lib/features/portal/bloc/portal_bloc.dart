@@ -28,12 +28,14 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
   ) async {
     final user = await portalRepository.init();
     Holder? holder;
+    int? holdersCount;
     if (user != null) {
       holder = await getTokenAccounts(user.embeddedSolanaWallets.first.address);
+      holdersCount = await portalRepository.getHoldersCount();
     }
 
     emit(state.copyWith(
-        holdersCount: 238, user: () => user, holder: () => holder));
+        holdersCount: holdersCount, user: () => user, holder: () => holder));
   }
 
   Future<Holder> getTokenAccounts(String address) async {
