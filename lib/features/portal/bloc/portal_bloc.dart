@@ -62,7 +62,7 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       return Holder(
         holderType: HolderType.shrimp,
         holdings: tokensInSol,
-        tokenAmount: int.parse(tokenAccountBalance.uiAmountString),
+        tokenAmount: double.parse(tokenAccountBalance.uiAmountString),
       );
     } catch (e) {
       return Holder(

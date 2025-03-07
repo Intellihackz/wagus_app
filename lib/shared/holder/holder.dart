@@ -1,7 +1,7 @@
 class Holder {
   final HolderType holderType;
   final double holdings;
-  final int tokenAmount;
+  final double tokenAmount;
 
   Holder({
     required this.holderType,
@@ -12,7 +12,7 @@ class Holder {
   Holder copyWith({
     HolderType? holderType,
     double? holdings,
-    int? tokenAmount,
+    double? tokenAmount,
   }) {
     return Holder(
       holderType: holderType ?? this.holderType,

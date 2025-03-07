@@ -66,19 +66,23 @@ class Home extends HookWidget {
                                     }).toList()))
                                 .toList(),
                           ),
-                          Text(
-                            'You have ${portalState.holder?.tokenAmount ?? 0} \$WAGUS tokens',
-                            style: TextStyle(
-                              color: AppPalette.contrastLight,
-                              fontSize: 12,
-                            ),
-                          ),
-                          Text(
-                              'That is worth ${portalState.holder?.holdings.toStringAsFixed(3) ?? 0} SOL',
+                          Center(
+                            child: Text(
+                              'You have ${portalState.holder?.tokenAmount.toStringAsFixed(2) ?? 0} \$WAGUS tokens',
                               style: TextStyle(
                                 color: AppPalette.contrastLight,
                                 fontSize: 12,
-                              )),
+                              ),
+                            ),
+                          ),
+                          Center(
+                            child: Text(
+                                'That is worth ${portalState.holder?.holdings ?? 0} SOL',
+                                style: TextStyle(
+                                  color: AppPalette.contrastLight,
+                                  fontSize: 12,
+                                )),
+                          ),
                         ],
                       ),
                     ),
