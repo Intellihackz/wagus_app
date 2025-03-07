@@ -22,8 +22,7 @@ class App extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<HomeBloc>(
-          create: (_) => HomeBloc(homeRepository: HomeRepository())
-            ..add(HomeInitialEvent()),
+          create: (_) => HomeBloc(homeRepository: HomeRepository()),
         ),
         BlocProvider<PortalBloc>(
           create: (_) => PortalBloc(portalRepository: PortalRepository())

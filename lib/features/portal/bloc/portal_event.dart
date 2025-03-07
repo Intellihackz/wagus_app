@@ -10,3 +10,5 @@ class PortalAuthorizeEvent extends PortalEvent {
 
   PortalAuthorizeEvent(this.context);
 }
+
+class PortalGetTransactionsEvent extends PortalEvent {}

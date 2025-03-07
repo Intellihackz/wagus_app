@@ -16,6 +16,12 @@ class Home extends HookWidget {
     final inputController = useTextEditingController();
     final carouselController = CarouselSliderController();
 
+    useEffect(() {
+      context.read<PortalBloc>().add(PortalGetTransactionsEvent());
+
+      return null;
+    }, []);
+
     return BlocBuilder<PortalBloc, PortalState>(
       builder: (context, portalState) {
         return BlocBuilder<HomeBloc, HomeState>(
@@ -40,7 +46,7 @@ class Home extends HookWidget {
                                   Duration(milliseconds: 1000),
                               viewportFraction: 1,
                             ),
-                            items: state.groupedTransactions
+                            items: portalState.groupedTransactions
                                 .map((transactions) => Row(
                                         children:
                                             transactions.map((transaction) {
@@ -55,7 +61,7 @@ class Home extends HookWidget {
                                               height: 50,
                                               fit: BoxFit.cover),
                                           Text(
-                                            '\$ ${transaction.amount.toStringAsFixed(2)}',
+                                            '${transaction.amount.toStringAsFixed(5)} SOL',
                                             style: TextStyle(
                                               color: AppPalette.contrastLight,
                                               fontSize: 10,
