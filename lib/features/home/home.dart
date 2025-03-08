@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:wagus/features/home/bloc/home_bloc.dart';
-import 'package:wagus/features/home/chat/bloc/chat_bloc.dart';
+import 'package:wagus/features/home/domain/message.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/theme/app_palette.dart';
-import 'package:wagus/features/home/chat/domain/message.dart' as chat;
 
 class Home extends HookWidget {
   const Home({super.key});
@@ -13,19 +12,11 @@ class Home extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final inputController = useTextEditingController();
-    //final carouselController = CarouselSliderController();
-
-    useEffect(() {
-      // commented out to avoid multiple calls
-      // context.read<PortalBloc>().add(PortalGetTransactionsEvent());
-
-      return null;
-    }, []);
 
     return BlocBuilder<PortalBloc, PortalState>(
       builder: (context, portalState) {
         return BlocBuilder<HomeBloc, HomeState>(
-          builder: (context, state) {
+          builder: (context, homeState) {
             return Scaffold(
               body: Stack(
                 children: [
@@ -38,42 +29,6 @@ class Home extends HookWidget {
                         padding: const EdgeInsets.only(top: 128.0),
                         child: Column(
                           children: [
-                            // CarouselSlider(
-                            //   carouselController: carouselController,
-                            //   options: CarouselOptions(
-                            //     autoPlay: true,
-                            //     enableInfiniteScroll: true,
-                            //     autoPlayInterval: Duration(milliseconds: 100),
-                            //     autoPlayAnimationDuration:
-                            //         Duration(milliseconds: 1000),
-                            //     viewportFraction: 1,
-                            //   ),
-                            //   items: portalState.groupedTransactions
-                            //       .map((transactions) => Row(
-                            //               children:
-                            //                   transactions.map((transaction) {
-                            //             return Expanded(
-                            //                 child: Column(
-                            //               mainAxisAlignment:
-                            //                   MainAxisAlignment.center,
-                            //               children: [
-                            //                 Image.asset(
-                            //                     transaction
-                            //                         .holder.holderType.asset,
-                            //                     height: 50,
-                            //                     fit: BoxFit.cover),
-                            //                 Text(
-                            //                   '${transaction.amount.toStringAsFixed(5)} SOL',
-                            //                   style: TextStyle(
-                            //                     color: AppPalette.contrastLight,
-                            //                     fontSize: 10,
-                            //                   ),
-                            //                 ),
-                            //               ],
-                            //             ));
-                            //           }).toList()))
-                            //       .toList(),
-                            // ),
                             Center(
                               child: Text(
                                 'You have ${portalState.holder?.tokenAmount.toStringAsFixed(2) ?? 0} \$WAGUS tokens',
@@ -112,49 +67,40 @@ class Home extends HookWidget {
                       child: Column(
                         children: [
                           Expanded(
-                            child: BlocSelector<ChatBloc, ChatState,
-                                List<chat.Message>>(
-                              selector: (state) {
-                                return state.messages;
-                              },
-                              builder: (context, messages) {
-                                return ListView.builder(
-                                  reverse: true,
-                                  itemCount: messages.length,
-                                  itemBuilder: (context, index) {
-                                    return Row(
-                                      mainAxisAlignment:
-                                          messages[index].sender ==
-                                                  portalState
-                                                      .user!
-                                                      .embeddedSolanaWallets
-                                                      .first
-                                                      .address
-                                              ? MainAxisAlignment.end
-                                              : MainAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          '[${messages[index].sender.substring(0, 3)}..${messages[index].sender.substring(messages[index].sender.length - 3)}]',
-                                          style: TextStyle(
-                                            color: AppPalette.contrastLight,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          messages[index].message,
-                                          style: TextStyle(
-                                            color: AppPalette.contrastLight,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                          ),
+                              child: ListView.builder(
+                            reverse: true,
+                            itemCount: homeState.messages.length,
+                            itemBuilder: (context, index) {
+                              return Row(
+                                mainAxisAlignment:
+                                    homeState.messages[index].sender ==
+                                            portalState
+                                                .user!
+                                                .embeddedSolanaWallets
+                                                .first
+                                                .address
+                                        ? MainAxisAlignment.end
+                                        : MainAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '[${homeState.messages[index].sender.substring(0, 3)}..${homeState.messages[index].sender.substring(homeState.messages[index].sender.length - 3)}]',
+                                    style: TextStyle(
+                                      color: AppPalette.contrastLight,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    homeState.messages[index].message,
+                                    style: TextStyle(
+                                      color: AppPalette.contrastLight,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          )),
                           TextField(
                             controller: inputController,
                             onTapOutside: (_) =>
@@ -176,9 +122,9 @@ class Home extends HookWidget {
                               ),
                               suffixIcon: GestureDetector(
                                 onTap: () {
-                                  context.read<ChatBloc>().add(
-                                        ChatSendMessageEvent(
-                                          message: chat.Message(
+                                  context.read<HomeBloc>().add(
+                                        HomeSendMessageEvent(
+                                          message: Message(
                                             message: inputController.text,
                                             sender: portalState
                                                 .user!

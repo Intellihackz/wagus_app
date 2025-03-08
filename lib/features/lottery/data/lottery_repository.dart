@@ -1,7 +1,8 @@
 import 'dart:convert';
+
+import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_wallet.dart';
 import 'package:solana_web3/programs.dart';
 import 'package:solana_web3/solana_web3.dart' as web3;
-import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_wallet.dart';
 
 class LotteryRepository {
   Future<void> addToPool({
@@ -13,27 +14,46 @@ class LotteryRepository {
     final blockHash = await connection.getLatestBlockhash();
 
     const int hardcodedDecimals = 9;
-    int decimals = hardcodedDecimals;
+    final amountInUnits = _calculateAmountInUnits(amount, hardcodedDecimals);
 
-    final BigInt amountInUnits =
-        BigInt.from(amount) * BigInt.from(10).pow(decimals);
+    final transaction =
+        _createTransaction(wallet, blockHash.blockhash, amountInUnits);
 
-    // Create the transaction
-    final transaction = web3.Transaction.v0(
-      payer: web3.Pubkey.fromBase58(wallet.address),
-      recentBlockhash: blockHash.blockhash,
+    await _signAndSendTransaction(wallet, connection, transaction);
+  }
+
+  // Helper to calculate amount in units
+  BigInt _calculateAmountInUnits(int amount, int decimals) {
+    return BigInt.from(amount) * BigInt.from(10).pow(decimals);
+  }
+
+  // Helper to create the transaction
+  web3.Transaction _createTransaction(
+      EmbeddedSolanaWallet wallet, String blockhash, BigInt amountInUnits) {
+    return web3.Transaction.v0(
+      payer: _pubkeyFromBase58(wallet.address),
+      recentBlockhash: blockhash,
       instructions: [
         TokenProgram.transfer(
-          source: web3.Pubkey.fromBase58(
-              'Dt9wuYamKHHYtZ8SaENVFPWnd4vnpsPrxvEZhiJNdxrD'),
-          destination: web3.Pubkey.fromBase58(
-              '7XScwGzZrxogzaJjVMSC5rb5zKMpSonoFbxkEzdA7iVn'),
-          owner: web3.Pubkey.fromBase58(wallet.address),
+          source:
+              _pubkeyFromBase58('Dt9wuYamKHHYtZ8SaENVFPWnd4vnpsPrxvEZhiJNdxrD'),
+          destination:
+              _pubkeyFromBase58('7XScwGzZrxogzaJjVMSC5rb5zKMpSonoFbxkEzdA7iVn'),
+          owner: _pubkeyFromBase58(wallet.address),
           amount: amountInUnits,
         ),
       ],
     );
+  }
 
+  // Helper to extract pubkey from Base58 string
+  web3.Pubkey _pubkeyFromBase58(String address) {
+    return web3.Pubkey.fromBase58(address);
+  }
+
+  // Helper to serialize, sign, and send transaction
+  Future<void> _signAndSendTransaction(EmbeddedSolanaWallet wallet,
+      web3.Connection connection, web3.Transaction transaction) async {
     // Step 1: Get the serialized message (this is what needs to be signed)
     final messageBytes = transaction.serializeMessage().asUint8List();
     final base64Message = base64Encode(messageBytes);
@@ -49,7 +69,7 @@ class LotteryRepository {
 
           // Step 3: Add the signature to the transaction
           transaction.addSignature(
-              web3.Pubkey.fromBase58(wallet.address), signature);
+              _pubkeyFromBase58(wallet.address), signature);
 
           // Step 4: Send the signed transaction
           final txId = await connection.sendAndConfirmTransaction(transaction);

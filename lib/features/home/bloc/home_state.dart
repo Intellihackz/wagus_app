@@ -1,17 +1,17 @@
 part of 'home_bloc.dart';
 
 class HomeState {
-  final List<List<Transaction>> groupedTransactions;
+  final List<Message> messages;
 
   const HomeState({
-    required this.groupedTransactions,
+    required this.messages,
   });
 
   HomeState copyWith({
-    List<List<Transaction>>? groupedTransactions,
+    List<Message>? messages,
   }) {
     return HomeState(
-      groupedTransactions: groupedTransactions ?? this.groupedTransactions,
+      messages: messages ?? this.messages,
     );
   }
 }
