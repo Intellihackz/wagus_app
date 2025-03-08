@@ -18,7 +18,19 @@ class Wagus extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final currentPage = useState<int>(0);
+    final lastPage = useState<int>(0);
     final pageController = usePageController();
+
+    // Handle page change and actions based on current page
+    useEffect(() {
+      debugPrint('Current Page: ${currentPage.value}');
+      debugPrint('Last Page: ${lastPage.value}');
+      if (currentPage.value == 0 && lastPage.value != 0) {
+        context.read<PortalBloc>().add(PortalRefreshEvent());
+        debugPrint('Refreshing Portal');
+      }
+      return null;
+    }, [currentPage.value]);
 
     return RepositoryProvider(
       create: (context) => PortalRepository(),
@@ -31,7 +43,11 @@ class Wagus extends HookWidget {
                 PageView(
                   controller: pageController,
                   onPageChanged: (currentIndex) {
-                    currentPage.value = currentIndex;
+                    // Only update lastPage when swiping
+                    if (currentPage.value != currentIndex) {
+                      lastPage.value = currentPage.value;
+                      currentPage.value = currentIndex;
+                    }
                   },
                   children: const [
                     Home(),
@@ -87,8 +103,12 @@ class Wagus extends HookWidget {
                 type: BottomNavigationBarType.fixed,
                 currentIndex: currentPage.value,
                 onTap: (index) {
-                  currentPage.value = index;
-                  pageController.jumpToPage(index);
+                  // Update lastPage only after the page has been changed
+                  lastPage.value = currentPage
+                      .value; // Update lastPage after page transition
+                  currentPage.value = index; // Update currentPage
+                  pageController
+                      .jumpToPage(index); // Navigate to the selected page
                 },
                 selectedLabelStyle: TextStyle(fontSize: 8),
                 unselectedLabelStyle: TextStyle(fontSize: 8),
@@ -100,7 +120,6 @@ class Wagus extends HookWidget {
                     icon: Icon(Icons.home),
                     label: 'Home',
                   ),
-                  // dot connection icon
                   BottomNavigationBarItem(
                     icon: Icon(Icons.analytics),
                     label: 'Analysis',

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:wagus/features/home/bloc/home_bloc.dart';
 import 'package:wagus/features/home/chat/bloc/chat_bloc.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
@@ -14,10 +13,11 @@ class Home extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final inputController = useTextEditingController();
-    final carouselController = CarouselSliderController();
+    //final carouselController = CarouselSliderController();
 
     useEffect(() {
-      context.read<PortalBloc>().add(PortalGetTransactionsEvent());
+      // commented out to avoid multiple calls
+      // context.read<PortalBloc>().add(PortalGetTransactionsEvent());
 
       return null;
     }, []);
@@ -34,62 +34,65 @@ class Home extends HookWidget {
                       alignment: Alignment.topCenter,
                       margin: EdgeInsets.only(top: 32),
                       width: double.infinity,
-                      child: Column(
-                        children: [
-                          CarouselSlider(
-                            carouselController: carouselController,
-                            options: CarouselOptions(
-                              autoPlay: true,
-                              enableInfiniteScroll: true,
-                              autoPlayInterval: Duration(milliseconds: 100),
-                              autoPlayAnimationDuration:
-                                  Duration(milliseconds: 1000),
-                              viewportFraction: 1,
-                            ),
-                            items: portalState.groupedTransactions
-                                .map((transactions) => Row(
-                                        children:
-                                            transactions.map((transaction) {
-                                      return Expanded(
-                                          child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Image.asset(
-                                              transaction
-                                                  .holder.holderType.asset,
-                                              height: 50,
-                                              fit: BoxFit.cover),
-                                          Text(
-                                            '${transaction.amount.toStringAsFixed(5)} SOL',
-                                            style: TextStyle(
-                                              color: AppPalette.contrastLight,
-                                              fontSize: 10,
-                                            ),
-                                          ),
-                                        ],
-                                      ));
-                                    }).toList()))
-                                .toList(),
-                          ),
-                          Center(
-                            child: Text(
-                              'You have ${portalState.holder?.tokenAmount.toStringAsFixed(2) ?? 0} \$WAGUS tokens',
-                              style: TextStyle(
-                                color: AppPalette.contrastLight,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          Center(
-                            child: Text(
-                                'That is worth ${portalState.holder?.holdings ?? 0} SOL',
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 128.0),
+                        child: Column(
+                          children: [
+                            // CarouselSlider(
+                            //   carouselController: carouselController,
+                            //   options: CarouselOptions(
+                            //     autoPlay: true,
+                            //     enableInfiniteScroll: true,
+                            //     autoPlayInterval: Duration(milliseconds: 100),
+                            //     autoPlayAnimationDuration:
+                            //         Duration(milliseconds: 1000),
+                            //     viewportFraction: 1,
+                            //   ),
+                            //   items: portalState.groupedTransactions
+                            //       .map((transactions) => Row(
+                            //               children:
+                            //                   transactions.map((transaction) {
+                            //             return Expanded(
+                            //                 child: Column(
+                            //               mainAxisAlignment:
+                            //                   MainAxisAlignment.center,
+                            //               children: [
+                            //                 Image.asset(
+                            //                     transaction
+                            //                         .holder.holderType.asset,
+                            //                     height: 50,
+                            //                     fit: BoxFit.cover),
+                            //                 Text(
+                            //                   '${transaction.amount.toStringAsFixed(5)} SOL',
+                            //                   style: TextStyle(
+                            //                     color: AppPalette.contrastLight,
+                            //                     fontSize: 10,
+                            //                   ),
+                            //                 ),
+                            //               ],
+                            //             ));
+                            //           }).toList()))
+                            //       .toList(),
+                            // ),
+                            Center(
+                              child: Text(
+                                'You have ${portalState.holder?.tokenAmount.toStringAsFixed(2) ?? 0} \$WAGUS tokens',
                                 style: TextStyle(
                                   color: AppPalette.contrastLight,
                                   fontSize: 12,
-                                )),
-                          ),
-                        ],
+                                ),
+                              ),
+                            ),
+                            Center(
+                              child: Text(
+                                  'That is worth ${portalState.holder?.holdings ?? 0} SOL',
+                                  style: TextStyle(
+                                    color: AppPalette.contrastLight,
+                                    fontSize: 12,
+                                  )),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
