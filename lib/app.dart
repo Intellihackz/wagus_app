@@ -4,8 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:wagus/features/ai/bloc/ai_bloc.dart';
 import 'package:wagus/features/ai/data/ai_repository.dart';
 import 'package:wagus/features/home/bloc/home_bloc.dart';
-import 'package:wagus/features/home/chat/bloc/chat_bloc.dart';
-import 'package:wagus/features/home/chat/data/chat_repository.dart';
 import 'package:wagus/features/home/data/home_repository.dart';
 import 'package:wagus/features/lottery/bloc/lottery_bloc.dart';
 import 'package:wagus/features/lottery/data/lottery_repository.dart';
@@ -22,15 +20,12 @@ class App extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<HomeBloc>(
-          create: (_) => HomeBloc(homeRepository: HomeRepository()),
+          create: (_) => HomeBloc(homeRepository: HomeRepository())
+            ..add(HomeInitialEvent()),
         ),
         BlocProvider<PortalBloc>(
           create: (_) => PortalBloc(portalRepository: PortalRepository())
             ..add(PortalInitialEvent()),
-        ),
-        BlocProvider(
-          create: (_) => ChatBloc(chatRepository: ChatRepository())
-            ..add(ChatInitialEvent()),
         ),
         BlocProvider(
           create: (_) => LotteryBloc(lotteryRepository: LotteryRepository()),
