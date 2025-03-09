@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wagus/features/ai/ai.dart';
+import 'package:wagus/features/bank/bank.dart';
 import 'package:wagus/features/home/home.dart';
 import 'package:wagus/features/lottery/lottery.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
@@ -100,11 +101,7 @@ class Wagus extends HookWidget {
                 showModalBottomSheet(
                   isScrollControlled: true,
                   context: context,
-                  builder: (context) {
-                    return Container(
-                      color: Colors.red,
-                    );
-                  },
+                  builder: (context) => Bank(),
                 );
               },
               child: Image.asset(
@@ -137,12 +134,9 @@ class Wagus extends HookWidget {
                   type: BottomNavigationBarType.fixed,
                   currentIndex: currentPage.value,
                   onTap: (index) {
-                    // Update lastPage only after the page has been changed
-                    lastPage.value = currentPage
-                        .value; // Update lastPage after page transition
-                    currentPage.value = index; // Update currentPage
-                    pageController
-                        .jumpToPage(index); // Navigate to the selected page
+                    lastPage.value = currentPage.value;
+                    currentPage.value = index;
+                    pageController.jumpToPage(index);
                   },
                   selectedLabelStyle: TextStyle(fontSize: 8),
                   unselectedLabelStyle: TextStyle(fontSize: 8),
