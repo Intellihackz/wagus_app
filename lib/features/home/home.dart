@@ -38,14 +38,6 @@ class Home extends HookWidget {
                                 ),
                               ),
                             ),
-                            Center(
-                              child: Text(
-                                  'That is worth ${portalState.holder?.holdings ?? 0} SOL',
-                                  style: TextStyle(
-                                    color: AppPalette.contrastLight,
-                                    fontSize: 12,
-                                  )),
-                            ),
                           ],
                         ),
                       ),
