@@ -1,6 +1,19 @@
 part of 'lottery_bloc.dart';
 
-@immutable
-sealed class LotteryState {}
+class LotteryState {
+  final LotteryModel? currentLottery;
+  final LotteryModel? lastLottery;
 
-final class LotteryInitial extends LotteryState {}
+  const LotteryState({this.currentLottery, this.lastLottery});
+
+  LotteryState copyWith({
+    LotteryModel? Function()? currentLottery,
+    LotteryModel? Function()? lastLottery,
+  }) {
+    return LotteryState(
+      currentLottery:
+          currentLottery != null ? currentLottery() : this.currentLottery,
+      lastLottery: lastLottery != null ? lastLottery() : this.lastLottery,
+    );
+  }
+}

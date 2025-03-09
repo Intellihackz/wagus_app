@@ -28,7 +28,8 @@ class App extends StatelessWidget {
             ..add(PortalInitialEvent()),
         ),
         BlocProvider(
-          create: (_) => LotteryBloc(lotteryRepository: LotteryRepository()),
+          create: (_) => LotteryBloc(lotteryRepository: LotteryRepository())
+            ..add(LotteryInitialEvent()),
         ),
         BlocProvider(
           create: (_) => AiBloc(repository: AIRepository()),

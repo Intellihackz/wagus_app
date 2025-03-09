@@ -93,46 +93,81 @@ class Wagus extends HookWidget {
                 ),
               ],
             ),
+            floatingActionButton: FloatingActionButton(
+              mini: true,
+              backgroundColor: context.appColors.contrastLight,
+              onPressed: () {
+                showModalBottomSheet(
+                  isScrollControlled: true,
+                  context: context,
+                  builder: (context) {
+                    return Container(
+                      color: Colors.red,
+                    );
+                  },
+                );
+              },
+              child: Image.asset(
+                'assets/icons/logo.png',
+                height: 32,
+                width: 32,
+              ),
+            ),
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.centerDocked,
             bottomNavigationBar: Theme(
               data: Theme.of(context).copyWith(
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,
               ),
-              child: BottomNavigationBar(
-                backgroundColor: context.appColors.contrastDark,
-                type: BottomNavigationBarType.fixed,
-                currentIndex: currentPage.value,
-                onTap: (index) {
-                  // Update lastPage only after the page has been changed
-                  lastPage.value = currentPage
-                      .value; // Update lastPage after page transition
-                  currentPage.value = index; // Update currentPage
-                  pageController
-                      .jumpToPage(index); // Navigate to the selected page
-                },
-                selectedLabelStyle: TextStyle(fontSize: 8),
-                unselectedLabelStyle: TextStyle(fontSize: 8),
-                landscapeLayout: BottomNavigationBarLandscapeLayout.spread,
-                selectedItemColor: context.appColors.contrastLight,
-                unselectedItemColor: context.appColors.slightlyGrey,
-                items: const [
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.home),
-                    label: 'Home',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.analytics),
-                    label: 'Analysis',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.casino),
-                    label: 'Lottery',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.star),
-                    label: 'Rewards',
-                  ),
-                ],
+              child: Container(
+                decoration: BoxDecoration(
+                  color: context.appColors.contrastDark,
+                  boxShadow: [
+                    BoxShadow(
+                      color: context.appColors.contrastLight
+                          .withValues(alpha: 0.4),
+                      blurRadius: 2,
+                      spreadRadius: 0.5,
+                    ),
+                  ],
+                ),
+                child: BottomNavigationBar(
+                  backgroundColor: context.appColors.contrastDark,
+                  type: BottomNavigationBarType.fixed,
+                  currentIndex: currentPage.value,
+                  onTap: (index) {
+                    // Update lastPage only after the page has been changed
+                    lastPage.value = currentPage
+                        .value; // Update lastPage after page transition
+                    currentPage.value = index; // Update currentPage
+                    pageController
+                        .jumpToPage(index); // Navigate to the selected page
+                  },
+                  selectedLabelStyle: TextStyle(fontSize: 8),
+                  unselectedLabelStyle: TextStyle(fontSize: 8),
+                  landscapeLayout: BottomNavigationBarLandscapeLayout.spread,
+                  selectedItemColor: context.appColors.contrastLight,
+                  unselectedItemColor: context.appColors.slightlyGrey,
+                  items: const [
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.home),
+                      label: 'Home',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.analytics),
+                      label: 'Analysis',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.casino),
+                      label: 'Lottery',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.star),
+                      label: 'Rewards',
+                    ),
+                  ],
+                ),
               ),
             ),
           );
