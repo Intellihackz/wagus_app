@@ -12,47 +12,63 @@ class Lottery extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final remainingTime = useState<Duration>(Duration(hours: 1));
+    final remainingTime = useState<Duration>(const Duration(hours: 24));
+    final timerRef = useRef<Timer?>(null);
 
-    useEffect(() {
-      final newTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+    void startTimer(Duration initialDuration) {
+      remainingTime.value = initialDuration;
+      timerRef.value?.cancel();
+      timerRef.value = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (context.mounted && remainingTime.value.inSeconds > 0) {
-          remainingTime.value -= Duration(seconds: 1);
+          remainingTime.value -= const Duration(seconds: 1);
         } else {
           timer.cancel();
         }
       });
-
-      return () {
-        newTimer.cancel();
-      };
-    }, []);
-
-    String formatTime(Duration duration) {
-      String hours = duration.inHours.toString().padLeft(2, '0');
-      String minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
-      String seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
-      return '$hours:$minutes:$seconds';
     }
 
-    return BlocBuilder<LotteryBloc, LotteryState>(
-      builder: (context, state) {
-        final currentTimestamp = state.currentLottery?.timestamp;
+    useEffect(() {
+      // Initial timer setup based on current state
+      final initialState = context.read<LotteryBloc>().state;
+      final initialTimestamp = initialState.currentLottery?.timestamp;
+      if (initialTimestamp != null) {
+        final lotteryEndTime =
+            initialTimestamp.toDate().add(const Duration(hours: 24));
+        final difference = lotteryEndTime.difference(DateTime.now());
+        startTimer(difference);
+      }
 
+      return () {
+        timerRef.value?.cancel();
+      };
+    }, []); // Run once on mount
+
+    String formatTime(Duration duration) {
+      String sign = duration.isNegative ? '-' : '';
+      String hours = duration.inHours.abs().toString().padLeft(2, '0');
+      String minutes =
+          (duration.inMinutes % 60).abs().toString().padLeft(2, '0');
+      String seconds =
+          (duration.inSeconds % 60).abs().toString().padLeft(2, '0');
+      return '$sign$hours:$minutes:$seconds';
+    }
+
+    return BlocConsumer<LotteryBloc, LotteryState>(
+      listener: (context, state) {
+        final currentTimestamp = state.currentLottery?.timestamp;
         if (currentTimestamp != null) {
-          // Convert timestamp to DateTime and calculate end time (start + 24 hours)
-          DateTime lotteryStartTime = currentTimestamp.toDate();
           DateTime lotteryEndTime =
-              lotteryStartTime.add(const Duration(hours: 24));
+              currentTimestamp.toDate().add(const Duration(hours: 24));
           DateTime currentTime = DateTime.now();
           Duration difference = lotteryEndTime.difference(currentTime);
 
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) {
-              remainingTime.value = difference;
-            }
-          });
+          if (context.mounted) {
+            startTimer(difference);
+          }
         }
+      },
+      builder: (context, state) {
+        final isLoading = state.status == LotteryStatus.loading;
 
         return Scaffold(
           body: SizedBox.expand(
@@ -67,11 +83,11 @@ class Lottery extends HookWidget {
                       spacing: 12.0,
                       children: [
                         if (state.lastLottery != null) ...[
-                          Text('Last Lottery Amount:'),
+                          const Text('Last Lottery Amount:'),
                           Text('${state.lastLottery!.amount} \$WAGUS'),
                         ],
                         if (state.currentLottery != null) ...[
-                          Text('Current Lottery Amount:'),
+                          const Text('Current Lottery Amount:'),
                           Text('${state.currentLottery!.amount} \$WAGUS'),
                         ],
                       ],
@@ -80,7 +96,7 @@ class Lottery extends HookWidget {
                 ),
                 Expanded(
                   child: Image.asset(
-                    'assets/background/lottery_logo.png', // You can use a different asset for lottery
+                    'assets/background/lottery_logo.png',
                     height: 200,
                     fit: BoxFit.cover,
                   ),
@@ -92,18 +108,19 @@ class Lottery extends HookWidget {
                       spacing: 12.0,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text('Next Lottery in:'),
+                        const Text('Next Lottery in:'),
                         Text(formatTime(remainingTime.value)),
-                        SizedBox(height: 16.0),
-                        Text('Add Tokens to the Pool:'),
+                        const SizedBox(height: 16.0),
+                        const Text('Add Tokens to the Pool:'),
                         Wrap(
                           spacing: 8.0,
                           runSpacing: 8.0,
                           children: [
-                            _LotteryButton(amount: 100),
-                            _LotteryButton(amount: 1000),
-                            _LotteryButton(amount: 10000),
-                            _LotteryButton(amount: 100000),
+                            _LotteryButton(amount: 100, isLoading: isLoading),
+                            _LotteryButton(amount: 1000, isLoading: isLoading),
+                            _LotteryButton(amount: 10000, isLoading: isLoading),
+                            _LotteryButton(
+                                amount: 100000, isLoading: isLoading),
                           ],
                         ),
                       ],
@@ -121,8 +138,9 @@ class Lottery extends HookWidget {
 
 class _LotteryButton extends StatelessWidget {
   final int amount;
+  final bool isLoading;
 
-  const _LotteryButton({required this.amount});
+  const _LotteryButton({required this.amount, required this.isLoading});
 
   @override
   Widget build(BuildContext context) {
@@ -133,6 +151,7 @@ class _LotteryButton extends StatelessWidget {
       margin: const EdgeInsets.only(right: 8.0, bottom: 8.0),
       child: ElevatedButton(
         onPressed: () {
+          if (isLoading) return;
           context.read<LotteryBloc>().add(LotteryAddToPoolEvent(
               amount: amount, user: context.read<PortalBloc>().state.user!));
         },
@@ -145,20 +164,22 @@ class _LotteryButton extends StatelessWidget {
             ),
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              displayAmount,
-              style: TextStyle(color: context.appColors.contrastDark),
-            ),
-            Image.asset(
-              'assets/icons/logo.png',
-              height: 32,
-              width: 32,
-            ),
-          ],
-        ),
+        child: isLoading
+            ? SizedBox.shrink()
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    displayAmount,
+                    style: TextStyle(color: context.appColors.contrastDark),
+                  ),
+                  Image.asset(
+                    'assets/icons/logo.png',
+                    height: 32,
+                    width: 32,
+                  ),
+                ],
+              ),
       ),
     );
   }

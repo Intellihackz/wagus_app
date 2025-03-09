@@ -13,6 +13,7 @@ class LotteryBloc extends Bloc<LotteryEvent, LotteryState> {
       : super(LotteryState(
           currentLottery: null,
           lastLottery: null,
+          status: LotteryStatus.initial,
         )) {
     on<LotteryInitialEvent>((event, emit) async {
       await emit.forEach(lotteryRepository.getLottery(), onData: (data) {
@@ -44,10 +45,24 @@ class LotteryBloc extends Bloc<LotteryEvent, LotteryState> {
     });
 
     on<LotteryAddToPoolEvent>((event, emit) async {
-      await lotteryRepository.addToPool(
+      emit(state.copyWith(
+        status: LotteryStatus.loading,
+      ));
+      try {
+        await lotteryRepository.addToPool(
           wallet: event.user.embeddedSolanaWallets.first,
           amount: event.amount,
-          currentLottery: state.currentLottery);
+          currentLottery: state.currentLottery,
+        );
+
+        emit(state.copyWith(
+          status: LotteryStatus.success,
+        ));
+      } catch (e) {
+        emit(state.copyWith(
+          status: LotteryStatus.failure,
+        ));
+      }
     });
   }
 }
