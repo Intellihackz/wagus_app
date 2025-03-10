@@ -43,7 +43,7 @@ class App extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(
             seedColor: AppPalette.neonPurple,
           ),
-          scaffoldBackgroundColor: AppPalette.contrastDark,
+          scaffoldBackgroundColor: Colors.transparent,
           extensions: <ThemeExtension<dynamic>>[
             AppColors(),
           ],
