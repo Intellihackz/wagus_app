@@ -11,3 +11,5 @@ class LotteryAddToPoolEvent extends LotteryEvent {
 
   LotteryAddToPoolEvent({required this.amount, required this.user});
 }
+
+class LotteryResetStatusEvent extends LotteryEvent {}

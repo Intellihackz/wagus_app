@@ -16,6 +16,8 @@ class LotteryBloc extends Bloc<LotteryEvent, LotteryState> {
           status: LotteryStatus.initial,
         )) {
     on<LotteryInitialEvent>((event, emit) async {
+      await lotteryRepository.ensureTodayLotteryExists();
+
       await emit.forEach(lotteryRepository.getLottery(), onData: (data) {
         print('data: $data');
 
@@ -63,6 +65,10 @@ class LotteryBloc extends Bloc<LotteryEvent, LotteryState> {
           status: LotteryStatus.failure,
         ));
       }
+    });
+
+    on<LotteryResetStatusEvent>((event, emit) async {
+      emit(state.copyWith(status: LotteryStatus.initial));
     });
   }
 }

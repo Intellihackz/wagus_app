@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
-import 'package:wagus/features/ai/ai.dart';
+import 'package:wagus/features/ai/ai_tools.dart';
 import 'package:wagus/features/bank/bank.dart';
 import 'package:wagus/features/home/home.dart';
 import 'package:wagus/features/lottery/lottery.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
-import 'package:wagus/features/rewards/rewards.dart';
+import 'package:wagus/features/incubator/incubator.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/theme/app_palette.dart';
 import 'package:wagus/services/privy_service.dart';
@@ -57,11 +57,11 @@ class Wagus extends HookWidget {
                           currentPage.value = currentIndex;
                         }
                       },
-                      children: const [
+                      children: [
                         Home(),
-                        AI(),
+                        Incubator(),
+                        AITools(),
                         Lottery(),
-                        Rewards(),
                       ],
                     ),
                     Positioned.fill(
@@ -158,16 +158,18 @@ class Wagus extends HookWidget {
                           label: 'Home',
                         ),
                         BottomNavigationBarItem(
-                          icon: Icon(Icons.analytics),
-                          label: 'Analysis',
+                          // icon that best represnts incubator or launch pad or start up
+                          icon: Icon(Icons.rocket_launch),
+                          label: 'Incubator',
+                        ),
+                        BottomNavigationBarItem(
+                          // icon that best represnts ai tools
+                          icon: Icon(Icons.widgets),
+                          label: 'AI Tools',
                         ),
                         BottomNavigationBarItem(
                           icon: Icon(Icons.casino),
                           label: 'Lottery',
-                        ),
-                        BottomNavigationBarItem(
-                          icon: Icon(Icons.star),
-                          label: 'Rewards',
                         ),
                       ],
                     ),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:privy_flutter/privy_flutter.dart';
 import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_wallet.dart';
 import 'package:solana_web3/programs.dart';
 import 'package:solana_web3/solana_web3.dart' as web3;
@@ -13,6 +14,32 @@ class LotteryRepository {
     return lotteryAddressCollection
         .orderBy('timestamp', descending: true)
         .snapshots();
+  }
+
+  Future<void> ensureTodayLotteryExists() async {
+    final now = DateTime.now();
+    final todayReset = DateTime(now.year, now.month, now.day, 18, 0);
+    final actualResetTime = now.isBefore(todayReset)
+        ? todayReset.subtract(const Duration(days: 1))
+        : todayReset;
+
+    final querySnapshot = await lotteryAddressCollection
+        .where('timestamp', isEqualTo: Timestamp.fromDate(actualResetTime))
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      final newDoc = lotteryAddressCollection.doc();
+      final model = LotteryModel(
+        amount: 0,
+        timestamp: Timestamp.fromDate(actualResetTime),
+        participants: [],
+        winner: null,
+      );
+      await newDoc.set(model.toJson());
+      print('Created empty lottery for ${actualResetTime.toIso8601String()}');
+    } else {
+      print('Lottery already exists for $actualResetTime');
+    }
   }
 
   Future<void> addToPool({
@@ -68,30 +95,27 @@ class LotteryRepository {
     final messageBytes = transaction.serializeMessage().asUint8List();
     final base64Message = base64Encode(messageBytes);
 
-    final result = await wallet.provider.signMessage(base64Message);
+    final Result<String> result =
+        await wallet.provider.signMessage(base64Message);
 
-    result.fold(
-      onSuccess: (signedMessage) async {
-        try {
-          final signature = base64Decode(signedMessage);
-          transaction.addSignature(
-              _pubkeyFromBase58(wallet.address), signature);
+    if (result.isSuccess) {
+      try {
+        final signature = base64Decode(result.success);
+        transaction.addSignature(_pubkeyFromBase58(wallet.address), signature);
 
-          final txId = await connection.sendAndConfirmTransaction(transaction);
-          print('Transaction sent successfully: $txId');
+        final txId = await connection.sendAndConfirmTransaction(transaction);
+        print('Transaction sent successfully: $txId');
 
-          // Firestore update logic
-          await _updateLotteryFirestore(wallet.address, amount, currentLottery);
-        } catch (e) {
-          print('Error during sending: $e');
-          rethrow; // Consider rethrowing to handle errors upstream
-        }
-      },
-      onFailure: (error) {
-        print('Error signing transaction: $error');
-        throw Exception('Failed to sign transaction: $error');
-      },
-    );
+        // Firestore update logic
+        await _updateLotteryFirestore(wallet.address, amount, currentLottery);
+      } catch (e) {
+        print('Error during sending: $e');
+        rethrow;
+      }
+    } else {
+      print('Error signing message: ${result.failure}');
+      throw Exception('Failed to sign message');
+    }
   }
 
   Future<void> _updateLotteryFirestore(
@@ -168,5 +192,20 @@ class LotteryRepository {
         : lotteryStart;
 
     return timestamp.isBefore(actualStart);
+  }
+}
+
+extension ResultExtension<T> on Result<T> {
+  bool get isSuccess => this is Success<T>;
+  bool get isFailure => this is Failure<T>;
+
+  T get success {
+    if (this is Success<T>) return (this as Success<T>).value;
+    throw StateError('Result is not Success');
+  }
+
+  Exception get failure {
+    if (this is Failure<T>) return (this as Failure<T>).error;
+    throw StateError('Result is not Failure');
   }
 }

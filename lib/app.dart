@@ -50,6 +50,7 @@ class App extends StatelessWidget {
           textTheme: GoogleFonts.pressStart2pTextTheme().apply(
             bodyColor: AppPalette.contrastLight,
             displayColor: AppPalette.contrastLight,
+            decorationColor: AppPalette.contrastLight,
           ),
         ),
         routerConfig: appRouter,

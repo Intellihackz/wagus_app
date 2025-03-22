@@ -28,20 +28,32 @@ class Lottery extends HookWidget {
     }
 
     useEffect(() {
-      // Initial timer setup based on current state
-      final initialState = context.read<LotteryBloc>().state;
-      final initialTimestamp = initialState.currentLottery?.timestamp;
-      if (initialTimestamp != null) {
-        final lotteryEndTime =
-            initialTimestamp.toDate().add(const Duration(hours: 24));
-        final difference = lotteryEndTime.difference(DateTime.now());
-        startTimer(difference);
+      void syncTimer() {
+        final initialState = context.read<LotteryBloc>().state;
+        final currentTimestamp =
+            initialState.currentLottery?.timestamp?.toDate();
+
+        DateTime now = DateTime.now();
+        DateTime nextReset = DateTime(now.year, now.month, now.day, 18, 0);
+        if (now.isAfter(nextReset)) {
+          nextReset = nextReset.add(const Duration(days: 1));
+        }
+
+        // Use fallback if no timestamp or it's too old
+        if (currentTimestamp == null ||
+            now.difference(currentTimestamp).inHours >= 24) {
+          startTimer(nextReset.difference(now));
+        } else {
+          final lotteryEndTime =
+              currentTimestamp.add(const Duration(hours: 24));
+          final diff = lotteryEndTime.difference(now);
+          startTimer(diff.isNegative ? nextReset.difference(now) : diff);
+        }
       }
 
-      return () {
-        timerRef.value?.cancel();
-      };
-    }, []); // Run once on mount
+      syncTimer();
+      return () => timerRef.value?.cancel();
+    }, []);
 
     String formatTime(Duration duration) {
       String sign = duration.isNegative ? '-' : '';
@@ -55,16 +67,36 @@ class Lottery extends HookWidget {
 
     return BlocConsumer<LotteryBloc, LotteryState>(
       listener: (context, state) {
-        final currentTimestamp = state.currentLottery?.timestamp;
-        if (currentTimestamp != null) {
-          DateTime lotteryEndTime =
-              currentTimestamp.toDate().add(const Duration(hours: 24));
-          DateTime currentTime = DateTime.now();
-          Duration difference = lotteryEndTime.difference(currentTime);
+        final currentTimestamp = state.currentLottery?.timestamp?.toDate();
+        DateTime now = DateTime.now();
+        DateTime nextReset = DateTime(now.year, now.month, now.day, 18, 0);
+        if (now.isAfter(nextReset)) {
+          nextReset = nextReset.add(const Duration(days: 1));
+        }
 
-          if (context.mounted) {
-            startTimer(difference);
-          }
+        if (currentTimestamp == null ||
+            now.difference(currentTimestamp).inHours >= 24) {
+          startTimer(nextReset.difference(now));
+        } else {
+          final lotteryEndTime =
+              currentTimestamp.add(const Duration(hours: 24));
+          final diff = lotteryEndTime.difference(now);
+          startTimer(diff.isNegative ? nextReset.difference(now) : diff);
+        }
+
+        if (state.status == LotteryStatus.failure) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(
+                SnackBar(
+                  content: Text('Failed to add to pool. Please try again.'),
+                ),
+              )
+              .closed
+              .then((_) {
+            if (context.mounted) {
+              context.read<LotteryBloc>().add(LotteryResetStatusEvent());
+            }
+          });
         }
       },
       builder: (context, state) {
@@ -116,11 +148,26 @@ class Lottery extends HookWidget {
                           spacing: 8.0,
                           runSpacing: 8.0,
                           children: [
-                            _LotteryButton(amount: 100, isLoading: isLoading),
-                            _LotteryButton(amount: 1000, isLoading: isLoading),
-                            _LotteryButton(amount: 10000, isLoading: isLoading),
                             _LotteryButton(
-                                amount: 100000, isLoading: isLoading),
+                                amount: 100,
+                                isLoading: isLoading,
+                                isDisabled:
+                                    state.status == LotteryStatus.failure),
+                            _LotteryButton(
+                                amount: 1000,
+                                isLoading: isLoading,
+                                isDisabled:
+                                    state.status == LotteryStatus.failure),
+                            _LotteryButton(
+                                amount: 10000,
+                                isLoading: isLoading,
+                                isDisabled:
+                                    state.status == LotteryStatus.failure),
+                            _LotteryButton(
+                                amount: 100000,
+                                isLoading: isLoading,
+                                isDisabled:
+                                    state.status == LotteryStatus.failure),
                           ],
                         ),
                       ],
@@ -139,8 +186,12 @@ class Lottery extends HookWidget {
 class _LotteryButton extends StatelessWidget {
   final int amount;
   final bool isLoading;
+  final bool isDisabled;
 
-  const _LotteryButton({required this.amount, required this.isLoading});
+  const _LotteryButton(
+      {required this.amount,
+      required this.isLoading,
+      required this.isDisabled});
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +202,7 @@ class _LotteryButton extends StatelessWidget {
       margin: const EdgeInsets.only(right: 8.0, bottom: 8.0),
       child: ElevatedButton(
         onPressed: () {
-          if (isLoading) return;
+          if (isLoading || isDisabled) return;
           context.read<LotteryBloc>().add(LotteryAddToPoolEvent(
               amount: amount, user: context.read<PortalBloc>().state.user!));
         },
@@ -165,7 +216,11 @@ class _LotteryButton extends StatelessWidget {
           ),
         ),
         child: isLoading
-            ? SizedBox.shrink()
+            ? SizedBox(
+                height: 16,
+                width: 16,
+                child: const CircularProgressIndicator(),
+              )
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

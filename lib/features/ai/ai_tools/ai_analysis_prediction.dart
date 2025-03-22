@@ -6,8 +6,8 @@ import 'package:wagus/features/ai/bloc/ai_bloc.dart';
 import 'package:wagus/features/ai/data/ai_repository.dart';
 import 'package:wagus/theme/app_palette.dart';
 
-class AI extends HookWidget {
-  const AI({super.key});
+class AIAnalysisPrediction extends HookWidget {
+  const AIAnalysisPrediction({super.key});
 
   @override
   Widget build(BuildContext context) {
