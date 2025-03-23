@@ -1,1 +1,44 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"wagus-app","appId":"1:168597906578:android:551766fc9c907c5e1bb24b","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"wagus-app","appId":"1:168597906578:ios:a653d43c197ed9781bb24b","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"macos":{"default":{"projectId":"wagus-app","appId":"1:168597906578:ios:ba60c8ddc491be081bb24b","uploadDebugSymbols":false,"fileOutput":"macos/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"wagus-app","configurations":{"android":"1:168597906578:android:551766fc9c907c5e1bb24b","ios":"1:168597906578:ios:a653d43c197ed9781bb24b","macos":"1:168597906578:ios:ba60c8ddc491be081bb24b","web":"1:168597906578:web:926d54991c7c7f841bb24b","windows":"1:168597906578:web:cb3a0e633c548d0d1bb24b"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "wagus-app",
+          "appId": "1:168597906578:android:551766fc9c907c5e1bb24b",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "wagus-app",
+          "appId": "1:168597906578:ios:a653d43c197ed9781bb24b",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "wagus-app",
+          "appId": "1:168597906578:ios:ba60c8ddc491be081bb24b",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "wagus-app",
+          "configurations": {
+            "android": "1:168597906578:android:551766fc9c907c5e1bb24b",
+            "ios": "1:168597906578:ios:a653d43c197ed9781bb24b",
+            "macos": "1:168597906578:ios:ba60c8ddc491be081bb24b",
+            "web": "1:168597906578:web:926d54991c7c7f841bb24b",
+            "windows": "1:168597906578:web:cb3a0e633c548d0d1bb24b"
+          }
+        }
+      }
+    }
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
+}

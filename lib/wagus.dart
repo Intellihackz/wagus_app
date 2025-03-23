@@ -6,10 +6,10 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wagus/features/ai/ai_tools.dart';
 import 'package:wagus/features/bank/bank.dart';
+import 'package:wagus/features/bank/bloc/bank_bloc.dart';
 import 'package:wagus/features/home/home.dart';
 import 'package:wagus/features/lottery/lottery.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
-import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/features/incubator/incubator.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/theme/app_palette.dart';
@@ -19,7 +19,7 @@ class Wagus extends HookWidget {
   const Wagus({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext mainContext) {
     final currentPage = useState<int>(0);
     final lastPage = useState<int>(0);
     final pageController = usePageController();
@@ -28,7 +28,7 @@ class Wagus extends HookWidget {
       debugPrint('Current Page: ${currentPage.value}');
       debugPrint('Last Page: ${lastPage.value}');
       if (currentPage.value == 0 && lastPage.value != 0) {
-        context.read<PortalBloc>().add(PortalRefreshEvent());
+        mainContext.read<PortalBloc>().add(PortalRefreshEvent());
         debugPrint('Refreshing Portal');
       }
       return null;
@@ -40,148 +40,149 @@ class Wagus extends HookWidget {
         Positioned.fill(
           child: CustomPaint(painter: CryptoBackgroundPainter()),
         ),
-        RepositoryProvider(
-          create: (context) => PortalRepository(),
-          child: BlocBuilder<PortalBloc, PortalState>(
-            builder: (context, state) {
-              return Scaffold(
-                body: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    PageView(
-                      controller: pageController,
-                      onPageChanged: (currentIndex) {
-                        // Only update lastPage when swiping
-                        if (currentPage.value != currentIndex) {
-                          lastPage.value = currentPage.value;
-                          currentPage.value = currentIndex;
-                        }
-                      },
-                      children: [
-                        Home(),
-                        Incubator(),
-                        AITools(),
-                        Lottery(),
-                      ],
-                    ),
-                    Positioned.fill(
-                      child: Align(
-                        alignment: Alignment.topRight,
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 32.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(left: 8.0),
-                                child: Text(
-                                  'Holders: ${state.holdersCount}',
-                                  style: TextStyle(
-                                      color: context.appColors.contrastLight),
-                                ),
+        BlocBuilder<PortalBloc, PortalState>(
+          builder: (context, state) {
+            return Scaffold(
+              body: Stack(
+                fit: StackFit.expand,
+                children: [
+                  PageView(
+                    controller: pageController,
+                    onPageChanged: (currentIndex) {
+                      // Only update lastPage when swiping
+                      if (currentPage.value != currentIndex) {
+                        lastPage.value = currentPage.value;
+                        currentPage.value = currentIndex;
+                      }
+                    },
+                    children: [
+                      Home(),
+                      Incubator(),
+                      AITools(),
+                      Lottery(),
+                    ],
+                  ),
+                  Positioned.fill(
+                    child: Align(
+                      alignment: Alignment.topRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 32.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(left: 8.0),
+                              child: Text(
+                                'Holders: ${state.holdersCount}',
+                                style: TextStyle(
+                                    color: context.appColors.contrastLight),
                               ),
-                              TextButton(
-                                onPressed: () async {
-                                  final result = await PrivyService().logout();
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                final result = await PrivyService().logout();
 
-                                  if (result && context.mounted) {
-                                    context.go(login);
-                                  }
-                                },
-                                child: Text(
-                                  'Disconnect',
-                                  style: TextStyle(
-                                      color: context.appColors.contrastLight),
-                                ),
+                                if (result && context.mounted) {
+                                  context.go(login);
+                                }
+                              },
+                              child: Text(
+                                'Disconnect',
+                                style: TextStyle(
+                                    color: context.appColors.contrastLight),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ],
-                ),
-                floatingActionButton: FloatingActionButton(
-                  mini: true,
-                  backgroundColor: context.appColors.contrastLight,
-                  onPressed: () async {
-                    await showModalBottomSheet(
-                      backgroundColor: context.appColors.contrastDark,
-                      isScrollControlled: true,
-                      context: context,
-                      builder: (context) => Bank(),
-                    ).whenComplete(() {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      }
-                    });
-                  },
-                  child: Image.asset(
-                    'assets/icons/logo.png',
-                    height: 32,
-                    width: 32,
                   ),
-                ),
-                floatingActionButtonLocation:
-                    FloatingActionButtonLocation.centerDocked,
-                bottomNavigationBar: Theme(
-                  data: Theme.of(context).copyWith(
-                    splashColor: Colors.transparent,
-                    highlightColor: Colors.transparent,
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: context.appColors.contrastDark,
-                      boxShadow: [
-                        BoxShadow(
-                          color: context.appColors.contrastLight
-                              .withValues(alpha: 0.4),
-                          blurRadius: 2,
-                          spreadRadius: 0.5,
-                        ),
-                      ],
+                ],
+              ),
+              floatingActionButton: FloatingActionButton(
+                mini: true,
+                backgroundColor: context.appColors.contrastLight,
+                onPressed: () async {
+                  final bankBloc =
+                      BlocProvider.of<BankBloc>(mainContext, listen: false);
+                  await showModalBottomSheet(
+                    backgroundColor: context.appColors.contrastDark,
+                    isScrollControlled: true,
+                    context: mainContext,
+                    builder: (_) => BlocProvider<BankBloc>.value(
+                      value: bankBloc,
+                      child: Bank(),
                     ),
-                    child: BottomNavigationBar(
-                      backgroundColor: context.appColors.contrastDark,
-                      type: BottomNavigationBarType.fixed,
-                      currentIndex: currentPage.value,
-                      onTap: (index) {
-                        lastPage.value = currentPage.value;
-                        currentPage.value = index;
-                        pageController.jumpToPage(index);
-                      },
-                      selectedLabelStyle: TextStyle(fontSize: 8),
-                      unselectedLabelStyle: TextStyle(fontSize: 8),
-                      landscapeLayout:
-                          BottomNavigationBarLandscapeLayout.spread,
-                      selectedItemColor: context.appColors.contrastLight,
-                      unselectedItemColor: context.appColors.slightlyGrey,
-                      items: const [
-                        BottomNavigationBarItem(
-                          icon: Icon(Icons.home),
-                          label: 'Home',
-                        ),
-                        BottomNavigationBarItem(
-                          // icon that best represnts incubator or launch pad or start up
-                          icon: Icon(Icons.rocket_launch),
-                          label: 'Incubator',
-                        ),
-                        BottomNavigationBarItem(
-                          // icon that best represnts ai tools
-                          icon: Icon(Icons.widgets),
-                          label: 'AI Tools',
-                        ),
-                        BottomNavigationBarItem(
-                          icon: Icon(Icons.casino),
-                          label: 'Lottery',
-                        ),
-                      ],
-                    ),
+                  ).whenComplete(() {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    }
+                  });
+                },
+                child: Image.asset(
+                  'assets/icons/logo.png',
+                  height: 32,
+                  width: 32,
+                ),
+              ),
+              floatingActionButtonLocation:
+                  FloatingActionButtonLocation.centerDocked,
+              bottomNavigationBar: Theme(
+                data: Theme.of(context).copyWith(
+                  splashColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: context.appColors.contrastDark,
+                    boxShadow: [
+                      BoxShadow(
+                        color: context.appColors.contrastLight
+                            .withValues(alpha: 0.4),
+                        blurRadius: 2,
+                        spreadRadius: 0.5,
+                      ),
+                    ],
+                  ),
+                  child: BottomNavigationBar(
+                    backgroundColor: context.appColors.contrastDark,
+                    type: BottomNavigationBarType.fixed,
+                    currentIndex: currentPage.value,
+                    onTap: (index) {
+                      lastPage.value = currentPage.value;
+                      currentPage.value = index;
+                      pageController.jumpToPage(index);
+                    },
+                    selectedLabelStyle: TextStyle(fontSize: 8),
+                    unselectedLabelStyle: TextStyle(fontSize: 8),
+                    landscapeLayout: BottomNavigationBarLandscapeLayout.spread,
+                    selectedItemColor: context.appColors.contrastLight,
+                    unselectedItemColor: context.appColors.slightlyGrey,
+                    items: const [
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.home),
+                        label: 'Home',
+                      ),
+                      BottomNavigationBarItem(
+                        // icon that best represnts incubator or launch pad or start up
+                        icon: Icon(Icons.rocket_launch),
+                        label: 'Incubator',
+                      ),
+                      BottomNavigationBarItem(
+                        // icon that best represnts ai tools
+                        icon: Icon(Icons.widgets),
+                        label: 'AI Tools',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.casino),
+                        label: 'Lottery',
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ],
     );

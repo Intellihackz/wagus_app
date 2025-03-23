@@ -3,8 +3,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wagus/features/ai/bloc/ai_bloc.dart';
 import 'package:wagus/features/ai/data/ai_repository.dart';
+import 'package:wagus/features/bank/bloc/bank_bloc.dart';
+import 'package:wagus/features/bank/data/bank_repository.dart';
 import 'package:wagus/features/home/bloc/home_bloc.dart';
 import 'package:wagus/features/home/data/home_repository.dart';
+import 'package:wagus/features/incubator/bloc/incubator_bloc.dart';
+import 'package:wagus/features/incubator/data/incubator_repository.dart';
 import 'package:wagus/features/lottery/bloc/lottery_bloc.dart';
 import 'package:wagus/features/lottery/data/lottery_repository.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
@@ -17,43 +21,84 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
+    return MultiRepositoryProvider(
       providers: [
-        BlocProvider<HomeBloc>(
-          create: (_) => HomeBloc(homeRepository: HomeRepository())
-            ..add(HomeInitialEvent()),
+        RepositoryProvider<PortalRepository>(
+          create: (_) => PortalRepository(),
         ),
-        BlocProvider<PortalBloc>(
-          create: (_) => PortalBloc(portalRepository: PortalRepository())
-            ..add(PortalInitialEvent()),
+        RepositoryProvider<HomeRepository>(
+          create: (_) => HomeRepository(),
         ),
-        BlocProvider(
-          create: (_) => LotteryBloc(lotteryRepository: LotteryRepository())
-            ..add(LotteryInitialEvent()),
+        RepositoryProvider<LotteryRepository>(
+          create: (_) => LotteryRepository(),
         ),
-        BlocProvider(
-          create: (_) => AiBloc(repository: AIRepository()),
+        RepositoryProvider<AIRepository>(
+          create: (_) => AIRepository(),
+        ),
+        RepositoryProvider<IncubatorRepository>(
+          create: (_) => IncubatorRepository(),
+        ),
+        RepositoryProvider<BankRepository>(
+          create: (_) => BankRepository(),
         ),
       ],
-      child: MaterialApp.router(
-        debugShowCheckedModeBanner: false,
-        title: 'WAGUS',
-        theme: ThemeData(
-          primaryColor: AppPalette.neonPurple,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: AppPalette.neonPurple,
-          ),
-          scaffoldBackgroundColor: Colors.transparent,
-          extensions: <ThemeExtension<dynamic>>[
-            AppColors(),
-          ],
-          textTheme: GoogleFonts.pressStart2pTextTheme().apply(
-            bodyColor: AppPalette.contrastLight,
-            displayColor: AppPalette.contrastLight,
-            decorationColor: AppPalette.contrastLight,
-          ),
-        ),
-        routerConfig: appRouter,
+      child: Builder(
+        builder: (context) {
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider<HomeBloc>(
+                create: (_) => HomeBloc(
+                  homeRepository: context.read<HomeRepository>(),
+                )..add(HomeInitialEvent()),
+              ),
+              BlocProvider<PortalBloc>(
+                create: (_) => PortalBloc(
+                  portalRepository: context.read<PortalRepository>(),
+                )..add(PortalInitialEvent()),
+              ),
+              BlocProvider<LotteryBloc>(
+                create: (_) => LotteryBloc(
+                  lotteryRepository: context.read<LotteryRepository>(),
+                )..add(LotteryInitialEvent()),
+              ),
+              BlocProvider<AiBloc>(
+                create: (_) => AiBloc(
+                  repository: context.read<AIRepository>(),
+                ),
+              ),
+              BlocProvider<IncubatorBloc>(
+                create: (_) => IncubatorBloc(
+                  incubatorRepository: context.read<IncubatorRepository>(),
+                )..add(IncubatorInitialEvent()),
+              ),
+              BlocProvider<BankBloc>(
+                create: (_) => BankBloc(
+                  bankRepository: context.read<BankRepository>(),
+                ),
+              ),
+            ],
+            child: MaterialApp.router(
+              debugShowCheckedModeBanner: false,
+              title: 'WAGUS',
+              theme: ThemeData(
+                primaryColor: AppPalette.neonPurple,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: AppPalette.neonPurple,
+                ),
+                scaffoldBackgroundColor: Colors.transparent,
+                extensions: <ThemeExtension<dynamic>>[
+                  AppColors(),
+                ],
+                textTheme: GoogleFonts.pressStart2pTextTheme().apply(
+                  bodyColor: AppPalette.contrastLight,
+                  displayColor: AppPalette.contrastLight,
+                  decorationColor: AppPalette.contrastLight,
+                ),
+              ),
+              routerConfig: appRouter,
+            ),
+          );
+        },
       ),
     );
   }

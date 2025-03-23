@@ -1,17 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:go_router/go_router.dart';
+import 'package:wagus/features/bank/bloc/bank_bloc.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/theme/app_palette.dart';
 import 'package:wagus/wagus.dart';
 
-class Bank extends StatelessWidget {
+class Bank extends HookWidget {
   const Bank({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<PortalBloc, PortalState>(
-      builder: (context, portalState) {
+    final amountController = useTextEditingController();
+    final destinationController = useTextEditingController();
+
+    return BlocConsumer<BankBloc, BankState>(
+      listener: (context, state) {
+        if (state.status == BankStatus.failure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Error fetching data'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      },
+      builder: (context, state) {
+        print('Bank State: ${state.status}');
+
         return Scaffold(
           body: CustomPaint(
             painter: CryptoBackgroundPainter(),
@@ -73,6 +91,9 @@ class Bank extends StatelessWidget {
                           textAlign: TextAlign.center,
                         ),
                       ),
+                      SizedBox(
+                        height: 50,
+                      ),
                       Column(
                         spacing: 12.0,
                         children: [
@@ -91,7 +112,7 @@ class Bank extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '${portalState.holder?.tokenAmount.toStringAsFixed(2) ?? '0.00'} \$WAGUS',
+                            '${context.read<PortalBloc>().state.holder?.tokenAmount.toStringAsFixed(2) ?? '0.00'} \$WAGUS',
                             style: TextStyle(
                               color: AppPalette.contrastLight,
                               fontSize: 14,
@@ -105,68 +126,146 @@ class Bank extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            ElevatedButton(
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      title: const Text(
-                                        'Withdraw funds to destination address',
-                                        style: TextStyle(
-                                          color: AppPalette.contrastDark,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      content: TextField(
-                                        decoration: const InputDecoration(
-                                          hintText: 'Enter destination address',
-                                          hintStyle: TextStyle(
+                            Builder(builder: (context) {
+                              return ElevatedButton(
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) {
+                                      return AlertDialog(
+                                        scrollable: true,
+                                        title: const Text(
+                                          'Withdraw funds to destination address',
+                                          style: TextStyle(
                                             color: AppPalette.contrastDark,
                                             fontSize: 12,
                                           ),
                                         ),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                          },
-                                          child: const Text('Cancel'),
+                                        content: Center(
+                                          child: Column(
+                                            children: [
+                                              TextField(
+                                                controller: amountController,
+                                                style: TextStyle(
+                                                  color: context
+                                                      .appColors.contrastDark,
+                                                ),
+                                                decoration:
+                                                    const InputDecoration(
+                                                  hintText:
+                                                      'Enter amount to withdraw',
+                                                  hintStyle: TextStyle(
+                                                    color:
+                                                        AppPalette.contrastDark,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                keyboardType:
+                                                    const TextInputType
+                                                        .numberWithOptions(
+                                                  decimal: true,
+                                                ),
+                                              ),
+                                              TextField(
+                                                controller:
+                                                    destinationController,
+                                                style: TextStyle(
+                                                  color: context
+                                                      .appColors.contrastDark,
+                                                ),
+                                                decoration:
+                                                    const InputDecoration(
+                                                  hintText:
+                                                      'Enter destination address',
+                                                  hintStyle: TextStyle(
+                                                    color:
+                                                        AppPalette.contrastDark,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                          },
-                                          child: const Text('Withdraw'),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                              style: ButtonStyle(
-                                backgroundColor: WidgetStateProperty.all(
-                                    context.appColors.contrastLight),
-                                shape: WidgetStateProperty.all<
-                                    RoundedRectangleBorder>(
-                                  RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.0),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              context.pop();
+                                            },
+                                            child: const Text('Cancel'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () async {
+                                              final amount = int.tryParse(
+                                                (amountController.text.isEmpty
+                                                    ? '0'
+                                                    : amountController.text),
+                                              );
+
+                                              if (amount == null ||
+                                                  amount <= 0 ||
+                                                  destinationController
+                                                      .text.isEmpty) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                        'Please enter a valid amount and destination address'),
+                                                    behavior: SnackBarBehavior
+                                                        .floating,
+                                                  ),
+                                                );
+                                                context.pop();
+                                                return;
+                                              }
+
+                                              context
+                                                  .read<BankBloc>()
+                                                  .add(BankWithdrawEvent(
+                                                    senderWallet: context
+                                                        .read<PortalBloc>()
+                                                        .state
+                                                        .user!
+                                                        .embeddedSolanaWallets
+                                                        .first,
+                                                    amount: amount,
+                                                    destinationAddress:
+                                                        destinationController
+                                                            .text,
+                                                  ));
+
+                                              context.pop();
+                                            },
+                                            child: const Text('Withdraw'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
+                                style: ButtonStyle(
+                                  backgroundColor: WidgetStateProperty.all(
+                                      context.appColors.contrastLight),
+                                  shape: WidgetStateProperty.all<
+                                      RoundedRectangleBorder>(
+                                    RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                    ),
+                                  ),
+                                  padding: WidgetStateProperty.all(
+                                    const EdgeInsets.symmetric(
+                                        horizontal: 32.0, vertical: 12.0),
                                   ),
                                 ),
-                                padding: WidgetStateProperty.all(
-                                  const EdgeInsets.symmetric(
-                                      horizontal: 32.0, vertical: 12.0),
+                                child: Text(
+                                  'Withdraw Funds',
+                                  style: TextStyle(
+                                    color: context.appColors.contrastDark,
+                                    fontSize: 16,
+                                  ),
                                 ),
-                              ),
-                              child: Text(
-                                'Withdraw Funds',
-                                style: TextStyle(
-                                  color: context.appColors.contrastDark,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
+                              );
+                            }),
                           ],
                         ),
                       ),

@@ -4,6 +4,7 @@ import 'package:privy_flutter/privy_flutter.dart';
 import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_wallet.dart';
 import 'package:solana_web3/programs.dart';
 import 'package:solana_web3/solana_web3.dart' as web3;
+import 'package:wagus/extensions.dart';
 import 'package:wagus/features/lottery/domain/lottery_model.dart';
 
 class LotteryRepository {
@@ -192,20 +193,5 @@ class LotteryRepository {
         : lotteryStart;
 
     return timestamp.isBefore(actualStart);
-  }
-}
-
-extension ResultExtension<T> on Result<T> {
-  bool get isSuccess => this is Success<T>;
-  bool get isFailure => this is Failure<T>;
-
-  T get success {
-    if (this is Success<T>) return (this as Success<T>).value;
-    throw StateError('Result is not Success');
-  }
-
-  Exception get failure {
-    if (this is Failure<T>) return (this as Failure<T>).error;
-    throw StateError('Result is not Failure');
   }
 }

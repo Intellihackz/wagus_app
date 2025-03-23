@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:wagus/features/ai/ai_tools/ai_tools.dart';
 import 'package:wagus/features/auth/login_screen.dart';
+import 'package:wagus/features/incubator/project_interface.dart';
 import 'package:wagus/features/portal/portal.dart';
 import 'package:wagus/wagus.dart';
 
@@ -11,6 +12,7 @@ const String home = '/home';
 const String aiImageGeneration = '/ai-image-generation';
 const String aiAnalysisPrediction = '/ai-analysis-prediction';
 const String aiWhitePaperGeneration = '/ai-whitepaper';
+const String projectInterface = '/project-interface';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -42,6 +44,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: aiWhitePaperGeneration,
       builder: (context, state) => const AiWhitePaperGenerator(),
+    ),
+    GoRoute(
+      path: projectInterface,
+      builder: (context, state) => const ProjectInterface(),
     ),
   ],
 );
