@@ -26,7 +26,7 @@ class Home extends HookWidget {
                       margin: EdgeInsets.only(top: 32),
                       width: double.infinity,
                       child: Padding(
-                        padding: const EdgeInsets.only(top: 128.0),
+                        padding: const EdgeInsets.only(top: 100.0),
                         child: Column(
                           children: [
                             Center(

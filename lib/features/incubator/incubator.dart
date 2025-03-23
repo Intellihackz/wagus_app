@@ -1,3 +1,4 @@
+import 'package:date_format/date_format.dart';
 import 'package:flutter/material.dart';
 import 'package:wagus/theme/app_palette.dart';
 
@@ -10,33 +11,50 @@ class Incubator extends StatelessWidget {
       description: 'A decentralized domain name service',
       fundingProgress: 0.2,
       likes: 120,
+      launchDate: DateTime(2025, 6, 19),
     ),
     Project(
       name: 'DEFI FLOW',
       description: 'A DeFi automation tool for yield farming',
       fundingProgress: 0.6,
       likes: 104,
+      launchDate: DateTime(2025, 6, 11),
     ),
     Project(
       name: 'NFT HUB',
       description: 'A curated NFT marketplace for artists',
       fundingProgress: 0.4,
       likes: 98,
+      launchDate: DateTime(2025, 6, 14),
     ),
     Project(
       name: 'CHAIN VOTE',
       description: 'Decentralized on-chain governance platform',
       fundingProgress: 0.1,
       likes: 75,
+      launchDate: DateTime(2025, 6, 16),
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: context.appColors.contrastLight,
+        onPressed: () {
+          // Handle add project logic here
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('This feature is coming soon!'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        },
+        child: Icon(Icons.playlist_add_rounded),
+      ),
       body: SizedBox.expand(
         child: Padding(
-          padding: const EdgeInsets.only(top: 128.0),
+          padding: const EdgeInsets.only(top: 100.0),
           child: Column(
             children: [
               Text(
@@ -47,7 +65,7 @@ class Incubator extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 16.0),
+              SizedBox(height: 32.0),
               Expanded(
                 child: ListView.builder(
                   physics: ClampingScrollPhysics(),
@@ -120,6 +138,117 @@ class Incubator extends StatelessWidget {
                                   LinkTile(
                                       title: 'Telegram', icon: Icons.telegram),
                                 ],
+                              ),
+                              const SizedBox(height: 16.0),
+                              Wrap(
+                                alignment: WrapAlignment.spaceEvenly,
+                                spacing: 16.0,
+                                runSpacing: 16.0,
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      color: context.appColors.contrastLight,
+                                    ),
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          '100',
+                                          style: TextStyle(
+                                            color:
+                                                context.appColors.contrastDark,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        Image.asset('assets/icons/logo.png',
+                                            height: 32, width: 32)
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      color: context.appColors.contrastLight,
+                                    ),
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          '250',
+                                          style: TextStyle(
+                                            color:
+                                                context.appColors.contrastDark,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        Image.asset('assets/icons/logo.png',
+                                            height: 32, width: 32)
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      color: context.appColors.contrastLight,
+                                    ),
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          '500',
+                                          style: TextStyle(
+                                            color:
+                                                context.appColors.contrastDark,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        Image.asset('assets/icons/logo.png',
+                                            height: 32, width: 32)
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      color: context.appColors.contrastLight,
+                                    ),
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          '1000',
+                                          style: TextStyle(
+                                            color:
+                                                context.appColors.contrastDark,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        Image.asset('assets/icons/logo.png',
+                                            height: 32, width: 32)
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16.0),
+                              Text(
+                                'Launch date: ${formatDate(
+                                  project.launchDate,
+                                  [M, ' ', d, ', ', yyyy],
+                                )}',
+                                style: TextStyle(
+                                  color: context.appColors.contrastLight,
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
@@ -205,6 +334,7 @@ class LinkTile extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('This feature is coming soon!'),
+            behavior: SnackBarBehavior.floating,
           ),
         );
       },
@@ -235,11 +365,13 @@ class Project {
   final String description;
   final double fundingProgress;
   final int likes;
+  final DateTime launchDate;
 
   Project({
     required this.name,
     required this.description,
     required this.fundingProgress,
     required this.likes,
+    required this.launchDate,
   });
 }

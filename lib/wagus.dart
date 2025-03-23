@@ -104,13 +104,17 @@ class Wagus extends HookWidget {
                 floatingActionButton: FloatingActionButton(
                   mini: true,
                   backgroundColor: context.appColors.contrastLight,
-                  onPressed: () {
-                    showModalBottomSheet(
+                  onPressed: () async {
+                    await showModalBottomSheet(
                       backgroundColor: context.appColors.contrastDark,
                       isScrollControlled: true,
                       context: context,
                       builder: (context) => Bank(),
-                    );
+                    ).whenComplete(() {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      }
+                    });
                   },
                   child: Image.asset(
                     'assets/icons/logo.png',

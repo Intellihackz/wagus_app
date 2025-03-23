@@ -11,30 +11,44 @@ class AITools extends StatelessWidget {
     return Scaffold(
       body: SizedBox.expand(
         child: Padding(
-          padding: const EdgeInsets.only(top: 128.0),
-          child: ListView(
-            padding: EdgeInsets.zero,
+          padding: const EdgeInsets.only(top: 100.0),
+          child: Column(
             children: [
-              AITile(
-                icon: Icons.analytics,
-                title: 'AI Analysis Prediction',
-                onTap: () {
-                  context.push(aiAnalysisPrediction);
-                },
+              Text(
+                'AI Tools',
+                style: TextStyle(
+                  color: context.appColors.contrastLight,
+                  fontSize: 18.0,
+                ),
               ),
-              AITile(
-                icon: Icons.image,
-                title: 'AI Image Generation',
-                onTap: () {
-                  context.push(aiImageGeneration);
-                },
-              ),
-              AITile(
-                icon: Icons.description,
-                title: 'AI White Paper Generator',
-                onTap: () {
-                  context.push(aiWhitePaperGeneration);
-                },
+              const SizedBox(height: 32.0),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    AITile(
+                      icon: Icons.analytics,
+                      title: 'AI Analysis Prediction',
+                      onTap: () {
+                        context.push(aiAnalysisPrediction);
+                      },
+                    ),
+                    AITile(
+                      icon: Icons.image,
+                      title: 'AI Image Generation',
+                      onTap: () {
+                        context.push(aiImageGeneration);
+                      },
+                    ),
+                    AITile(
+                      icon: Icons.description,
+                      title: 'AI White Paper Generator',
+                      onTap: () {
+                        context.push(aiWhitePaperGeneration);
+                      },
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

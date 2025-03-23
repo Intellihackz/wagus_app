@@ -89,6 +89,7 @@ class Lottery extends HookWidget {
               .showSnackBar(
                 SnackBar(
                   content: Text('Failed to add to pool. Please try again.'),
+                  behavior: SnackBarBehavior.floating,
                 ),
               )
               .closed
