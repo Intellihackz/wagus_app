@@ -2,75 +2,25 @@ import 'package:date_format/date_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_cached_pdfview/flutter_cached_pdfview.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wagus/features/incubator/bloc/incubator_bloc.dart';
+import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/theme/app_palette.dart';
 
-class Incubator extends StatelessWidget {
-  Incubator({super.key});
-
-  final List<Project> _projects = [
-    Project(
-      name: 'PROJECT IDX',
-      description: 'A decentralized domain name service',
-      fundingProgress: 0.2,
-      likes: 120,
-      launchDate: DateTime(2025, 6, 19),
-      walletAddress: '0x1234567890abcdef',
-      gitHubLink: '',
-      websiteLink: '',
-      whitePaperLink: '',
-      roadmapLink: '',
-      socialsLink: '',
-      telegramLink: '',
-    ),
-    Project(
-      name: 'DEFI FLOW',
-      description: 'A DeFi automation tool for yield farming',
-      fundingProgress: 0.6,
-      likes: 104,
-      launchDate: DateTime(2025, 6, 11),
-      walletAddress: '0x1234567890abcdef',
-      gitHubLink: '',
-      websiteLink: '',
-      whitePaperLink: '',
-      roadmapLink: '',
-      socialsLink: '',
-      telegramLink: '',
-    ),
-    Project(
-      name: 'NFT HUB',
-      description: 'A curated NFT marketplace for artists',
-      fundingProgress: 0.4,
-      likes: 98,
-      launchDate: DateTime(2025, 6, 14),
-      walletAddress: '0x1234567890abcdef',
-      gitHubLink: '',
-      websiteLink: '',
-      whitePaperLink: '',
-      roadmapLink: '',
-      socialsLink: '',
-      telegramLink: '',
-    ),
-    Project(
-      name: 'CHAIN VOTE',
-      description: 'Decentralized on-chain governance platform',
-      fundingProgress: 0.1,
-      likes: 75,
-      launchDate: DateTime(2025, 6, 16),
-      walletAddress: '0x1234567890abcdef',
-      gitHubLink: '',
-      websiteLink: '',
-      whitePaperLink: '',
-      roadmapLink: '',
-      socialsLink: '',
-      telegramLink: '',
-    ),
-  ];
+class Incubator extends HookWidget {
+  const Incubator({super.key});
 
   @override
   Widget build(BuildContext context) {
+    useEffect(() {
+      context.read<IncubatorBloc>().add(IncubatorFindLikedProjectsEvent(
+          userId: context.read<PortalBloc>().state.user!.id));
+
+      return null;
+    }, []);
+
     return BlocBuilder<IncubatorBloc, IncubatorState>(
       builder: (context, state) {
         return Scaffold(
@@ -112,7 +62,7 @@ class Incubator extends StatelessWidget {
                                 tilePadding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 8),
                                 shape: Border(
-                                  top: index == _projects.length - 1
+                                  top: index == state.projects.length - 1
                                       ? BorderSide.none
                                       : BorderSide(
                                           color:
@@ -123,7 +73,7 @@ class Incubator extends StatelessWidget {
                                       width: 1),
                                 ),
                                 collapsedShape: Border(
-                                  top: index == _projects.length - 1
+                                  top: index == state.projects.length - 1
                                       ? BorderSide.none
                                       : BorderSide(
                                           color:
@@ -468,12 +418,31 @@ class Incubator extends StatelessWidget {
                                           const EdgeInsets.only(right: 8.0),
                                       child: Row(
                                         children: [
-                                          Icon(Icons.favorite_border,
-                                              color: context
-                                                  .appColors.contrastLight),
+                                          GestureDetector(
+                                            onTap: () {
+                                              context.read<IncubatorBloc>().add(
+                                                      IncubatorProjectLikeEvent(
+                                                    project.id,
+                                                    context
+                                                        .read<PortalBloc>()
+                                                        .state
+                                                        .user!
+                                                        .id,
+                                                  ));
+                                            },
+                                            child: state.likedProjectsIds.any(
+                                                    (likedProject) =>
+                                                        likedProject ==
+                                                        project.id)
+                                                ? Icon(Icons.favorite,
+                                                    color: Colors.red)
+                                                : Icon(Icons.favorite_border,
+                                                    color: context.appColors
+                                                        .contrastLight),
+                                          ),
                                           SizedBox(width: 4),
                                           Text(
-                                            '${project.likes}',
+                                            '${project.likesCount}',
                                             style: TextStyle(
                                               color: context
                                                   .appColors.contrastLight,
@@ -534,54 +503,6 @@ class LinkTile extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class Project {
-  final String name;
-  final String description;
-  final double fundingProgress;
-  final int likes;
-  final DateTime launchDate;
-
-  final String walletAddress;
-  final String gitHubLink;
-  final String websiteLink;
-  final String whitePaperLink;
-  final String roadmapLink;
-  final String socialsLink;
-  final String telegramLink;
-
-  Project({
-    required this.name,
-    required this.description,
-    required this.fundingProgress,
-    required this.likes,
-    required this.launchDate,
-    required this.walletAddress,
-    required this.gitHubLink,
-    required this.websiteLink,
-    required this.whitePaperLink,
-    required this.roadmapLink,
-    required this.socialsLink,
-    required this.telegramLink,
-  });
-
-  factory Project.fromJson(Map<String, dynamic> json) {
-    return Project(
-      name: json['name'],
-      description: json['description'],
-      fundingProgress: json['fundingProgress'],
-      likes: json['likes'],
-      launchDate: DateTime.parse(json['launchDate']),
-      walletAddress: json['walletAddress'],
-      gitHubLink: json['gitHubLink'],
-      websiteLink: json['websiteLink'],
-      whitePaperLink: json['whitePaperLink'],
-      roadmapLink: json['roadmapLink'],
-      socialsLink: json['socialsLink'],
-      telegramLink: json['telegramLink'],
     );
   }
 }

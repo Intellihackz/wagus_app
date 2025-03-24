@@ -5,8 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 import 'package:wagus/features/incubator/bloc/incubator_bloc.dart';
-import 'package:wagus/features/incubator/incubator.dart';
+import 'package:wagus/features/incubator/domain/project.dart';
 import 'package:wagus/theme/app_palette.dart';
 
 class ProjectInterface extends HookWidget {
@@ -309,6 +310,7 @@ class ProjectInterface extends HookWidget {
                                 .read<IncubatorBloc>()
                                 .add(IncubatorProjectSubmitEvent(
                                   Project(
+                                    id: Uuid().v4(),
                                     name: projectNameController.text,
                                     description:
                                         projectDescriptionController.text,
@@ -323,7 +325,7 @@ class ProjectInterface extends HookWidget {
                                     telegramLink:
                                         projectTelegramController.text,
                                     fundingProgress: 0,
-                                    likes: 0,
+                                    likesCount: 0,
                                     launchDate: DateTime.now(),
                                   ),
                                   whitePaperFile: whitePaperFile.value,
