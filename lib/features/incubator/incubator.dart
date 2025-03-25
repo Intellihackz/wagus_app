@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_cached_pdfview/flutter_cached_pdfview.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:wagus/features/incubator/bloc/incubator_bloc.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
@@ -113,13 +114,18 @@ class Incubator extends HookWidget {
                                     runSpacing: 16.0,
                                     children: [
                                       LinkTile(
-                                          title: 'GitHub',
-                                          icon: Icons.code,
-                                          onTap: () {}),
+                                        title: 'GitHub',
+                                        icon: Icons.code,
+                                        onTap: () => launchUrl(
+                                          Uri.parse(project.gitHubLink),
+                                        ),
+                                      ),
                                       LinkTile(
                                         title: 'Website',
                                         icon: Icons.public,
-                                        onTap: () {},
+                                        onTap: () => launchUrl(
+                                          Uri.parse(project.websiteLink),
+                                        ),
                                       ),
                                       LinkTile(
                                         title: 'White Paper',
@@ -252,12 +258,16 @@ class Incubator extends HookWidget {
                                       LinkTile(
                                         title: 'Socials',
                                         icon: Icons.people,
-                                        onTap: () {},
+                                        onTap: () => launchUrl(
+                                          Uri.parse(project.socialsLink),
+                                        ),
                                       ),
                                       LinkTile(
                                         title: 'Telegram',
                                         icon: Icons.telegram,
-                                        onTap: () {},
+                                        onTap: () => launchUrl(
+                                          Uri.parse(project.telegramLink),
+                                        ),
                                       ),
                                     ],
                                   ),
