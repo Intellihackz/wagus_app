@@ -111,14 +111,16 @@ class AIAnalysisPrediction extends HookWidget {
                 ),
                 Expanded(
                   child: Visibility(
-                    visible: state.state != AIState.initial,
+                    visible: state.predictionState !=
+                        AIAnalysisPredictionState.initial,
                     child: Padding(
                       padding: const EdgeInsets.only(left: 32.0, right: 32.0),
                       child: Column(
                         spacing: 12.0,
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: state.state == AIState.loading
+                        children: state.predictionState ==
+                                AIAnalysisPredictionState.loading
                             ? [CircularProgressIndicator()]
                             : [
                                 Text(state.response),

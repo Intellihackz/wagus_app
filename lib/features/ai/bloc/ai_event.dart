@@ -8,3 +8,11 @@ class AIGeneratePredictionEvent extends AiEvent {
 
   AIGeneratePredictionEvent(this.selectedCrypto);
 }
+
+class AIGenerateImageEvent extends AiEvent {
+  final String prompt;
+
+  AIGenerateImageEvent(this.prompt);
+}
+
+class AIResetStateEvent extends AiEvent {}

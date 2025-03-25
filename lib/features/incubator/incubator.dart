@@ -15,8 +15,11 @@ class Incubator extends HookWidget {
   @override
   Widget build(BuildContext context) {
     useEffect(() {
-      context.read<IncubatorBloc>().add(IncubatorFindLikedProjectsEvent(
-          userId: context.read<PortalBloc>().state.user!.id));
+      final userId = context.read<PortalBloc>().state.user!.id;
+      context.read<IncubatorBloc>().add(IncubatorInitialEvent(userId: userId));
+      context
+          .read<IncubatorBloc>()
+          .add(IncubatorFindLikedProjectsEvent(userId: userId));
 
       return null;
     }, []);
@@ -420,15 +423,30 @@ class Incubator extends HookWidget {
                                         children: [
                                           GestureDetector(
                                             onTap: () {
-                                              context.read<IncubatorBloc>().add(
-                                                      IncubatorProjectLikeEvent(
-                                                    project.id,
-                                                    context
-                                                        .read<PortalBloc>()
-                                                        .state
-                                                        .user!
-                                                        .id,
-                                                  ));
+                                              final userId = context
+                                                  .read<PortalBloc>()
+                                                  .state
+                                                  .user!
+                                                  .id;
+
+                                              if (state.likedProjectsIds
+                                                  .contains(project.id)) {
+                                                context
+                                                    .read<IncubatorBloc>()
+                                                    .add(
+                                                        IncubatorProjectUnlikeEvent(
+                                                      project.id,
+                                                      userId,
+                                                    ));
+                                              } else {
+                                                context
+                                                    .read<IncubatorBloc>()
+                                                    .add(
+                                                        IncubatorProjectLikeEvent(
+                                                      project.id,
+                                                      userId,
+                                                    ));
+                                              }
                                             },
                                             child: state.likedProjectsIds.any(
                                                     (likedProject) =>

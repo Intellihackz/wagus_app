@@ -47,4 +47,22 @@ class Project {
       telegramLink: json['telegramLink'],
     );
   }
+
+  Project copyWithId(String newId) {
+    return Project(
+      id: newId,
+      name: name,
+      description: description,
+      fundingProgress: fundingProgress,
+      likesCount: likesCount,
+      launchDate: launchDate,
+      walletAddress: walletAddress,
+      gitHubLink: gitHubLink,
+      websiteLink: websiteLink,
+      whitePaperLink: whitePaperLink,
+      roadmapLink: roadmapLink,
+      socialsLink: socialsLink,
+      telegramLink: telegramLink,
+    );
+  }
 }

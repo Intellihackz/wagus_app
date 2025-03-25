@@ -1,9 +1,62 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
 
 class AIRepository {
   final Dio _dio = Dio();
+
+  Future<String?> generateImage({required String prompt}) async {
+    final apiKey = dotenv.env['OPENAI_API_KEY'];
+    if (apiKey == null || apiKey.isEmpty) return null;
+
+    try {
+      final response = await _dio.post(
+        'https://api.openai.com/v1/images/generations',
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $apiKey'
+          },
+        ),
+        data: {
+          'prompt': prompt,
+          'n': 1,
+          'size': '1024x1024',
+          'response_format': 'url',
+          'model': 'dall-e-3',
+        },
+      );
+
+      final imageUrl = response.data?['data']?[0]['url'];
+      return imageUrl as String?;
+    } catch (error) {
+      print('Error in generateImage: $error');
+      return null;
+    }
+  }
+
+  Future<bool> saveImage({required String imageUrl}) async {
+    try {
+      final response = await _dio.get(
+        imageUrl,
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      final byes = await ImageGallerySaver.saveImage(
+          Uint8List.fromList(response.data),
+          quality: 60,
+          name: 'ai_image');
+      print('Saved image: $byes');
+
+      return true;
+    } on Exception catch (e) {
+      print('Error in saveImage: $e');
+      return false;
+    }
+  }
 
   Future<(String, PredictionType)?> makeLongOrShortPrediction(
       {required SupportedCryptoPredictions selectedCrypto}) async {

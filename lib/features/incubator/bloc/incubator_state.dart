@@ -3,7 +3,7 @@ part of 'incubator_bloc.dart';
 class IncubatorState {
   final IncubatorSubmissionStatus status;
   final List<Project> projects;
-  final List<String> likedProjectsIds;
+  final Set<String> likedProjectsIds;
 
   const IncubatorState({
     required this.status,
@@ -14,12 +14,12 @@ class IncubatorState {
   IncubatorState copyWith({
     IncubatorSubmissionStatus? status,
     List<Project>? projects,
-    List<String>? likedProjectsIds,
+    Set<String>? likedProjectIds,
   }) {
     return IncubatorState(
       status: status ?? this.status,
       projects: projects ?? this.projects,
-      likedProjectsIds: likedProjectsIds ?? this.likedProjectsIds,
+      likedProjectsIds: likedProjectIds ?? likedProjectsIds,
     );
   }
 }

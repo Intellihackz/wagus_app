@@ -60,5 +60,7 @@
     <array>
         <string>applinks:wagus-app.com</string>
     </array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Please allow access to your photo library to download photos.</string>
 </dict>
 </plist>

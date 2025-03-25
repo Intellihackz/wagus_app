@@ -69,7 +69,7 @@ class App extends StatelessWidget {
               BlocProvider<IncubatorBloc>(
                 create: (_) => IncubatorBloc(
                   incubatorRepository: context.read<IncubatorRepository>(),
-                )..add(IncubatorInitialEvent()),
+                ),
               ),
               BlocProvider<BankBloc>(
                 create: (_) => BankBloc(
