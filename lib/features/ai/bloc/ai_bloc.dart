@@ -14,6 +14,7 @@ class AiBloc extends Bloc<AiEvent, AiState> {
           predictionType: PredictionType.none,
           predictionState: AIAnalysisPredictionState.initial,
           imageGenerationState: AIImageGenerationState.initial,
+          whitePaperFormState: AIWhitePaperFormState.initial,
         )) {
     on<AIGeneratePredictionEvent>((event, emit) async {
       emit(state.copyWith(
@@ -57,6 +58,42 @@ class AiBloc extends Bloc<AiEvent, AiState> {
           imageUrl: () => null,
           imageGenerationState: AIImageGenerationState.initial,
           errorMessage: () => null));
+    });
+
+    on<AISubmitWhitePaperFormEvent>((event, emit) async {
+      emit(state.copyWith(
+        whitePaperFormState: AIWhitePaperFormState.loading,
+        whitePaper: () => null,
+        errorMessage: () => null,
+      ));
+
+      try {
+        final whitePaper = await repository.generateWhitePaper(
+          projectName: event.projectName,
+          projectDescription: event.projectDescription,
+          projectPurpose: event.projectPurpose,
+          projectType: event.projectType,
+          projectContributors: event.projectContributors,
+        );
+
+        if (whitePaper != null) {
+          emit(state.copyWith(
+            whitePaperFormState: AIWhitePaperFormState.success,
+            whitePaper: () => whitePaper,
+            errorMessage: () => null,
+          ));
+        } else {
+          emit(state.copyWith(
+            whitePaperFormState: AIWhitePaperFormState.failure,
+            errorMessage: () => 'Failed to generate white paper',
+          ));
+        }
+      } catch (e) {
+        emit(state.copyWith(
+          whitePaperFormState: AIWhitePaperFormState.failure,
+          errorMessage: () => e.toString(),
+        ));
+      }
     });
   }
 }

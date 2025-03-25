@@ -16,3 +16,19 @@ class AIGenerateImageEvent extends AiEvent {
 }
 
 class AIResetStateEvent extends AiEvent {}
+
+class AISubmitWhitePaperFormEvent extends AiEvent {
+  final String projectName;
+  final String projectDescription;
+  final String projectPurpose;
+  final String projectType;
+  final String projectContributors;
+
+  AISubmitWhitePaperFormEvent({
+    required this.projectName,
+    required this.projectDescription,
+    required this.projectPurpose,
+    required this.projectType,
+    required this.projectContributors,
+  });
+}

@@ -6,8 +6,10 @@ class AiState {
   final PredictionType predictionType;
   final AIAnalysisPredictionState predictionState;
   final AIImageGenerationState imageGenerationState;
+  final AIWhitePaperFormState whitePaperFormState;
   final String? imageUrl;
   final String? errorMessage;
+  final String? whitePaper;
 
   const AiState({
     required this.selectedCrypto,
@@ -15,8 +17,10 @@ class AiState {
     required this.predictionType,
     required this.predictionState,
     required this.imageGenerationState,
+    required this.whitePaperFormState,
     this.imageUrl,
     this.errorMessage,
+    this.whitePaper,
   });
 
   AiState copyWith({
@@ -25,8 +29,10 @@ class AiState {
     PredictionType? predictionType,
     AIAnalysisPredictionState? predictionState,
     AIImageGenerationState? imageGenerationState,
+    AIWhitePaperFormState? whitePaperFormState,
     String? Function()? imageUrl,
     String? Function()? errorMessage,
+    String? Function()? whitePaper,
   }) {
     return AiState(
       selectedCrypto: selectedCrypto ?? this.selectedCrypto,
@@ -34,8 +40,10 @@ class AiState {
       predictionType: predictionType ?? this.predictionType,
       predictionState: predictionState ?? this.predictionState,
       imageGenerationState: imageGenerationState ?? this.imageGenerationState,
+      whitePaperFormState: whitePaperFormState ?? this.whitePaperFormState,
       imageUrl: imageUrl != null ? imageUrl() : this.imageUrl,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
+      whitePaper: whitePaper != null ? whitePaper() : this.whitePaper,
     );
   }
 }
@@ -48,6 +56,13 @@ enum AIAnalysisPredictionState {
 }
 
 enum AIImageGenerationState {
+  initial,
+  loading,
+  success,
+  failure,
+}
+
+enum AIWhitePaperFormState {
   initial,
   loading,
   success,

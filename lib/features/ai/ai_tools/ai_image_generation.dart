@@ -40,6 +40,7 @@ class AIImageGeneration extends HookWidget {
           padding: const EdgeInsets.only(
               left: 16.0, right: 16.0, top: 100.0, bottom: 64.0),
           child: Column(
+            spacing: 16.0,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
