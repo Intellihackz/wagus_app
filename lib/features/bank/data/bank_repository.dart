@@ -1,10 +1,8 @@
 import 'dart:convert';
-import 'package:crypto/crypto.dart'; // For SHA-256 hashing
 import 'package:flutter/foundation.dart'; // for debugPrint
 import 'package:privy_flutter/privy_flutter.dart';
 import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_wallet.dart';
 import 'package:solana/solana.dart' as solana;
-import 'package:solana_web3/constants.dart';
 import 'package:solana_web3/programs.dart';
 import 'package:solana_web3/solana_web3.dart' as web3;
 import 'package:wagus/extensions.dart';

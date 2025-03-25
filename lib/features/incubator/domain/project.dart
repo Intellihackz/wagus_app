@@ -13,6 +13,8 @@ class Project {
   final String roadmapLink;
   final String socialsLink;
   final String telegramLink;
+  final double? totalFunded;
+  final List<String> addressesFunded;
 
   Project({
     required this.id,
@@ -28,6 +30,8 @@ class Project {
     required this.roadmapLink,
     required this.socialsLink,
     required this.telegramLink,
+    this.totalFunded,
+    required this.addressesFunded,
   });
 
   factory Project.fromJson(Map<String, dynamic> json) {
@@ -45,6 +49,8 @@ class Project {
       roadmapLink: json['roadmapLink'],
       socialsLink: json['socialsLink'],
       telegramLink: json['telegramLink'],
+      totalFunded: json['totalFunded'],
+      addressesFunded: List<String>.from(json['addressesFunded']),
     );
   }
 
@@ -63,6 +69,45 @@ class Project {
       roadmapLink: roadmapLink,
       socialsLink: socialsLink,
       telegramLink: telegramLink,
+      totalFunded: totalFunded,
+      addressesFunded: addressesFunded,
+    );
+  }
+
+  //copywith
+  Project copyWith({
+    String? id,
+    String? name,
+    String? description,
+    double? fundingProgress,
+    int? likesCount,
+    DateTime? launchDate,
+    String? walletAddress,
+    String? gitHubLink,
+    String? websiteLink,
+    String? whitePaperLink,
+    String? roadmapLink,
+    String? socialsLink,
+    String? telegramLink,
+    double? Function()? totalFunded,
+    List<String>? addressesFunded,
+  }) {
+    return Project(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      fundingProgress: fundingProgress ?? this.fundingProgress,
+      likesCount: likesCount ?? this.likesCount,
+      launchDate: launchDate ?? this.launchDate,
+      walletAddress: walletAddress ?? this.walletAddress,
+      gitHubLink: gitHubLink ?? this.gitHubLink,
+      websiteLink: websiteLink ?? this.websiteLink,
+      whitePaperLink: whitePaperLink ?? this.whitePaperLink,
+      roadmapLink: roadmapLink ?? this.roadmapLink,
+      socialsLink: socialsLink ?? this.socialsLink,
+      telegramLink: telegramLink ?? this.telegramLink,
+      totalFunded: totalFunded != null ? totalFunded() : this.totalFunded,
+      addressesFunded: addressesFunded ?? this.addressesFunded,
     );
   }
 }

@@ -1,9 +1,29 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
+import 'package:privy_flutter/privy_flutter.dart';
+import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_wallet.dart';
+import 'package:solana/base58.dart';
+import 'package:solana/solana.dart' as solana;
+import 'package:solana_web3/programs.dart';
+import 'package:solana_web3/solana_web3.dart' as web3;
+import 'package:wagus/extensions.dart';
 import 'package:wagus/features/incubator/domain/project.dart';
 
 class IncubatorRepository {
+  static const String techMedicMint =
+      'YLu5uLRfZTLMCY9m2CBJ1czWuNJCwFkctnXn4zcrGFM';
+  static const int techMedicDecimals = 9;
+  static const int totalTokenAllocation = 10000; // Fixed allocation per project
+  static final web3.Pubkey tokenProgramId =
+      web3.Pubkey.fromBase58('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+  static final web3.Pubkey systemProgramId =
+      web3.Pubkey.fromBase58('11111111111111111111111111111111');
+  static final web3.Pubkey rentSysvarId =
+      web3.Pubkey.fromBase58('SysvarRent111111111111111111111111111111111');
+
   final CollectionReference projectsCollection =
       FirebaseFirestore.instance.collection('projects');
 
@@ -130,6 +150,7 @@ class IncubatorRepository {
         'telegramLink': project.telegramLink,
         'fundingProgress': project.fundingProgress,
         'likesCount': 0,
+        'addressesFunded': [],
         'launchDate': project.launchDate.toIso8601String(),
         'timestamp': FieldValue.serverTimestamp(),
       });
@@ -168,5 +189,271 @@ class IncubatorRepository {
       print('Error in getUserLikedProjects: $error');
     });
     return stream;
+  }
+
+  Future<void> withdrawToProject({
+    required EmbeddedSolanaWallet wallet,
+    required int amount,
+    required String projectId,
+    required String userId,
+  }) async {
+    debugPrint(
+        '[IncubatorRepository] Starting withdrawal to project: $projectId');
+    debugPrint('[IncubatorRepository] Sender Wallet: ${wallet.address}');
+    debugPrint('[IncubatorRepository] Amount: $amount');
+
+    // Fetch project wallet address from Firestore
+    final projectDoc = await projectsCollection.doc(projectId).get();
+    if (!projectDoc.exists) throw Exception('Project not found');
+    final projectData = projectDoc.data() as Map<String, dynamic>;
+    final destinationAddress = projectData['walletAddress'] as String?;
+
+    // Validate destinationAddress
+    if (destinationAddress == null || destinationAddress.isEmpty) {
+      throw Exception('Project wallet address is null or empty in Firestore');
+    }
+    debugPrint('[IncubatorRepository] Project Wallet: $destinationAddress');
+
+    // Additional validation for Solana public key length (base58 string typically 43-44 chars)
+    try {
+      final decoded =
+          base58decode(destinationAddress); // From solana package or similar
+      if (decoded.length != 32) {
+        throw Exception(
+            'Invalid public key length: ${decoded.length} bytes, expected 32');
+      }
+    } catch (e) {
+      throw Exception('Invalid walletAddress format: $destinationAddress - $e');
+    }
+
+    final cluster = web3.Cluster.mainnet;
+    final connection = web3.Connection(cluster);
+    final blockHash = await connection.getLatestBlockhash();
+
+    debugPrint(
+        '[IncubatorRepository] Fetched latest blockhash: ${blockHash.blockhash}');
+
+    final amountInUnits = _calculateAmountInUnits(amount, techMedicDecimals);
+    debugPrint('[IncubatorRepository] Amount in units: $amountInUnits');
+
+    final senderPubkey = _pubkeyFromBase58(wallet.address);
+    final destinationPubkey =
+        _pubkeyFromBase58(destinationAddress); // Should now work if valid
+    final mintPubkey = _pubkeyFromBase58(techMedicMint);
+
+    final sourceAta =
+        await _getSenderTokenAccount(connection, senderPubkey, mintPubkey);
+    if (sourceAta == null) {
+      throw Exception('Sender does not have a Tech Medic token account.');
+    }
+    debugPrint('[IncubatorRepository] Source ATA: ${sourceAta.toBase58()}');
+
+    final destinationAta =
+        await _getAssociatedTokenAddress(destinationPubkey, mintPubkey);
+    debugPrint(
+        '[IncubatorRepository] Destination ATA: ${destinationAta.toBase58()}');
+
+    final transaction = await _prepareTransaction(
+      connection,
+      senderPubkey,
+      destinationPubkey,
+      sourceAta,
+      destinationAta,
+      mintPubkey,
+      amountInUnits,
+      blockHash.blockhash,
+    );
+
+    debugPrint('[IncubatorRepository] Transaction prepared.');
+
+    await _signAndSendTransaction(wallet, connection, transaction);
+
+    await _updateProjectFunding(projectId, userId, amount, wallet);
+  }
+
+  BigInt _calculateAmountInUnits(int amount, int decimals) {
+    return BigInt.from(amount) * BigInt.from(10).pow(decimals);
+  }
+
+  Future<web3.Pubkey?> _getSenderTokenAccount(
+    web3.Connection connection,
+    web3.Pubkey owner,
+    web3.Pubkey mint,
+  ) async {
+    final tokenAccounts = await connection.getTokenAccountsByOwner(
+      owner,
+      filter: web3.TokenAccountsFilter.mint(mint),
+      config: web3.GetTokenAccountsByOwnerConfig(),
+    );
+    if (tokenAccounts.isEmpty) return null;
+
+    final pubkey = web3.Pubkey.fromBase58(tokenAccounts.first.pubkey);
+    return pubkey;
+  }
+
+  Future<web3.Pubkey> _getAssociatedTokenAddress(
+      web3.Pubkey owner, web3.Pubkey mint) async {
+    final solanaOwner = solana.Ed25519HDPublicKey.fromBase58(owner.toBase58());
+    final solanaMint = solana.Ed25519HDPublicKey.fromBase58(mint.toBase58());
+    final tokenProgramId = solana.Ed25519HDPublicKey.fromBase58(
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+    final seeds = [solanaOwner.bytes, tokenProgramId.bytes, solanaMint.bytes];
+    final solanaAta = await solana.Ed25519HDPublicKey.findProgramAddress(
+      seeds: seeds,
+      programId: solana.AssociatedTokenAccountProgram.id,
+    );
+    return web3.Pubkey.fromUint8List(solanaAta.bytes);
+  }
+
+  Future<web3.Transaction> _prepareTransaction(
+    web3.Connection connection,
+    web3.Pubkey senderPubkey,
+    web3.Pubkey destinationPubkey,
+    web3.Pubkey sourceAta,
+    web3.Pubkey destinationAta,
+    web3.Pubkey mintPubkey,
+    BigInt amountInUnits,
+    String blockhash,
+  ) async {
+    final instructions = <web3.TransactionInstruction>[];
+
+    final destinationAccountInfo =
+        await connection.getAccountInfo(destinationAta);
+    if (destinationAccountInfo == null) {
+      debugPrint(
+          '[IncubatorRepository] Destination ATA does not exist, creating it...');
+      instructions.add(
+        _createAssociatedTokenAccountInstruction(
+          payer: senderPubkey,
+          associatedToken: destinationAta,
+          owner: destinationPubkey,
+          mint: mintPubkey,
+        ),
+      );
+    }
+
+    instructions.add(
+      TokenProgram.transfer(
+        source: sourceAta,
+        destination: destinationAta,
+        owner: senderPubkey,
+        amount: amountInUnits,
+      ),
+    );
+
+    return web3.Transaction.v0(
+      payer: senderPubkey,
+      recentBlockhash: blockhash,
+      instructions: instructions,
+    );
+  }
+
+  web3.TransactionInstruction _createAssociatedTokenAccountInstruction({
+    required web3.Pubkey payer,
+    required web3.Pubkey associatedToken,
+    required web3.Pubkey owner,
+    required web3.Pubkey mint,
+  }) {
+    final keys = [
+      web3.AccountMeta(payer, isSigner: true, isWritable: true),
+      web3.AccountMeta(associatedToken, isSigner: false, isWritable: true),
+      web3.AccountMeta(owner, isSigner: false, isWritable: false),
+      web3.AccountMeta(mint, isSigner: false, isWritable: false),
+      web3.AccountMeta(systemProgramId, isSigner: false, isWritable: false),
+      web3.AccountMeta(tokenProgramId, isSigner: false, isWritable: false),
+      web3.AccountMeta(rentSysvarId, isSigner: false, isWritable: false),
+    ];
+
+    final data = Uint8List.fromList([1]);
+    return web3.TransactionInstruction(
+      keys: keys,
+      programId: web3.Pubkey.fromBase58(
+          'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'),
+      data: data,
+    );
+  }
+
+  web3.Pubkey _pubkeyFromBase58(String address) {
+    return web3.Pubkey.fromBase58(address);
+  }
+
+  Future<void> _signAndSendTransaction(
+    EmbeddedSolanaWallet wallet,
+    web3.Connection connection,
+    web3.Transaction transaction,
+  ) async {
+    final messageBytes = transaction.serializeMessage().asUint8List();
+    final base64Message = base64Encode(messageBytes);
+
+    debugPrint('[IncubatorRepository] Requesting signature...');
+    final Result<String> result =
+        await wallet.provider.signMessage(base64Message);
+
+    if (result.isSuccess) {
+      try {
+        debugPrint('[IncubatorRepository] Signature success.');
+        final signature = base64Decode(result.success);
+        transaction.addSignature(_pubkeyFromBase58(wallet.address), signature);
+
+        debugPrint('[IncubatorRepository] Sending transaction...');
+        final txId = await connection.sendAndConfirmTransaction(transaction);
+        debugPrint('[IncubatorRepository] ✅ Transaction confirmed: $txId');
+      } catch (e) {
+        debugPrint('[IncubatorRepository] ❌ Error during send: $e');
+        rethrow;
+      }
+    } else {
+      debugPrint(
+          '[IncubatorRepository] ❌ Failed to sign message: ${result.failure}');
+      throw Exception('Failed to sign message');
+    }
+  }
+
+  Future<void> _updateProjectFunding(String projectId, String userId,
+      int amount, EmbeddedSolanaWallet wallet) async {
+    try {
+      final projectRef = projectsCollection.doc(projectId);
+      final investorRef = projectRef.collection('investors').doc(userId);
+
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        // Perform all reads first
+        final projectSnapshot = await transaction.get(projectRef);
+        final investorSnapshot = await transaction.get(investorRef);
+
+        if (!projectSnapshot.exists) throw Exception('Project not found');
+
+        final projectData = projectSnapshot.data() as Map<String, dynamic>;
+        final currentTotal =
+            (projectData['totalFunded'] as num?)?.toDouble() ?? 0.0;
+        final newTotal = currentTotal + amount;
+        final fundingProgress = newTotal / totalTokenAllocation;
+
+        // Now perform writes
+        transaction.update(projectRef, {
+          'totalFunded': newTotal,
+          'fundingProgress': fundingProgress.clamp(0.0, 1.0),
+          'addressesFunded': FieldValue.arrayUnion([wallet.address]),
+        });
+
+        if (investorSnapshot.exists) {
+          final investorData = investorSnapshot.data() as Map<String, dynamic>;
+          final currentAmount =
+              (investorData['amount'] as num?)?.toDouble() ?? 0.0;
+          transaction.update(investorRef, {
+            'amount': currentAmount + amount,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        } else {
+          transaction.set(investorRef, {
+            'userId': userId,
+            'amount': amount,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      });
+    } catch (e) {
+      throw Exception('Failed to update project funding: $e');
+    }
   }
 }

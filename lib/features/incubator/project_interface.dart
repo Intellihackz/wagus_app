@@ -404,6 +404,7 @@ class ProjectInterface extends HookWidget {
                                     fundingProgress: 0,
                                     likesCount: 0,
                                     launchDate: DateTime.now(),
+                                    addressesFunded: [],
                                   ),
                                   whitePaperFile: whitePaperFile.value,
                                   roadMapFile: roadMapFile.value,

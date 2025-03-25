@@ -6,6 +6,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wagus/features/incubator/bloc/incubator_bloc.dart';
+import 'package:wagus/features/incubator/domain/project.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/theme/app_palette.dart';
@@ -15,17 +16,33 @@ class Incubator extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final amountController = useTextEditingController();
+
     useEffect(() {
       final userId = context.read<PortalBloc>().state.user!.id;
       context.read<IncubatorBloc>().add(IncubatorInitialEvent(userId: userId));
       context
           .read<IncubatorBloc>()
           .add(IncubatorFindLikedProjectsEvent(userId: userId));
-
       return null;
     }, []);
 
-    return BlocBuilder<IncubatorBloc, IncubatorState>(
+    return BlocConsumer<IncubatorBloc, IncubatorState>(
+      listener: (context, state) async {
+        if (state.transactionStatus == IncubatorTransactionStatus.failure) {
+          await Future.delayed(Duration(milliseconds: 500));
+
+          if (context.mounted) {
+            context
+                .read<IncubatorBloc>()
+                .add(IncubatorResetTransactionStatusEvent());
+
+            if (context.canPop()) {
+              context.pop();
+            }
+          }
+        }
+      },
       builder: (context, state) {
         return Scaffold(
           floatingActionButton: FloatingActionButton(
@@ -34,7 +51,7 @@ class Incubator extends HookWidget {
             onPressed: () {
               context.push(projectInterface);
             },
-            child: Icon(Icons.playlist_add_rounded),
+            child: const Icon(Icons.playlist_add_rounded),
           ),
           body: SizedBox.expand(
             child: Padding(
@@ -49,10 +66,10 @@ class Incubator extends HookWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 32.0),
+                  const SizedBox(height: 32.0),
                   Expanded(
                     child: ListView.builder(
-                      physics: ClampingScrollPhysics(),
+                      physics: const ClampingScrollPhysics(),
                       padding: EdgeInsets.zero,
                       itemCount: state.projects.length,
                       itemBuilder: (context, index) {
@@ -118,78 +135,66 @@ class Incubator extends HookWidget {
                                         icon: Icons.code,
                                         onTap: () async =>
                                             await launchUrlString(
-                                          project.gitHubLink,
-                                        ),
+                                                project.gitHubLink),
                                       ),
                                       LinkTile(
                                         title: 'Website',
                                         icon: Icons.public,
                                         onTap: () => launchUrlString(
-                                          project.websiteLink,
-                                        ),
+                                            project.websiteLink),
                                       ),
                                       LinkTile(
                                         title: 'White Paper',
                                         icon: Icons.description,
                                         onTap: () async {
                                           await showDialog(
-                                              context: context,
-                                              builder: (_) => Dialog(
-                                                    shape:
-                                                        RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
+                                            context: context,
+                                            builder: (_) => Dialog(
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8)),
+                                              child: SizedBox(
+                                                width: double.infinity,
+                                                child: Column(
+                                                  children: [
+                                                    const SizedBox(height: 16),
+                                                    Text(
+                                                      project.name,
+                                                      style: TextStyle(
+                                                          color: context
+                                                              .appColors
+                                                              .contrastDark),
                                                     ),
-                                                    child: SizedBox(
-                                                      width: double.infinity,
-                                                      child: Column(
-                                                        children: [
-                                                          SizedBox(
-                                                            height: 16,
-                                                          ),
-                                                          Text(
-                                                            project.name,
-                                                            style: TextStyle(
-                                                                color: context
-                                                                    .appColors
-                                                                    .contrastDark),
-                                                          ),
-                                                          Text(
-                                                            'White Paper',
-                                                            style: TextStyle(
-                                                                color: context
-                                                                    .appColors
-                                                                    .contrastDark),
-                                                          ),
-                                                          SizedBox(
-                                                            height: 16,
-                                                          ),
-                                                          Expanded(
-                                                            child: PDF(
-                                                                    backgroundColor:
-                                                                        Colors
-                                                                            .transparent)
-                                                                .cachedFromUrl(
-                                                              project
-                                                                  .whitePaperLink,
-                                                              placeholder:
-                                                                  (progress) =>
-                                                                      Center(
+                                                    Text(
+                                                      'White Paper',
+                                                      style: TextStyle(
+                                                          color: context
+                                                              .appColors
+                                                              .contrastDark),
+                                                    ),
+                                                    const SizedBox(height: 16),
+                                                    Expanded(
+                                                      child: PDF(
+                                                              backgroundColor:
+                                                                  Colors
+                                                                      .transparent)
+                                                          .cachedFromUrl(
+                                                        project.whitePaperLink,
+                                                        placeholder:
+                                                            (progress) => Center(
                                                                 child: Text(
-                                                                    '$progress%'),
-                                                              ),
-                                                              errorWidget: (error) =>
-                                                                  const Center(
-                                                                      child: Icon(
-                                                                          Icons
-                                                                              .error)),
-                                                            ),
-                                                          )
-                                                        ],
+                                                                    '$progress%')),
+                                                        errorWidget: (error) =>
+                                                            const Center(
+                                                                child: Icon(Icons
+                                                                    .error)),
                                                       ),
                                                     ),
-                                                  ));
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          );
                                         },
                                       ),
                                       LinkTile(
@@ -197,78 +202,66 @@ class Incubator extends HookWidget {
                                         icon: Icons.map,
                                         onTap: () async {
                                           await showDialog(
-                                              context: context,
-                                              builder: (_) => Dialog(
-                                                    shape:
-                                                        RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
+                                            context: context,
+                                            builder: (_) => Dialog(
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8)),
+                                              child: SizedBox(
+                                                width: double.infinity,
+                                                child: Column(
+                                                  children: [
+                                                    const SizedBox(height: 16),
+                                                    Text(
+                                                      project.name,
+                                                      style: TextStyle(
+                                                          color: context
+                                                              .appColors
+                                                              .contrastDark),
                                                     ),
-                                                    child: SizedBox(
-                                                      width: double.infinity,
-                                                      child: Column(
-                                                        children: [
-                                                          SizedBox(
-                                                            height: 16,
-                                                          ),
-                                                          Text(
-                                                            project.name,
-                                                            style: TextStyle(
-                                                                color: context
-                                                                    .appColors
-                                                                    .contrastDark),
-                                                          ),
-                                                          Text(
-                                                            'Roadmap',
-                                                            style: TextStyle(
-                                                                color: context
-                                                                    .appColors
-                                                                    .contrastDark),
-                                                          ),
-                                                          SizedBox(
-                                                            height: 16,
-                                                          ),
-                                                          Expanded(
-                                                            child: PDF(
-                                                                    backgroundColor:
-                                                                        Colors
-                                                                            .transparent)
-                                                                .cachedFromUrl(
-                                                              project
-                                                                  .roadmapLink,
-                                                              placeholder:
-                                                                  (progress) =>
-                                                                      Center(
+                                                    Text(
+                                                      'Roadmap',
+                                                      style: TextStyle(
+                                                          color: context
+                                                              .appColors
+                                                              .contrastDark),
+                                                    ),
+                                                    const SizedBox(height: 16),
+                                                    Expanded(
+                                                      child: PDF(
+                                                              backgroundColor:
+                                                                  Colors
+                                                                      .transparent)
+                                                          .cachedFromUrl(
+                                                        project.roadmapLink,
+                                                        placeholder:
+                                                            (progress) => Center(
                                                                 child: Text(
-                                                                    '$progress%'),
-                                                              ),
-                                                              errorWidget: (error) =>
-                                                                  const Center(
-                                                                      child: Icon(
-                                                                          Icons
-                                                                              .error)),
-                                                            ),
-                                                          )
-                                                        ],
+                                                                    '$progress%')),
+                                                        errorWidget: (error) =>
+                                                            const Center(
+                                                                child: Icon(Icons
+                                                                    .error)),
                                                       ),
                                                     ),
-                                                  ));
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          );
                                         },
                                       ),
                                       LinkTile(
                                         title: 'Socials',
                                         icon: Icons.people,
                                         onTap: () => launchUrlString(
-                                          project.socialsLink,
-                                        ),
+                                            project.socialsLink),
                                       ),
                                       LinkTile(
                                         title: 'Telegram',
                                         icon: Icons.telegram,
                                         onTap: () => launchUrlString(
-                                          project.telegramLink,
-                                        ),
+                                            project.telegramLink),
                                       ),
                                     ],
                                   ),
@@ -278,114 +271,25 @@ class Incubator extends HookWidget {
                                     spacing: 16.0,
                                     runSpacing: 16.0,
                                     children: [
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          color:
-                                              context.appColors.contrastLight,
-                                        ),
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              '100',
-                                              style: TextStyle(
-                                                color: context
-                                                    .appColors.contrastDark,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                            Image.asset('assets/icons/logo.png',
-                                                height: 32, width: 32)
-                                          ],
-                                        ),
-                                      ),
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          color:
-                                              context.appColors.contrastLight,
-                                        ),
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              '250',
-                                              style: TextStyle(
-                                                color: context
-                                                    .appColors.contrastDark,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                            Image.asset('assets/icons/logo.png',
-                                                height: 32, width: 32)
-                                          ],
-                                        ),
-                                      ),
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          color:
-                                              context.appColors.contrastLight,
-                                        ),
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              '500',
-                                              style: TextStyle(
-                                                color: context
-                                                    .appColors.contrastDark,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                            Image.asset('assets/icons/logo.png',
-                                                height: 32, width: 32)
-                                          ],
-                                        ),
-                                      ),
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          color:
-                                              context.appColors.contrastLight,
-                                        ),
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              '1000',
-                                              style: TextStyle(
-                                                color: context
-                                                    .appColors.contrastDark,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                            Image.asset('assets/icons/logo.png',
-                                                height: 32, width: 32)
-                                          ],
-                                        ),
-                                      ),
+                                      _buildContributionButton(context, project,
+                                          100, amountController),
+                                      _buildContributionButton(context, project,
+                                          250, amountController),
+                                      _buildContributionButton(context, project,
+                                          500, amountController),
+                                      _buildContributionButton(context, project,
+                                          1000, amountController),
                                     ],
                                   ),
                                   const SizedBox(height: 16.0),
                                   Text(
-                                    'Launch date: ${formatDate(
-                                      project.launchDate,
-                                      [M, ' ', d, ', ', yyyy],
-                                    )}',
+                                    'Launch date: ${formatDate(project.launchDate, [
+                                          M,
+                                          ' ',
+                                          d,
+                                          ', ',
+                                          yyyy
+                                        ])}',
                                     style: TextStyle(
                                       color: context.appColors.contrastLight,
                                       fontSize: 12,
@@ -397,12 +301,12 @@ class Incubator extends HookWidget {
                                 height: 50,
                                 width: double.infinity,
                                 decoration: BoxDecoration(
-                                    border: Border(
-                                  bottom: BorderSide(
-                                    color: context.appColors.contrastLight,
-                                    width: 1,
+                                  border: Border(
+                                    bottom: BorderSide(
+                                        color: context.appColors.contrastLight,
+                                        width: 1),
                                   ),
-                                )),
+                                ),
                                 child: Row(
                                   children: [
                                     Expanded(
@@ -419,9 +323,8 @@ class Incubator extends HookWidget {
                                             child: Text(
                                               'Allocation Pool: ${(project.fundingProgress * 100).toInt()}%',
                                               style: TextStyle(
-                                                color: context
-                                                    .appColors.contrastLight,
-                                              ),
+                                                  color: context
+                                                      .appColors.contrastLight),
                                             ),
                                           ),
                                         ],
@@ -439,43 +342,33 @@ class Incubator extends HookWidget {
                                                   .state
                                                   .user!
                                                   .id;
-
                                               if (state.likedProjectsIds
                                                   .contains(project.id)) {
-                                                context
-                                                    .read<IncubatorBloc>()
-                                                    .add(
-                                                        IncubatorProjectUnlikeEvent(
-                                                      project.id,
-                                                      userId,
-                                                    ));
+                                                context.read<IncubatorBloc>().add(
+                                                    IncubatorProjectUnlikeEvent(
+                                                        project.id, userId));
                                               } else {
-                                                context
-                                                    .read<IncubatorBloc>()
-                                                    .add(
-                                                        IncubatorProjectLikeEvent(
-                                                      project.id,
-                                                      userId,
-                                                    ));
+                                                context.read<IncubatorBloc>().add(
+                                                    IncubatorProjectLikeEvent(
+                                                        project.id, userId));
                                               }
                                             },
                                             child: state.likedProjectsIds.any(
                                                     (likedProject) =>
                                                         likedProject ==
                                                         project.id)
-                                                ? Icon(Icons.favorite,
+                                                ? const Icon(Icons.favorite,
                                                     color: Colors.red)
                                                 : Icon(Icons.favorite_border,
                                                     color: context.appColors
                                                         .contrastLight),
                                           ),
-                                          SizedBox(width: 4),
+                                          const SizedBox(width: 4),
                                           Text(
                                             '${project.likesCount}',
                                             style: TextStyle(
-                                              color: context
-                                                  .appColors.contrastLight,
-                                            ),
+                                                color: context
+                                                    .appColors.contrastLight),
                                           ),
                                         ],
                                       ),
@@ -497,6 +390,191 @@ class Incubator extends HookWidget {
       },
     );
   }
+
+  Widget _buildContributionButton(
+    BuildContext context,
+    Project project,
+    int amount,
+    TextEditingController amountController,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        amountController.text = amount.toString();
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) {
+            return BlocProvider.value(
+              value: context.read<IncubatorBloc>(),
+              child: BlocConsumer<IncubatorBloc, IncubatorState>(
+                listener: (context, state) {
+                  if (state.transactionStatus ==
+                      IncubatorTransactionStatus.success) {
+                    Future.delayed(const Duration(milliseconds: 1500), () {
+                      if (context.mounted) {
+                        if (context.canPop()) {
+                          context.pop();
+                        }
+                        // Reset dialog status after closing
+                        context
+                            .read<IncubatorBloc>()
+                            .add(IncubatorResetTransactionStatusEvent());
+                      }
+                    });
+                  }
+                },
+                builder: (context, state) {
+                  return AlertDialog(
+                    scrollable: true,
+                    title: Text(
+                      'Contribute to ${project.name}',
+                      style: const TextStyle(
+                          color: AppPalette.contrastDark, fontSize: 12),
+                    ),
+                    content: SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.8,
+                      child:
+                          _buildDialogContent(context, state, amountController),
+                    ),
+                    actions: _buildDialogActions(
+                        context, state, project, amountController),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          color: context.appColors.contrastLight,
+        ),
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '$amount',
+              style: TextStyle(
+                  color: context.appColors.contrastDark, fontSize: 12),
+            ),
+            Image.asset('assets/icons/logo.png', height: 32, width: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDialogContent(
+    BuildContext context,
+    IncubatorState state,
+    TextEditingController amountController,
+  ) {
+    switch (state.transactionStatus) {
+      case IncubatorTransactionStatus.initial:
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: amountController,
+              style: TextStyle(color: context.appColors.contrastDark),
+              readOnly: true,
+              decoration: const InputDecoration(
+                hintText: 'Enter contribution amount',
+                hintStyle:
+                    TextStyle(color: AppPalette.contrastDark, fontSize: 12),
+              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+            ),
+          ],
+        );
+      case IncubatorTransactionStatus.submitting:
+        return const SizedBox(
+          height: 80,
+          child: Center(
+            child: CircularProgressIndicator(
+              valueColor:
+                  AlwaysStoppedAnimation<Color>(AppPalette.contrastDark),
+            ),
+          ),
+        );
+      case IncubatorTransactionStatus.success:
+        return const SizedBox(
+          height: 80,
+          child: Center(
+            child: Icon(
+              Icons.check_circle,
+              color: Colors.green,
+              size: 48,
+            ),
+          ),
+        );
+      default:
+        return const SizedBox(
+          height: 80,
+          child: Center(
+            child: Icon(
+              Icons.error,
+              color: Colors.red,
+              size: 48,
+            ),
+          ),
+        );
+    }
+  }
+}
+
+List<Widget> _buildDialogActions(
+  BuildContext context,
+  IncubatorState state,
+  Project project,
+  TextEditingController amountController,
+) {
+  if (state.transactionStatus != IncubatorTransactionStatus.initial) {
+    return [];
+  }
+
+  return [
+    TextButton(
+      onPressed: () {
+        if (context.canPop()) {
+          context.pop();
+        }
+      },
+      child: const Text('Cancel'),
+    ),
+    ElevatedButton(
+      onPressed: () {
+        final amount = int.tryParse(
+            amountController.text.isEmpty ? '0' : amountController.text);
+        if (amount == null || amount <= 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please enter a valid amount'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+
+        final userId = context.read<PortalBloc>().state.user!.id;
+        context.read<IncubatorBloc>().add(IncubatorWithdrawEvent(
+              projectId: project.id,
+              wallet: context
+                  .read<PortalBloc>()
+                  .state
+                  .user!
+                  .embeddedSolanaWallets
+                  .first,
+              amount: amount,
+              userId: userId,
+            ));
+      },
+      child: const Text('Contribute'),
+    ),
+  ];
 }
 
 class LinkTile extends StatelessWidget {
@@ -517,18 +595,12 @@ class LinkTile extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 16,
-            color: context.appColors.contrastLight,
-          ),
-          SizedBox(width: 8),
+          Icon(icon, size: 16, color: context.appColors.contrastLight),
+          const SizedBox(width: 8),
           Text(
             title,
-            style: TextStyle(
-              color: context.appColors.contrastLight,
-              fontSize: 12,
-            ),
+            style:
+                TextStyle(color: context.appColors.contrastLight, fontSize: 12),
           ),
         ],
       ),

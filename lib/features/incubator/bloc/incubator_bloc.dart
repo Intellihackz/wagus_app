@@ -3,6 +3,7 @@ import 'package:bloc/bloc.dart';
 import 'package:meta/meta.dart';
 import 'package:wagus/features/incubator/data/incubator_repository.dart';
 import 'package:wagus/features/incubator/domain/project.dart';
+import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_wallet.dart';
 
 part 'incubator_event.dart';
 part 'incubator_state.dart';
@@ -15,6 +16,7 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
           status: IncubatorSubmissionStatus.initial,
           projects: [],
           likedProjectsIds: const {},
+          transactionStatus: IncubatorTransactionStatus.initial,
         )) {
     on<IncubatorInitialEvent>((event, emit) async {
       final userId = event.userId;
@@ -93,6 +95,7 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
                 roadmapLink: p.roadmapLink,
                 socialsLink: p.socialsLink,
                 telegramLink: p.telegramLink,
+                addressesFunded: p.addressesFunded,
               );
             }
             return p;
@@ -138,6 +141,7 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
                 roadmapLink: p.roadmapLink,
                 socialsLink: p.socialsLink,
                 telegramLink: p.telegramLink,
+                addressesFunded: p.addressesFunded,
               );
             }
             return p;
@@ -159,6 +163,45 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
         ));
         print('Error unliking project: $e');
       }
+    });
+
+    on<IncubatorWithdrawEvent>((event, emit) async {
+      emit(state.copyWith(
+          transactionStatus: IncubatorTransactionStatus.submitting));
+      try {
+        await incubatorRepository.withdrawToProject(
+          wallet: event.wallet,
+          amount: event.amount,
+          projectId: event.projectId,
+          userId: event.userId,
+        );
+
+        // Update the project in state
+        final updatedProjects = state.projects.map((p) {
+          if (p.id == event.projectId) {
+            final newTotal = (p.totalFunded ?? 0) + event.amount;
+            return p.copyWith(
+              totalFunded: () => newTotal,
+              fundingProgress: newTotal / 10000, // 10,000 allocation
+            );
+          }
+          return p;
+        }).toList();
+
+        emit(state.copyWith(
+          transactionStatus: IncubatorTransactionStatus.success,
+          projects: updatedProjects,
+        ));
+      } catch (e) {
+        print('Error withdrawing to project: $e');
+        emit(state.copyWith(
+            transactionStatus: IncubatorTransactionStatus.failure));
+      }
+    });
+
+    on<IncubatorResetTransactionStatusEvent>((event, emit) async {
+      emit(state.copyWith(
+          transactionStatus: IncubatorTransactionStatus.initial));
     });
   }
 }

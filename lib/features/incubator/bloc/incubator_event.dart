@@ -37,3 +37,19 @@ class IncubatorProjectUnlikeEvent extends IncubatorEvent {
 
   IncubatorProjectUnlikeEvent(this.projectId, this.userId);
 }
+
+class IncubatorWithdrawEvent extends IncubatorEvent {
+  final String projectId;
+  final EmbeddedSolanaWallet wallet;
+  final int amount;
+  final String userId;
+
+  IncubatorWithdrawEvent({
+    required this.projectId,
+    required this.wallet,
+    required this.amount,
+    required this.userId,
+  });
+}
+
+class IncubatorResetTransactionStatusEvent extends IncubatorEvent {}
