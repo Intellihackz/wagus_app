@@ -436,8 +436,8 @@ class Incubator extends HookWidget {
                       child:
                           _buildDialogContent(context, state, amountController),
                     ),
-                    actions: _buildDialogActions(
-                        context, state, project, amountController),
+                    actions: _buildDialogActions(context, state, project,
+                        amountController, project.fundingProgress),
                   );
                 },
               ),
@@ -531,6 +531,7 @@ List<Widget> _buildDialogActions(
   IncubatorState state,
   Project project,
   TextEditingController amountController,
+  double fundingProgress,
 ) {
   if (state.transactionStatus != IncubatorTransactionStatus.initial) {
     return [];
@@ -547,6 +548,19 @@ List<Widget> _buildDialogActions(
     ),
     ElevatedButton(
       onPressed: () {
+        if (fundingProgress >= 1) {
+          if (context.canPop()) {
+            context.pop();
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No more allocation pool available'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+
         final amount = int.tryParse(
             amountController.text.isEmpty ? '0' : amountController.text);
         if (amount == null || amount <= 0) {
