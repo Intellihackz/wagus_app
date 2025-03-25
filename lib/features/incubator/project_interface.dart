@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -201,8 +202,27 @@ class ProjectInterface extends HookWidget {
                         labelStyle:
                             TextStyle(color: context.appColors.contrastLight),
                       ),
+                      inputFormatters: [
+                        TextInputFormatter.withFunction((oldValue, newValue) {
+                          if (!newValue.text.startsWith('https://')) {
+                            return TextEditingValue(
+                              text: 'https://${newValue.text}',
+                              selection: TextSelection.collapsed(
+                                offset:
+                                    'https://'.length + newValue.selection.end,
+                              ),
+                            );
+                          }
+                          if (newValue.text == 'https://') {
+                            return oldValue; // Prevent deleting "https://"
+                          }
+                          return newValue;
+                        }),
+                      ],
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            value == 'https://') {
                           return 'Please enter a GitHub link';
                         }
                         return null;
@@ -215,8 +235,27 @@ class ProjectInterface extends HookWidget {
                         labelStyle:
                             TextStyle(color: context.appColors.contrastLight),
                       ),
+                      inputFormatters: [
+                        TextInputFormatter.withFunction((oldValue, newValue) {
+                          if (!newValue.text.startsWith('https://')) {
+                            return TextEditingValue(
+                              text: 'https://${newValue.text}',
+                              selection: TextSelection.collapsed(
+                                offset:
+                                    'https://'.length + newValue.selection.end,
+                              ),
+                            );
+                          }
+                          if (newValue.text == 'https://') {
+                            return oldValue; // Prevent deleting "https://"
+                          }
+                          return newValue;
+                        }),
+                      ],
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            value == 'https://') {
                           return 'Please enter a website link';
                         }
                         return null;
@@ -278,9 +317,28 @@ class ProjectInterface extends HookWidget {
                         labelStyle:
                             TextStyle(color: context.appColors.contrastLight),
                       ),
+                      inputFormatters: [
+                        TextInputFormatter.withFunction((oldValue, newValue) {
+                          if (!newValue.text.startsWith('https://')) {
+                            return TextEditingValue(
+                              text: 'https://${newValue.text}',
+                              selection: TextSelection.collapsed(
+                                offset:
+                                    'https://'.length + newValue.selection.end,
+                              ),
+                            );
+                          }
+                          if (newValue.text == 'https://') {
+                            return oldValue; // Prevent deleting "https://"
+                          }
+                          return newValue;
+                        }),
+                      ],
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a social media link';
+                        if (value == null ||
+                            value.isEmpty ||
+                            value == 'https://') {
+                          return 'Please enter a Social Media link';
                         }
                         return null;
                       },
@@ -292,8 +350,27 @@ class ProjectInterface extends HookWidget {
                         labelStyle:
                             TextStyle(color: context.appColors.contrastLight),
                       ),
+                      inputFormatters: [
+                        TextInputFormatter.withFunction((oldValue, newValue) {
+                          if (!newValue.text.startsWith('https://')) {
+                            return TextEditingValue(
+                              text: 'https://${newValue.text}',
+                              selection: TextSelection.collapsed(
+                                offset:
+                                    'https://'.length + newValue.selection.end,
+                              ),
+                            );
+                          }
+                          if (newValue.text == 'https://') {
+                            return oldValue; // Prevent deleting "https://"
+                          }
+                          return newValue;
+                        }),
+                      ],
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
+                        if (value == null ||
+                            value.isEmpty ||
+                            value == 'https://') {
                           return 'Please enter a Telegram link';
                         }
                         return null;

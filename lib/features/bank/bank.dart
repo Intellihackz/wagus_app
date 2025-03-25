@@ -5,6 +5,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wagus/features/bank/bloc/bank_bloc.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
+import 'package:wagus/shared/holder/holder.dart';
 import 'package:wagus/theme/app_palette.dart';
 import 'package:wagus/wagus.dart';
 
@@ -17,11 +18,12 @@ class Bank extends HookWidget {
     final destinationController = useTextEditingController();
 
     return BlocConsumer<BankBloc, BankState>(
-      listener: (context, state) {
-        if (state.status == BankStatus.failure) {
+      listener: (context, state) async {
+        if (state.status == BankStatus.failure &&
+            state.dialogStatus == DialogStatus.input) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Error fetching data'),
+              content: Text('Withdrawal failed. Please try again.'),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -91,34 +93,55 @@ class Bank extends HookWidget {
                           textAlign: TextAlign.center,
                         ),
                       ),
-                      SizedBox(
-                        height: 50,
-                      ),
-                      Column(
-                        spacing: 12.0,
-                        children: [
-                          Text(
-                            'Bank Balance',
-                            style: TextStyle(
-                              color: AppPalette.contrastLight,
-                              fontSize: 16,
-                            ),
-                          ),
-                          Text(
-                            '0.00 SOL',
-                            style: TextStyle(
-                              color: AppPalette.contrastLight,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            '${context.read<PortalBloc>().state.holder?.tokenAmount.toStringAsFixed(2) ?? '0.00'} \$WAGUS',
-                            style: TextStyle(
-                              color: AppPalette.contrastLight,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 50),
+                      BlocSelector<PortalBloc, PortalState, Holder>(
+                        selector: (state) {
+                          return state.holder!;
+                        },
+                        builder: (context, portalState) {
+                          return Column(
+                            spacing: 12.0,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Bank Balance',
+                                    style: TextStyle(
+                                      color: AppPalette.contrastLight,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(
+                                      Icons.refresh,
+                                      color: context.appColors.contrastLight,
+                                    ),
+                                    onPressed: () {
+                                      context
+                                          .read<PortalBloc>()
+                                          .add(PortalRefreshEvent());
+                                    },
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                '${portalState.solanaAmount.toStringAsFixed(5)} SOL',
+                                style: TextStyle(
+                                  color: AppPalette.contrastLight,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                '${portalState.tokenAmount.toStringAsFixed(0)} \$WAGUS Tokens',
+                                style: TextStyle(
+                                  color: AppPalette.contrastLight,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                       Padding(
                         padding: const EdgeInsets.only(
@@ -126,146 +149,93 @@ class Bank extends HookWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            Builder(builder: (context) {
-                              return ElevatedButton(
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (context) {
-                                      return AlertDialog(
-                                        scrollable: true,
-                                        title: const Text(
-                                          'Withdraw funds to destination address',
-                                          style: TextStyle(
-                                            color: AppPalette.contrastDark,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                        content: Center(
-                                          child: Column(
-                                            children: [
-                                              TextField(
-                                                controller: amountController,
-                                                style: TextStyle(
-                                                  color: context
-                                                      .appColors.contrastDark,
-                                                ),
-                                                decoration:
-                                                    const InputDecoration(
-                                                  hintText:
-                                                      'Enter amount to withdraw',
-                                                  hintStyle: TextStyle(
-                                                    color:
-                                                        AppPalette.contrastDark,
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                                keyboardType:
-                                                    const TextInputType
-                                                        .numberWithOptions(
-                                                  decimal: true,
-                                                ),
-                                              ),
-                                              TextField(
-                                                controller:
-                                                    destinationController,
-                                                style: TextStyle(
-                                                  color: context
-                                                      .appColors.contrastDark,
-                                                ),
-                                                decoration:
-                                                    const InputDecoration(
-                                                  hintText:
-                                                      'Enter destination address',
-                                                  hintStyle: TextStyle(
-                                                    color:
-                                                        AppPalette.contrastDark,
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () {
-                                              context.pop();
-                                            },
-                                            child: const Text('Cancel'),
-                                          ),
-                                          ElevatedButton(
-                                            onPressed: () async {
-                                              final amount = int.tryParse(
-                                                (amountController.text.isEmpty
-                                                    ? '0'
-                                                    : amountController.text),
-                                              );
-
-                                              if (amount == null ||
-                                                  amount <= 0 ||
-                                                  destinationController
-                                                      .text.isEmpty) {
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text(
-                                                        'Please enter a valid amount and destination address'),
-                                                    behavior: SnackBarBehavior
-                                                        .floating,
-                                                  ),
-                                                );
+                            ElevatedButton(
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (dialogContext) {
+                                    return BlocProvider.value(
+                                      value: context.read<BankBloc>(),
+                                      child: BlocConsumer<BankBloc, BankState>(
+                                        listener: (context, state) {
+                                          if (state.dialogStatus ==
+                                              DialogStatus.success) {
+                                            // Close dialog after 1.5 seconds to show success
+                                            Future.delayed(
+                                                const Duration(
+                                                    milliseconds: 1500), () {
+                                              if (context.mounted) {
                                                 context.pop();
-                                                return;
+
+                                                context.read<BankBloc>().add(
+                                                    BankResetDialogEvent());
+
+                                                context.read<PortalBloc>().add(
+                                                      PortalRefreshEvent(),
+                                                    );
                                               }
-
-                                              context
-                                                  .read<BankBloc>()
-                                                  .add(BankWithdrawEvent(
-                                                    senderWallet: context
-                                                        .read<PortalBloc>()
-                                                        .state
-                                                        .user!
-                                                        .embeddedSolanaWallets
-                                                        .first,
-                                                    amount: amount,
-                                                    destinationAddress:
-                                                        destinationController
-                                                            .text,
-                                                  ));
-
-                                              context.pop();
-                                            },
-                                            child: const Text('Withdraw'),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  );
-                                },
-                                style: ButtonStyle(
-                                  backgroundColor: WidgetStateProperty.all(
-                                      context.appColors.contrastLight),
-                                  shape: WidgetStateProperty.all<
-                                      RoundedRectangleBorder>(
-                                    RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8.0),
-                                    ),
-                                  ),
-                                  padding: WidgetStateProperty.all(
-                                    const EdgeInsets.symmetric(
-                                        horizontal: 32.0, vertical: 12.0),
+                                            });
+                                          }
+                                        },
+                                        builder: (context, state) {
+                                          return AlertDialog(
+                                            scrollable: true,
+                                            title: const Text(
+                                              'Withdraw \$WAGUS Tokens',
+                                              style: TextStyle(
+                                                color: AppPalette.contrastDark,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            content: SizedBox(
+                                              width: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.8,
+                                              child: _buildDialogContent(
+                                                context,
+                                                state,
+                                                amountController,
+                                                destinationController,
+                                              ),
+                                            ),
+                                            actions: _buildDialogActions(
+                                              context,
+                                              state,
+                                              amountController,
+                                              destinationController,
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                              style: ButtonStyle(
+                                backgroundColor: WidgetStateProperty.all(
+                                    context.appColors.contrastLight),
+                                shape: WidgetStateProperty.all<
+                                    RoundedRectangleBorder>(
+                                  RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
                                   ),
                                 ),
-                                child: Text(
-                                  'Withdraw Funds',
-                                  style: TextStyle(
-                                    color: context.appColors.contrastDark,
-                                    fontSize: 16,
-                                  ),
+                                padding: WidgetStateProperty.all(
+                                  const EdgeInsets.symmetric(
+                                      horizontal: 32.0, vertical: 12.0),
                                 ),
-                              );
-                            }),
+                              ),
+                              child: Text(
+                                'Withdraw \$WAGUS Tokens',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: context.appColors.contrastDark,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -278,5 +248,115 @@ class Bank extends HookWidget {
         );
       },
     );
+  }
+
+  Widget _buildDialogContent(
+    BuildContext context,
+    BankState state,
+    TextEditingController amountController,
+    TextEditingController destinationController,
+  ) {
+    switch (state.dialogStatus) {
+      case DialogStatus.input:
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: amountController,
+              style: TextStyle(color: context.appColors.contrastDark),
+              decoration: const InputDecoration(
+                hintText: 'Enter amount to withdraw',
+                hintStyle:
+                    TextStyle(color: AppPalette.contrastDark, fontSize: 12),
+              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: destinationController,
+              style: TextStyle(color: context.appColors.contrastDark),
+              decoration: const InputDecoration(
+                hintText: 'Enter destination address',
+                hintStyle:
+                    TextStyle(color: AppPalette.contrastDark, fontSize: 12),
+              ),
+            ),
+          ],
+        );
+      case DialogStatus.loading:
+        return const SizedBox(
+          height: 80,
+          child: Center(
+            child: CircularProgressIndicator(
+              valueColor:
+                  AlwaysStoppedAnimation<Color>(AppPalette.contrastDark),
+            ),
+          ),
+        );
+      case DialogStatus.success:
+        return const SizedBox(
+          height: 80,
+          child: Center(
+            child: Icon(
+              Icons.check_circle,
+              color: Colors.green,
+              size: 48,
+            ),
+          ),
+        );
+    }
+  }
+
+  List<Widget> _buildDialogActions(
+    BuildContext context,
+    BankState state,
+    TextEditingController amountController,
+    TextEditingController destinationController,
+  ) {
+    if (state.dialogStatus != DialogStatus.input) {
+      return []; // No actions during loading or success
+    }
+
+    return [
+      TextButton(
+        onPressed: () {
+          context.pop();
+        },
+        child: const Text('Cancel'),
+      ),
+      ElevatedButton(
+        onPressed: () {
+          final amount = int.tryParse(
+            amountController.text.isEmpty ? '0' : amountController.text,
+          );
+
+          if (amount == null ||
+              amount <= 0 ||
+              destinationController.text.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content:
+                    Text('Please enter a valid amount and destination address'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            return;
+          }
+
+          context.read<BankBloc>().add(BankWithdrawEvent(
+                senderWallet: context
+                    .read<PortalBloc>()
+                    .state
+                    .user!
+                    .embeddedSolanaWallets
+                    .first,
+                amount: amount,
+                destinationAddress: destinationController.text,
+              ));
+        },
+        child: const Text('Withdraw'),
+      ),
+    ];
   }
 }

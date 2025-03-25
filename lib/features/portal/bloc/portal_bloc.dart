@@ -1,7 +1,6 @@
 import 'dart:math' as Math;
 
 import 'package:bloc/bloc.dart';
-import 'package:meta/meta.dart';
 import 'package:flutter/material.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';

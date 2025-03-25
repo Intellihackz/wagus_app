@@ -66,6 +66,7 @@ class PortalRepository {
         web3.Pubkey.fromBase58('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
 
     try {
+      // Get SPL Token Accounts
       final tokenAccounts = await connection.getTokenAccountsByOwner(
         publicKey,
         filter: web3.TokenAccountsFilter.programId(splTokenKey),
@@ -73,13 +74,16 @@ class PortalRepository {
 
       final tokenKey = web3.Pubkey.fromString(tokenAccounts.first.pubkey);
 
-      final tokenAccountBalance = await connection.getTokenAccountBalance(
-        tokenKey,
-      );
+      final tokenAccountBalance =
+          await connection.getTokenAccountBalance(tokenKey);
 
       final tokensInSol =
           tokenAccounts.first.account.lamports / web3.lamportsPerSol;
       final tokenAmount = double.parse(tokenAccountBalance.uiAmountString);
+
+      // ✅ Get SOL balance in human-readable format
+      final solLamports = await connection.getBalance(publicKey);
+      final solAmount = solLamports / web3.lamportsPerSol;
 
       final holderType = determineHolderType(tokenAmount);
 
@@ -87,6 +91,7 @@ class PortalRepository {
         holderType: holderType,
         holdings: tokensInSol,
         tokenAmount: tokenAmount,
+        solanaAmount: solAmount,
       );
     } catch (e) {
       debugPrint('Error in getTokenAccounts: $e');
@@ -94,6 +99,7 @@ class PortalRepository {
         holderType: HolderType.plankton,
         holdings: 0,
         tokenAmount: 0,
+        solanaAmount: 0,
       );
     }
   }

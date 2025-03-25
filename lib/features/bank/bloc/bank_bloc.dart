@@ -9,22 +9,41 @@ part 'bank_state.dart';
 
 class BankBloc extends Bloc<BankEvent, BankState> {
   final BankRepository bankRepository;
+
   BankBloc({required this.bankRepository})
-      : super(BankState(status: BankStatus.initial)) {
+      : super(const BankState(status: BankStatus.initial)) {
     on<BankWithdrawEvent>((event, emit) async {
-      emit(state.copyWith(status: BankStatus.loading));
+      // Show loading in dialog
+      emit(state.copyWith(
+        status: BankStatus.loading,
+        dialogStatus: DialogStatus.loading,
+      ));
+
       try {
         await bankRepository.withdrawFunds(
-            wallet: event.senderWallet,
-            amount: event.amount,
-            destinationAddress: event.destinationAddress);
+          wallet: event.senderWallet,
+          amount: event.amount,
+          destinationAddress: event.destinationAddress,
+        );
 
-        emit(state.copyWith(status: BankStatus.success));
-      } on Exception catch (e, __) {
+        // Show success in dialog
+        emit(state.copyWith(
+          status: BankStatus.success,
+          dialogStatus: DialogStatus.success,
+        ));
+
+        // Optional: Delay to show success before closing (handled in UI)
+      } on Exception catch (e) {
         print("Error: $e");
-        emit(state.copyWith(status: BankStatus.failure));
-        return;
+        emit(state.copyWith(
+          status: BankStatus.failure,
+          dialogStatus: DialogStatus.input, // Reset to input on failure
+        ));
       }
+    });
+
+    on<BankResetDialogEvent>((event, emit) {
+      emit(state.copyWith(dialogStatus: DialogStatus.input));
     });
   }
 }

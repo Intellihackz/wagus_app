@@ -77,7 +77,11 @@ class Portal extends HookWidget {
                                     ),
                                   )
                                 : Text(
-                                    '[ Create Wallet ]',
+                                    state.user?.embeddedSolanaWallets
+                                                .isNotEmpty ??
+                                            false
+                                        ? '[ Enter WAGUS ]'
+                                        : '[ Create Wallet ]',
                                     style: TextStyle(
                                       fontSize: 16,
                                       color: context.appColors.contrastLight,

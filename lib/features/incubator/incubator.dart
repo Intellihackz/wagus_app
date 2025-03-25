@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_cached_pdfview/flutter_cached_pdfview.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wagus/features/incubator/bloc/incubator_bloc.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
@@ -116,15 +116,16 @@ class Incubator extends HookWidget {
                                       LinkTile(
                                         title: 'GitHub',
                                         icon: Icons.code,
-                                        onTap: () => launchUrl(
-                                          Uri.parse(project.gitHubLink),
+                                        onTap: () async =>
+                                            await launchUrlString(
+                                          project.gitHubLink,
                                         ),
                                       ),
                                       LinkTile(
                                         title: 'Website',
                                         icon: Icons.public,
-                                        onTap: () => launchUrl(
-                                          Uri.parse(project.websiteLink),
+                                        onTap: () => launchUrlString(
+                                          project.websiteLink,
                                         ),
                                       ),
                                       LinkTile(
@@ -258,15 +259,15 @@ class Incubator extends HookWidget {
                                       LinkTile(
                                         title: 'Socials',
                                         icon: Icons.people,
-                                        onTap: () => launchUrl(
-                                          Uri.parse(project.socialsLink),
+                                        onTap: () => launchUrlString(
+                                          project.socialsLink,
                                         ),
                                       ),
                                       LinkTile(
                                         title: 'Telegram',
                                         icon: Icons.telegram,
-                                        onTap: () => launchUrl(
-                                          Uri.parse(project.telegramLink),
+                                        onTap: () => launchUrlString(
+                                          project.telegramLink,
                                         ),
                                       ),
                                     ],
@@ -416,7 +417,7 @@ class Incubator extends HookWidget {
                                           ),
                                           Center(
                                             child: Text(
-                                              '${(project.fundingProgress * 100).toInt()}%',
+                                              'Allocation Pool: ${(project.fundingProgress * 100).toInt()}%',
                                               style: TextStyle(
                                                 color: context
                                                     .appColors.contrastLight,

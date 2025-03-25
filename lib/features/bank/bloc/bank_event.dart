@@ -13,3 +13,5 @@ class BankWithdrawEvent extends BankEvent {
       required this.amount,
       required this.destinationAddress});
 }
+
+class BankResetDialogEvent extends BankEvent {}
