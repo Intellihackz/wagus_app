@@ -62,5 +62,9 @@
     </array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Please allow access to your photo library to download photos.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app uses the camera to enable secure identity verification or visual features, if required by future updates.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app may use your location to enhance certain features or detect region-specific utilities.</string>
 </dict>
 </plist>
