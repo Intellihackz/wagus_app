@@ -68,7 +68,7 @@ class LotteryRepository {
     // Fetch sender and destination ATAs
     final senderPubkey = _pubkeyFromBase58(wallet.address);
     final destinationPubkey =
-        _pubkeyFromBase58('7XScwGzZrxogzaJjVMSC5rb5zKMpSonoFbxkEzdA7iVn');
+        _pubkeyFromBase58('4R9rEp5HvMjy8RBBSW7fMBPUkYp34FEbVuctDdVfFYwY');
     final mintPubkey = _pubkeyFromBase58(wagMint);
 
     final sourceAta =
