@@ -5,12 +5,12 @@ import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_
 import 'package:solana/solana.dart' as solana;
 import 'package:solana_web3/programs.dart';
 import 'package:solana_web3/solana_web3.dart' as web3;
+import 'package:wagus/constants.dart';
 import 'package:wagus/extensions.dart';
 
 class BankRepository {
-  static const String techMedicMint =
-      'YLu5uLRfZTLMCY9m2CBJ1czWuNJCwFkctnXn4zcrGFM';
-  static const int techMedicDecimals = 9; // Verify this for Tech Medic
+  static const String wagusMint = mintToken;
+  static const int wagusDecimals = 9; // Verify this for Tech Medic
   static final web3.Pubkey tokenProgramId =
       web3.Pubkey.fromBase58('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
   static final web3.Pubkey systemProgramId =
@@ -35,13 +35,13 @@ class BankRepository {
     debugPrint(
         '[BankRepository] Fetched latest blockhash: ${blockHash.blockhash}');
 
-    final amountInUnits = _calculateAmountInUnits(amount, techMedicDecimals);
+    final amountInUnits = _calculateAmountInUnits(amount, wagusDecimals);
     debugPrint('[BankRepository] Amount in base units: $amountInUnits');
 
     // Convert addresses to Pubkey
     final senderPubkey = _pubkeyFromBase58(wallet.address);
     final destinationPubkey = _pubkeyFromBase58(destinationAddress);
-    final mintPubkey = _pubkeyFromBase58(techMedicMint);
+    final mintPubkey = _pubkeyFromBase58(wagusMint);
 
     // Get sender's token account (ATA) for Tech Medic
     final sourceAta =

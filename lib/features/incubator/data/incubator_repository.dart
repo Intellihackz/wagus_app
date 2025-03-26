@@ -9,16 +9,15 @@ import 'package:solana/base58.dart';
 import 'package:solana/solana.dart' as solana;
 import 'package:solana_web3/programs.dart';
 import 'package:solana_web3/solana_web3.dart' as web3;
+import 'package:wagus/constants.dart';
 import 'package:wagus/extensions.dart';
 import 'package:wagus/features/incubator/domain/project.dart';
 
 class IncubatorRepository {
-  static const String techMedicMint =
-      'YLu5uLRfZTLMCY9m2CBJ1czWuNJCwFkctnXn4zcrGFM';
-  static const int techMedicDecimals = 9;
+  static const String wagusMint = mintToken;
+  static const int wagusDecimals = 9;
   static const int totalTokenAllocation = 10000; // Fixed allocation per project
-  static final web3.Pubkey tokenProgramId =
-      web3.Pubkey.fromBase58('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+  static final web3.Pubkey tokenProgramId = web3.Pubkey.fromBase58(splToken);
   static final web3.Pubkey systemProgramId =
       web3.Pubkey.fromBase58('11111111111111111111111111111111');
   static final web3.Pubkey rentSysvarId =
@@ -233,13 +232,13 @@ class IncubatorRepository {
     debugPrint(
         '[IncubatorRepository] Fetched latest blockhash: ${blockHash.blockhash}');
 
-    final amountInUnits = _calculateAmountInUnits(amount, techMedicDecimals);
+    final amountInUnits = _calculateAmountInUnits(amount, wagusDecimals);
     debugPrint('[IncubatorRepository] Amount in units: $amountInUnits');
 
     final senderPubkey = _pubkeyFromBase58(wallet.address);
     final destinationPubkey =
         _pubkeyFromBase58(destinationAddress); // Should now work if valid
-    final mintPubkey = _pubkeyFromBase58(techMedicMint);
+    final mintPubkey = _pubkeyFromBase58(wagusMint);
 
     final sourceAta =
         await _getSenderTokenAccount(connection, senderPubkey, mintPubkey);
@@ -287,7 +286,13 @@ class IncubatorRepository {
     );
     if (tokenAccounts.isEmpty) return null;
 
-    final pubkey = web3.Pubkey.fromBase58(tokenAccounts.first.pubkey);
+    final wagusTokenAccount = tokenAccounts.firstWhere(
+      (account) =>
+          web3.Pubkey.fromBase58(account.pubkey) ==
+          web3.Pubkey.fromBase58(mintToken),
+    );
+
+    final pubkey = web3.Pubkey.fromBase58(wagusTokenAccount.pubkey);
     return pubkey;
   }
 

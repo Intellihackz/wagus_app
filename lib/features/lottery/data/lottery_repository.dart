@@ -5,16 +5,15 @@ import 'package:privy_flutter/privy_flutter.dart';
 import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_wallet.dart';
 import 'package:solana_web3/programs.dart';
 import 'package:solana_web3/solana_web3.dart' as web3;
+import 'package:wagus/constants.dart';
 import 'package:wagus/extensions.dart';
 import 'package:wagus/features/lottery/domain/lottery_model.dart';
 import 'package:solana/solana.dart' as solana;
 
 class LotteryRepository {
-  static const String wagMint =
-      'YLu5uLRfZTLMCY9m2CBJ1czWuNJCwFkctnXn4zcrGFM'; // Replace with actual $WAGUS mint
+  static const String wagMint = mintToken;
   static const int wagDecimals = 9; // Confirm this matches $WAGUS
-  static final web3.Pubkey tokenProgramId =
-      web3.Pubkey.fromBase58('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+  static final web3.Pubkey tokenProgramId = web3.Pubkey.fromBase58(splToken);
   static final web3.Pubkey systemProgramId =
       web3.Pubkey.fromBase58('11111111111111111111111111111111');
   static final web3.Pubkey rentSysvarId =

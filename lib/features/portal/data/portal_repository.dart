@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 import 'package:solana_web3/solana_web3.dart' as web3;
+import 'package:wagus/constants.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:flutter/material.dart';
 import 'package:wagus/shared/holder/holder.dart';
@@ -62,14 +63,16 @@ class PortalRepository {
     final connection = web3.Connection(cluster);
     final publicKey = web3.Pubkey.fromBase58(address);
 
-    final splTokenKey =
-        web3.Pubkey.fromBase58('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+    // final splTokenKey =
+    //     web3.Pubkey.fromBase58('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+
+    final wagusTokenKey = web3.Pubkey.fromBase58(mintToken);
 
     try {
       // Get SPL Token Accounts
       final tokenAccounts = await connection.getTokenAccountsByOwner(
         publicKey,
-        filter: web3.TokenAccountsFilter.programId(splTokenKey),
+        filter: web3.TokenAccountsFilter.mint(wagusTokenKey),
       );
 
       final tokenKey = web3.Pubkey.fromString(tokenAccounts.first.pubkey);

@@ -3,6 +3,7 @@ import 'dart:math' as Math;
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:privy_flutter/privy_flutter.dart';
+import 'package:wagus/constants.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/shared/holder/holder.dart';
 import 'package:wagus/shared/transaction/transaction.dart';
@@ -59,8 +60,7 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       holdersCount = await portalRepository.getHoldersCount();
 
       // Fetch token accounts for the TM mint address to get account owners
-      const tmAddress =
-          'YLu5uLRfZTLMCY9m2CBJ1czWuNJCwFkctnXn4zcrGFM'; // Verify this is the correct mint address
+      const tmAddress = mintToken;
       final dio = Dio();
       final apiKey = dotenv.env['HELIUS_API_KEY'];
       final url = 'https://mainnet.helius-rpc.com/?api-key=$apiKey';
