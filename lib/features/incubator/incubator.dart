@@ -584,6 +584,7 @@ List<Widget> _buildDialogActions(
                   .first,
               amount: amount,
               userId: userId,
+              wagusMint: context.read<PortalBloc>().state.currentTokenAddress,
             ));
       },
       child: const Text('Contribute'),

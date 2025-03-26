@@ -205,7 +205,10 @@ class _LotteryButton extends StatelessWidget {
         onPressed: () {
           if (isLoading || isDisabled) return;
           context.read<LotteryBloc>().add(LotteryAddToPoolEvent(
-              amount: amount, user: context.read<PortalBloc>().state.user!));
+                amount: amount,
+                user: context.read<PortalBloc>().state.user!,
+                wagusMint: context.read<PortalBloc>().state.currentTokenAddress,
+              ));
         },
         style: ButtonStyle(
           backgroundColor:

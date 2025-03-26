@@ -178,6 +178,7 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
           amount: event.amount,
           projectId: event.projectId,
           userId: event.userId,
+          wagusMint: event.wagusMint,
         );
 
         // Update the project in state

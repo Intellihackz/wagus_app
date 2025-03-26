@@ -3,7 +3,6 @@ import 'dart:math' as Math;
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:privy_flutter/privy_flutter.dart';
-import 'package:wagus/constants.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/shared/holder/holder.dart';
 import 'package:wagus/shared/transaction/transaction.dart';
@@ -18,7 +17,8 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
   final PortalRepository portalRepository;
 
   PortalBloc({required this.portalRepository})
-      : super(const PortalState(groupedTransactions: [])) {
+      : super(const PortalState(
+            groupedTransactions: [], currentTokenAddress: '')) {
     on<PortalInitialEvent>(_onPortalInitialEvent);
 
     on<PortalAuthorizeEvent>((event, emit) async {
@@ -29,12 +29,24 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     on<PortalRefreshEvent>((event, emit) async {
       final holder = await portalRepository
           .getTokenAccounts(state.user!.embeddedSolanaWallets.first.address);
-      final holdersCount = await portalRepository.getHoldersCount();
+      final holdersCount =
+          await portalRepository.getHoldersCount(state.currentTokenAddress);
 
       emit(state.copyWith(
         holdersCount: holdersCount,
         holder: () => holder,
       ));
+    });
+
+    on<PortalListenTokenAddressEvent>((event, emit) async {
+      await emit.forEach(portalRepository.getCurrentTokenAddress(),
+          onData: (tokenAddress) {
+        final currentTokenAddress = tokenAddress.docs.map((doc) {
+          return doc.data() as Map<String, dynamic>;
+        }).first['address'];
+
+        return state.copyWith(currentTokenAddress: currentTokenAddress);
+      });
     });
   }
 
@@ -42,6 +54,7 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     PortalInitialEvent event,
     Emitter<PortalState> emit,
   ) async {
+    add(PortalListenTokenAddressEvent());
     final user = await portalRepository.init();
     Holder? holder;
     int? holdersCount;
@@ -57,10 +70,10 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       holder = await portalRepository.getTokenAccounts(userAddress);
 
       // Fetch total number of holders for the TM token mint address
-      holdersCount = await portalRepository.getHoldersCount();
+      holdersCount =
+          await portalRepository.getHoldersCount(state.currentTokenAddress);
 
       // Fetch token accounts for the TM mint address to get account owners
-      const tmAddress = mintToken;
       final dio = Dio();
       final apiKey = dotenv.env['HELIUS_API_KEY'];
       final url = 'https://mainnet.helius-rpc.com/?api-key=$apiKey';
@@ -75,7 +88,7 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
           'method': 'getTokenAccounts',
           'params': {
             'limit': 1000,
-            'mint': tmAddress,
+            'mint': state.currentTokenAddress,
             if (cursor != null) 'cursor': cursor,
           },
         };
@@ -126,7 +139,8 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       }
 
       if (accountOwners.isEmpty) {
-        debugPrint('No account owners found for tmAddress: $tmAddress');
+        debugPrint(
+            'No account owners found for wagusAddress: $state.currentTokenAddress');
       }
     }
 

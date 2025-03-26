@@ -11,8 +11,7 @@ import 'package:wagus/features/lottery/domain/lottery_model.dart';
 import 'package:solana/solana.dart' as solana;
 
 class LotteryRepository {
-  static const String wagMint = mintToken;
-  static const int wagDecimals = 9; // Confirm this matches $WAGUS
+  static const int wagDecimals = 6; // Confirm this matches $WAGUS
   static final web3.Pubkey tokenProgramId = web3.Pubkey.fromBase58(splToken);
   static final web3.Pubkey systemProgramId =
       web3.Pubkey.fromBase58('11111111111111111111111111111111');
@@ -58,6 +57,7 @@ class LotteryRepository {
     required EmbeddedSolanaWallet wallet,
     required int amount,
     required LotteryModel? currentLottery,
+    required String wagusMint,
   }) async {
     final cluster = web3.Cluster.mainnet;
     final connection = web3.Connection(cluster);
@@ -69,7 +69,7 @@ class LotteryRepository {
     final senderPubkey = _pubkeyFromBase58(wallet.address);
     final destinationPubkey =
         _pubkeyFromBase58('4R9rEp5HvMjy8RBBSW7fMBPUkYp34FEbVuctDdVfFYwY');
-    final mintPubkey = _pubkeyFromBase58(wagMint);
+    final mintPubkey = _pubkeyFromBase58(wagusMint);
 
     final sourceAta =
         await _getSenderTokenAccount(connection, senderPubkey, mintPubkey);

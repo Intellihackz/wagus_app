@@ -5,12 +5,10 @@ import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_
 import 'package:solana/solana.dart' as solana;
 import 'package:solana_web3/programs.dart';
 import 'package:solana_web3/solana_web3.dart' as web3;
-import 'package:wagus/constants.dart';
 import 'package:wagus/extensions.dart';
 
 class BankRepository {
-  static const String wagusMint = mintToken;
-  static const int wagusDecimals = 9; // Verify this for Tech Medic
+  static const int wagusDecimals = 6; // Verify this for Tech Medic
   static final web3.Pubkey tokenProgramId =
       web3.Pubkey.fromBase58('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
   static final web3.Pubkey systemProgramId =
@@ -22,6 +20,7 @@ class BankRepository {
     required EmbeddedSolanaWallet wallet,
     required int amount,
     required String destinationAddress,
+    required String wagusMint,
   }) async {
     debugPrint('[BankRepository] Starting withdrawal...');
     debugPrint('[BankRepository] Sender Wallet: ${wallet.address}');

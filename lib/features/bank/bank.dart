@@ -435,6 +435,8 @@ class Bank extends HookWidget {
                       .first,
                   amount: amount.toInt(),
                   destinationAddress: destinationController.text,
+                  wagusMint:
+                      context.read<PortalBloc>().state.currentTokenAddress,
                 ));
           } else {
             context.read<BankBloc>().add(BankWithdrawSolEvent(

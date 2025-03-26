@@ -24,6 +24,7 @@ class BankBloc extends Bloc<BankEvent, BankState> {
           wallet: event.senderWallet,
           amount: event.amount,
           destinationAddress: event.destinationAddress,
+          wagusMint: event.wagusMint,
         );
 
         // Show success in dialog

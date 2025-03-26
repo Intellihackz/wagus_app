@@ -55,6 +55,7 @@ class LotteryBloc extends Bloc<LotteryEvent, LotteryState> {
           wallet: event.user.embeddedSolanaWallets.first,
           amount: event.amount,
           currentLottery: state.currentLottery,
+          wagusMint: event.wagusMint,
         );
 
         emit(state.copyWith(

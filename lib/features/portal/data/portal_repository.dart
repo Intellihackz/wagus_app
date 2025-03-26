@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as Math;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:privy_flutter/privy_flutter.dart';
@@ -18,6 +19,13 @@ class PortalRepository {
     final user = await PrivyService().initialize();
 
     return user;
+  }
+
+  final currentTokenAddressCollection =
+      FirebaseFirestore.instance.collection('current_token');
+
+  Stream<QuerySnapshot> getCurrentTokenAddress() {
+    return currentTokenAddressCollection.snapshots();
   }
 
   Future<PrivyUser?> connect() async {
@@ -115,11 +123,10 @@ class PortalRepository {
   }
 
   /// [getHoldersCount] function to get the number of holders
-  Future<int> getHoldersCount() async {
+  Future<int> getHoldersCount(String tokenAddress) async {
     final dio = Dio();
     final apiKey = dotenv.env['HELIUS_API_KEY'];
     final url = 'https://mainnet.helius-rpc.com/?api-key=$apiKey';
-    const tokenAddress = mintToken;
     final Set<String> allOwners = <String>{};
     String? cursor;
     int page = 1;

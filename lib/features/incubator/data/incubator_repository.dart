@@ -14,8 +14,7 @@ import 'package:wagus/extensions.dart';
 import 'package:wagus/features/incubator/domain/project.dart';
 
 class IncubatorRepository {
-  static const String wagusMint = mintToken;
-  static const int wagusDecimals = 9;
+  static const int wagusDecimals = 6;
   static const int totalTokenAllocation = 10000; // Fixed allocation per project
   static final web3.Pubkey tokenProgramId = web3.Pubkey.fromBase58(splToken);
   static final web3.Pubkey systemProgramId =
@@ -196,6 +195,7 @@ class IncubatorRepository {
     required int amount,
     required String projectId,
     required String userId,
+    required String wagusMint,
   }) async {
     debugPrint(
         '[IncubatorRepository] Starting withdrawal to project: $projectId');

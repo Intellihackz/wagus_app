@@ -43,12 +43,14 @@ class IncubatorWithdrawEvent extends IncubatorEvent {
   final EmbeddedSolanaWallet wallet;
   final int amount;
   final String userId;
+  final String wagusMint;
 
   IncubatorWithdrawEvent({
     required this.projectId,
     required this.wallet,
     required this.amount,
     required this.userId,
+    required this.wagusMint,
   });
 }
 
