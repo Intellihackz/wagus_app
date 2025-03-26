@@ -63,33 +63,41 @@ class Home extends HookWidget {
                             reverse: true,
                             itemCount: homeState.messages.length,
                             itemBuilder: (context, index) {
-                              return Row(
-                                mainAxisAlignment:
-                                    homeState.messages[index].sender ==
-                                            portalState
-                                                .user!
-                                                .embeddedSolanaWallets
-                                                .first
-                                                .address
-                                        ? MainAxisAlignment.end
-                                        : MainAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '[${homeState.messages[index].sender.substring(0, 3)}..${homeState.messages[index].sender.substring(homeState.messages[index].sender.length - 3)}]',
-                                    style: TextStyle(
-                                      color: AppPalette.contrastLight,
-                                      fontSize: 12,
+                              return IntrinsicHeight(
+                                child: Row(
+                                  mainAxisAlignment:
+                                      homeState.messages[index].sender ==
+                                              portalState
+                                                  .user!
+                                                  .embeddedSolanaWallets
+                                                  .first
+                                                  .address
+                                          ? MainAxisAlignment.end
+                                          : MainAxisAlignment.start,
+                                  children: [
+                                    Align(
+                                      alignment: Alignment.topLeft,
+                                      child: Text(
+                                        '[${homeState.messages[index].sender.substring(0, 3)}..${homeState.messages[index].sender.substring(homeState.messages[index].sender.length - 3)}]',
+                                        style: TextStyle(
+                                          color: AppPalette.contrastLight,
+                                          fontSize: 12,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    homeState.messages[index].message,
-                                    style: TextStyle(
-                                      color: AppPalette.contrastLight,
-                                      fontSize: 12,
+                                    SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        homeState.messages[index].message,
+                                        softWrap: true,
+                                        style: TextStyle(
+                                          color: AppPalette.contrastLight,
+                                          fontSize: 12,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               );
                             },
                           )),
