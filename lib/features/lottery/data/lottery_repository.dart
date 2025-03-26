@@ -111,7 +111,7 @@ class LotteryRepository {
       config: web3.GetTokenAccountsByOwnerConfig(),
     );
     if (tokenAccounts.isEmpty) return null;
-    return web3.Pubkey.fromBase58(tokenAccounts.first.pubkey);
+    return web3.Pubkey.fromString(tokenAccounts.first.pubkey);
   }
 
   Future<web3.Pubkey> _getAssociatedTokenAddress(

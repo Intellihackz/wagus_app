@@ -14,4 +14,15 @@ class BankWithdrawEvent extends BankEvent {
       required this.destinationAddress});
 }
 
+class BankWithdrawSolEvent extends BankEvent {
+  final EmbeddedSolanaWallet senderWallet;
+  final double amount;
+  final String destinationAddress;
+
+  BankWithdrawSolEvent(
+      {required this.senderWallet,
+      required this.amount,
+      required this.destinationAddress});
+}
+
 class BankResetDialogEvent extends BankEvent {}

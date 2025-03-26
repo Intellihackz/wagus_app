@@ -42,6 +42,30 @@ class BankBloc extends Bloc<BankEvent, BankState> {
       }
     });
 
+    on<BankWithdrawSolEvent>((event, emit) async {
+      emit(state.copyWith(
+        dialogStatus: DialogStatus.loading,
+        status: BankStatus.loading,
+      ));
+      try {
+        await bankRepository.withdrawSol(
+          wallet: event.senderWallet,
+          solAmount: event.amount,
+          destinationAddress: event.destinationAddress,
+        );
+
+        emit(state.copyWith(
+          status: BankStatus.success,
+          dialogStatus: DialogStatus.success,
+        ));
+      } on Exception catch (e, _) {
+        emit(state.copyWith(
+          status: BankStatus.failure,
+          dialogStatus: DialogStatus.input,
+        ));
+      }
+    });
+
     on<BankResetDialogEvent>((event, emit) {
       emit(state.copyWith(dialogStatus: DialogStatus.input));
     });

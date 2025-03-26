@@ -74,6 +74,70 @@ class BankRepository {
     await _signAndSendTransaction(wallet, connection, transaction);
   }
 
+  Future<void> withdrawSol({
+    required EmbeddedSolanaWallet wallet,
+    required double solAmount,
+    required String destinationAddress,
+  }) async {
+    debugPrint('[BankRepository] Starting SOL withdrawal...');
+    debugPrint('[BankRepository] Sender Wallet: ${wallet.address}');
+    debugPrint('[BankRepository] Destination Wallet: $destinationAddress');
+    debugPrint('[BankRepository] SOL Amount: $solAmount');
+
+    final cluster = web3.Cluster.mainnet;
+    final connection = web3.Connection(cluster);
+    final blockHash = await connection.getLatestBlockhash();
+
+    debugPrint(
+        '[BankRepository] Fetched latest blockhash: ${blockHash.blockhash}');
+
+    // Convert SOL to lamports (1 SOL = 1,000,000,000 lamports)
+    final lamports = (solAmount * web3.lamportsPerSol).toInt();
+    debugPrint('[BankRepository] Amount in lamports: $lamports');
+
+    // Convert addresses to Pubkey
+    final senderPubkey = _pubkeyFromBase58(wallet.address);
+    final destinationPubkey = _pubkeyFromBase58(destinationAddress);
+
+    // Prepare the transaction for SOL transfer
+    final transaction = await _prepareSolTransaction(
+      connection,
+      senderPubkey,
+      destinationPubkey,
+      lamports,
+      blockHash.blockhash,
+    );
+
+    debugPrint('[BankRepository] SOL Transaction prepared.');
+
+    await _signAndSendTransaction(wallet, connection, transaction);
+  }
+
+  Future<web3.Transaction> _prepareSolTransaction(
+    web3.Connection connection,
+    web3.Pubkey senderPubkey,
+    web3.Pubkey destinationPubkey,
+    int lamports,
+    String blockhash,
+  ) async {
+    final instructions = <web3.TransactionInstruction>[];
+
+    // Add System Program transfer instruction for SOL
+    instructions.add(
+      SystemProgram.transfer(
+        fromPubkey: senderPubkey,
+        toPubkey: destinationPubkey,
+        lamports: lamports.toBigInt(),
+      ),
+    );
+
+    return web3.Transaction.v0(
+      payer: senderPubkey,
+      recentBlockhash: blockhash,
+      instructions: instructions,
+    );
+  }
+
   BigInt _calculateAmountInUnits(int amount, int decimals) {
     return BigInt.from(amount) * BigInt.from(10).pow(decimals);
   }

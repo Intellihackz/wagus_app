@@ -286,13 +286,7 @@ class IncubatorRepository {
     );
     if (tokenAccounts.isEmpty) return null;
 
-    final wagusTokenAccount = tokenAccounts.firstWhere(
-      (account) =>
-          web3.Pubkey.fromBase58(account.pubkey) ==
-          web3.Pubkey.fromBase58(mintToken),
-    );
-
-    final pubkey = web3.Pubkey.fromBase58(wagusTokenAccount.pubkey);
+    final pubkey = web3.Pubkey.fromString(tokenAccounts.first.pubkey);
     return pubkey;
   }
 

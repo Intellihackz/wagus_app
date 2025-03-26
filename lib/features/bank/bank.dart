@@ -161,16 +161,13 @@ class Bank extends HookWidget {
                                         listener: (context, state) {
                                           if (state.dialogStatus ==
                                               DialogStatus.success) {
-                                            // Close dialog after 1.5 seconds to show success
                                             Future.delayed(
                                                 const Duration(
                                                     milliseconds: 1500), () {
                                               if (context.mounted) {
                                                 context.pop();
-
                                                 context.read<BankBloc>().add(
                                                     BankResetDialogEvent());
-
                                                 context.read<PortalBloc>().add(
                                                       PortalRefreshEvent(),
                                                     );
@@ -198,6 +195,7 @@ class Bank extends HookWidget {
                                                 state,
                                                 amountController,
                                                 destinationController,
+                                                isTokenWithdrawal: true,
                                               ),
                                             ),
                                             actions: _buildDialogActions(
@@ -205,6 +203,7 @@ class Bank extends HookWidget {
                                               state,
                                               amountController,
                                               destinationController,
+                                              isTokenWithdrawal: true,
                                             ),
                                           );
                                         },
@@ -236,6 +235,80 @@ class Bank extends HookWidget {
                                 ),
                               ),
                             ),
+                            const SizedBox(
+                                height: 16), // Add spacing between buttons
+                            TextButton(
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (dialogContext) {
+                                    return BlocProvider.value(
+                                      value: context.read<BankBloc>(),
+                                      child: BlocConsumer<BankBloc, BankState>(
+                                        listener: (context, state) {
+                                          if (state.dialogStatus ==
+                                              DialogStatus.success) {
+                                            Future.delayed(
+                                                const Duration(
+                                                    milliseconds: 1500), () {
+                                              if (context.mounted) {
+                                                context.pop();
+                                                context.read<BankBloc>().add(
+                                                    BankResetDialogEvent());
+                                                context.read<PortalBloc>().add(
+                                                      PortalRefreshEvent(),
+                                                    );
+                                              }
+                                            });
+                                          }
+                                        },
+                                        builder: (context, state) {
+                                          return AlertDialog(
+                                            scrollable: true,
+                                            title: const Text(
+                                              'Withdraw SOL',
+                                              style: TextStyle(
+                                                color: AppPalette.contrastDark,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            content: SizedBox(
+                                              width: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.8,
+                                              child: _buildDialogContent(
+                                                context,
+                                                state,
+                                                amountController,
+                                                destinationController,
+                                                isTokenWithdrawal: false,
+                                              ),
+                                            ),
+                                            actions: _buildDialogActions(
+                                              context,
+                                              state,
+                                              amountController,
+                                              destinationController,
+                                              isTokenWithdrawal: false,
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                              child: Text(
+                                'Withdraw SOL',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: context.appColors.contrastLight,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -254,8 +327,9 @@ class Bank extends HookWidget {
     BuildContext context,
     BankState state,
     TextEditingController amountController,
-    TextEditingController destinationController,
-  ) {
+    TextEditingController destinationController, {
+    required bool isTokenWithdrawal,
+  }) {
     switch (state.dialogStatus) {
       case DialogStatus.input:
         return Column(
@@ -264,10 +338,12 @@ class Bank extends HookWidget {
             TextField(
               controller: amountController,
               style: TextStyle(color: context.appColors.contrastDark),
-              decoration: const InputDecoration(
-                hintText: 'Enter amount to withdraw',
-                hintStyle:
-                    TextStyle(color: AppPalette.contrastDark, fontSize: 12),
+              decoration: InputDecoration(
+                hintText: isTokenWithdrawal
+                    ? 'Enter amount to withdraw'
+                    : 'Enter SOL amount to withdraw',
+                hintStyle: const TextStyle(
+                    color: AppPalette.contrastDark, fontSize: 12),
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
@@ -312,8 +388,9 @@ class Bank extends HookWidget {
     BuildContext context,
     BankState state,
     TextEditingController amountController,
-    TextEditingController destinationController,
-  ) {
+    TextEditingController destinationController, {
+    required bool isTokenWithdrawal,
+  }) {
     if (state.dialogStatus != DialogStatus.input) {
       return []; // No actions during loading or success
     }
@@ -321,15 +398,19 @@ class Bank extends HookWidget {
     return [
       TextButton(
         onPressed: () {
+          amountController.clear();
+          destinationController.clear();
           context.pop();
         },
         child: const Text('Cancel'),
       ),
       ElevatedButton(
         onPressed: () {
-          final amount = int.tryParse(
-            amountController.text.isEmpty ? '0' : amountController.text,
-          );
+          final amountText =
+              amountController.text.isEmpty ? '0' : amountController.text;
+          final amount = isTokenWithdrawal
+              ? int.tryParse(amountText)
+              : double.tryParse(amountText);
 
           if (amount == null ||
               amount <= 0 ||
@@ -344,16 +425,29 @@ class Bank extends HookWidget {
             return;
           }
 
-          context.read<BankBloc>().add(BankWithdrawEvent(
-                senderWallet: context
-                    .read<PortalBloc>()
-                    .state
-                    .user!
-                    .embeddedSolanaWallets
-                    .first,
-                amount: amount,
-                destinationAddress: destinationController.text,
-              ));
+          if (isTokenWithdrawal) {
+            context.read<BankBloc>().add(BankWithdrawEvent(
+                  senderWallet: context
+                      .read<PortalBloc>()
+                      .state
+                      .user!
+                      .embeddedSolanaWallets
+                      .first,
+                  amount: amount.toInt(),
+                  destinationAddress: destinationController.text,
+                ));
+          } else {
+            context.read<BankBloc>().add(BankWithdrawSolEvent(
+                  senderWallet: context
+                      .read<PortalBloc>()
+                      .state
+                      .user!
+                      .embeddedSolanaWallets
+                      .first,
+                  amount: amount.toDouble(),
+                  destinationAddress: destinationController.text,
+                ));
+          }
         },
         child: const Text('Withdraw'),
       ),
