@@ -1,5 +1,6 @@
 class Project {
   final String id;
+  final String contactEmail;
   final String name;
   final String description;
   final double fundingProgress;
@@ -18,6 +19,7 @@ class Project {
 
   Project({
     required this.id,
+    required this.contactEmail,
     required this.name,
     required this.description,
     required this.fundingProgress,
@@ -37,6 +39,7 @@ class Project {
   factory Project.fromJson(Map<String, dynamic> json) {
     return Project(
       id: json['id'],
+      contactEmail: json['contactEmail'],
       name: json['name'],
       description: json['description'],
       fundingProgress: json['fundingProgress'],
@@ -57,6 +60,7 @@ class Project {
   Project copyWithId(String newId) {
     return Project(
       id: newId,
+      contactEmail: contactEmail,
       name: name,
       description: description,
       fundingProgress: fundingProgress,
@@ -77,6 +81,7 @@ class Project {
   //copywith
   Project copyWith({
     String? id,
+    String? contactEmail,
     String? name,
     String? description,
     double? fundingProgress,
@@ -94,6 +99,7 @@ class Project {
   }) {
     return Project(
       id: id ?? this.id,
+      contactEmail: contactEmail ?? this.contactEmail,
       name: name ?? this.name,
       description: description ?? this.description,
       fundingProgress: fundingProgress ?? this.fundingProgress,

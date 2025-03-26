@@ -138,6 +138,7 @@ class IncubatorRepository {
       // Use set() with the pre-generated ID instead of add()
       await docRef.set({
         'id': projectId, // Store the ID in the document data
+        'contactEmail': project.contactEmail,
         'name': project.name,
         'description': project.description,
         'walletAddress': project.walletAddress,

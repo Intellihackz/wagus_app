@@ -6,10 +6,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
-import 'package:uuid/uuid.dart';
+import 'package:privy_flutter/privy_flutter.dart';
 import 'package:wagus/features/incubator/bloc/incubator_bloc.dart';
 import 'package:wagus/features/incubator/domain/project.dart';
+import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/theme/app_palette.dart';
+import 'package:uuid/uuid.dart';
 
 class ProjectInterface extends HookWidget {
   const ProjectInterface({super.key});
@@ -89,8 +91,9 @@ class ProjectInterface extends HookWidget {
               content: Text('Project submitted successfully!'),
             ),
           );
-
-          context.pop();
+          if (context.canPop()) {
+            context.pop();
+          }
         } else if (state.status == IncubatorSubmissionStatus.failure) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -128,6 +131,9 @@ class ProjectInterface extends HookWidget {
                         labelStyle:
                             TextStyle(color: context.appColors.contrastLight),
                       ),
+                      onTapOutside: (_) {
+                        FocusScope.of(context).unfocus();
+                      },
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter a project name';
@@ -142,6 +148,9 @@ class ProjectInterface extends HookWidget {
                         labelStyle:
                             TextStyle(color: context.appColors.contrastLight),
                       ),
+                      onTapOutside: (_) {
+                        FocusScope.of(context).unfocus();
+                      },
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter a project description';
@@ -172,6 +181,9 @@ class ProjectInterface extends HookWidget {
                             labelStyle: TextStyle(
                                 color: context.appColors.contrastLight),
                           ),
+                          onTapOutside: (_) {
+                            FocusScope.of(context).unfocus();
+                          },
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Please select a project launch date';
@@ -188,6 +200,9 @@ class ProjectInterface extends HookWidget {
                         labelStyle:
                             TextStyle(color: context.appColors.contrastLight),
                       ),
+                      onTapOutside: (_) {
+                        FocusScope.of(context).unfocus();
+                      },
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter a project wallet address';
@@ -202,6 +217,9 @@ class ProjectInterface extends HookWidget {
                         labelStyle:
                             TextStyle(color: context.appColors.contrastLight),
                       ),
+                      onTapOutside: (_) {
+                        FocusScope.of(context).unfocus();
+                      },
                       inputFormatters: [
                         TextInputFormatter.withFunction((oldValue, newValue) {
                           if (!newValue.text.startsWith('https://')) {
@@ -235,6 +253,9 @@ class ProjectInterface extends HookWidget {
                         labelStyle:
                             TextStyle(color: context.appColors.contrastLight),
                       ),
+                      onTapOutside: (_) {
+                        FocusScope.of(context).unfocus();
+                      },
                       inputFormatters: [
                         TextInputFormatter.withFunction((oldValue, newValue) {
                           if (!newValue.text.startsWith('https://')) {
@@ -274,6 +295,9 @@ class ProjectInterface extends HookWidget {
                               labelStyle: TextStyle(
                                   color: context.appColors.contrastLight),
                             ),
+                            onTapOutside: (_) {
+                              FocusScope.of(context).unfocus();
+                            },
                             validator: (value) => value == null || value.isEmpty
                                 ? 'Please attach a whitepaper PDF'
                                 : null,
@@ -298,6 +322,9 @@ class ProjectInterface extends HookWidget {
                               labelStyle: TextStyle(
                                   color: context.appColors.contrastLight),
                             ),
+                            onTapOutside: (_) {
+                              FocusScope.of(context).unfocus();
+                            },
                             validator: (value) => value == null || value.isEmpty
                                 ? 'Please attach a roadmap PDF'
                                 : null,
@@ -317,6 +344,9 @@ class ProjectInterface extends HookWidget {
                         labelStyle:
                             TextStyle(color: context.appColors.contrastLight),
                       ),
+                      onTapOutside: (_) {
+                        FocusScope.of(context).unfocus();
+                      },
                       inputFormatters: [
                         TextInputFormatter.withFunction((oldValue, newValue) {
                           if (!newValue.text.startsWith('https://')) {
@@ -350,6 +380,9 @@ class ProjectInterface extends HookWidget {
                         labelStyle:
                             TextStyle(color: context.appColors.contrastLight),
                       ),
+                      onTapOutside: (_) {
+                        FocusScope.of(context).unfocus();
+                      },
                       inputFormatters: [
                         TextInputFormatter.withFunction((oldValue, newValue) {
                           if (!newValue.text.startsWith('https://')) {
@@ -383,11 +416,21 @@ class ProjectInterface extends HookWidget {
                           FocusScope.of(context)
                               .unfocus(); // Dismiss the keyboard
                           if (formKey.currentState!.validate()) {
+                            final emailId = (context
+                                        .read<PortalBloc>()
+                                        .state
+                                        .user!
+                                        .linkedAccounts
+                                        .firstWhere((account) =>
+                                            account.type == 'email')
+                                    as EmailAccount)
+                                .emailAddress;
                             context
                                 .read<IncubatorBloc>()
                                 .add(IncubatorProjectSubmitEvent(
                                   Project(
                                     id: Uuid().v4(),
+                                    contactEmail: emailId,
                                     name: projectNameController.text,
                                     description:
                                         projectDescriptionController.text,
@@ -405,6 +448,7 @@ class ProjectInterface extends HookWidget {
                                     likesCount: 0,
                                     launchDate: DateTime.now(),
                                     addressesFunded: [],
+                                    totalFunded: 0,
                                   ),
                                   whitePaperFile: whitePaperFile.value,
                                   roadMapFile: roadMapFile.value,

@@ -83,6 +83,7 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
             if (p.id == event.projectId) {
               return Project(
                 id: p.id,
+                contactEmail: p.contactEmail,
                 name: p.name,
                 description: p.description,
                 fundingProgress: p.fundingProgress,
@@ -96,6 +97,7 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
                 socialsLink: p.socialsLink,
                 telegramLink: p.telegramLink,
                 addressesFunded: p.addressesFunded,
+                totalFunded: p.totalFunded,
               );
             }
             return p;
@@ -129,6 +131,7 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
             if (p.id == event.projectId && p.likesCount > 0) {
               return Project(
                 id: p.id,
+                contactEmail: p.contactEmail,
                 name: p.name,
                 description: p.description,
                 fundingProgress: p.fundingProgress,
@@ -142,6 +145,7 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
                 socialsLink: p.socialsLink,
                 telegramLink: p.telegramLink,
                 addressesFunded: p.addressesFunded,
+                totalFunded: p.totalFunded,
               );
             }
             return p;
