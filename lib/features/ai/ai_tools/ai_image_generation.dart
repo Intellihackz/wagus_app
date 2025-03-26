@@ -27,84 +27,92 @@ class AIImageGeneration extends HookWidget {
       return null;
     }, []);
 
-    return PopScope(
-      onPopInvokedWithResult: (onPop, result) async {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (context.mounted) {
-            context.read<AiBloc>().add(AIResetStateEvent());
-          }
-        });
-      },
-      child: Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.only(
-              left: 16.0, right: 16.0, top: 100.0, bottom: 64.0),
-          child: Column(
-            spacing: 16.0,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                'AI Image Generation',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              Expanded(
-                child: BlocBuilder<AiBloc, AiState>(
-                  builder: (context, state) {
-                    return _buildImageContent(state, context, isFocused.value);
-                  },
-                ),
-              ),
-              TextField(
-                focusNode: promptFocusNode,
-                controller: promptController,
-                maxLines: 5,
-                decoration: InputDecoration(
-                  labelText: 'Enter your prompt here',
-                  labelStyle: TextStyle(color: context.appColors.contrastLight),
-                  border: OutlineInputBorder(),
-                ),
-                onTapOutside: (_) {
-                  FocusScope.of(context).unfocus();
-                },
-              ),
-              if (context.read<AiBloc>().state.errorMessage != null &&
-                  context.read<AiBloc>().state.imageGenerationState !=
-                      AIImageGenerationState.loading)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    context.read<AiBloc>().state.errorMessage!,
-                    style: TextStyle(color: Colors.red),
+    return BlocBuilder<AiBloc, AiState>(
+      builder: (context, state) {
+        return PopScope(
+          onPopInvokedWithResult: (onPop, result) async {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                context.read<AiBloc>().add(AIResetStateEvent());
+              }
+            });
+          },
+          child: Scaffold(
+            body: Padding(
+              padding: const EdgeInsets.only(
+                  left: 16.0, right: 16.0, top: 100.0, bottom: 64.0),
+              child: Column(
+                spacing: 16.0,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'AI Image Generation',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                ),
-              ElevatedButton(
-                onPressed: context.read<AiBloc>().state.imageGenerationState ==
-                        AIImageGenerationState.loading
-                    ? null
-                    : () {
-                        final prompt = promptController.text.trim();
-                        if (prompt.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Please enter a prompt')),
-                          );
-                          return;
-                        }
-                        context
-                            .read<AiBloc>()
-                            .add(AIGenerateImageEvent(prompt));
-
-                        promptController.clear();
+                  Expanded(
+                    child: BlocBuilder<AiBloc, AiState>(
+                      builder: (context, state) {
+                        return _buildImageContent(
+                            state, context, isFocused.value);
                       },
-                child: context.read<AiBloc>().state.imageGenerationState ==
-                        AIImageGenerationState.loading
-                    ? CircularProgressIndicator()
-                    : Text('Generate Image'),
+                    ),
+                  ),
+                  TextField(
+                    focusNode: promptFocusNode,
+                    controller: promptController,
+                    maxLines: 5,
+                    decoration: InputDecoration(
+                      labelText: 'Enter your prompt here',
+                      labelStyle:
+                          TextStyle(color: context.appColors.contrastLight),
+                      border: OutlineInputBorder(),
+                    ),
+                    onTapOutside: (_) {
+                      FocusScope.of(context).unfocus();
+                    },
+                  ),
+                  if (context.read<AiBloc>().state.errorMessage != null &&
+                      context.read<AiBloc>().state.imageGenerationState !=
+                          AIImageGenerationState.loading)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        context.read<AiBloc>().state.errorMessage!,
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ElevatedButton(
+                    onPressed:
+                        context.read<AiBloc>().state.imageGenerationState ==
+                                AIImageGenerationState.loading
+                            ? null
+                            : () {
+                                final prompt = promptController.text.trim();
+                                if (prompt.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text('Please enter a prompt')),
+                                  );
+                                  return;
+                                }
+                                context
+                                    .read<AiBloc>()
+                                    .add(AIGenerateImageEvent(prompt));
+
+                                promptController.clear();
+                              },
+                    child: state.imageGenerationState ==
+                            AIImageGenerationState.loading
+                        ? CircularProgressIndicator()
+                        : Text('Generate Image'),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

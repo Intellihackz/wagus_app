@@ -43,6 +43,7 @@ class Wagus extends HookWidget {
         BlocBuilder<PortalBloc, PortalState>(
           builder: (context, state) {
             return Scaffold(
+              resizeToAvoidBottomInset: false,
               body: Stack(
                 fit: StackFit.expand,
                 children: [
