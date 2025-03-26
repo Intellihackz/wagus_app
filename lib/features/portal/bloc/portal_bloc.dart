@@ -46,6 +46,10 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     int? holdersCount;
 
     if (user != null) {
+      if (user.embeddedSolanaWallets.isEmpty) {
+        return;
+      }
+
       final userAddress = user.embeddedSolanaWallets.first.address;
 
       // Fetch holder info for the user

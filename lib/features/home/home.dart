@@ -31,7 +31,7 @@ class Home extends HookWidget {
                           children: [
                             Center(
                               child: Text(
-                                'You have ${portalState.holder?.tokenAmount.toStringAsFixed(2) ?? 0} \$WAGUS tokens',
+                                'You have ${portalState.holder?.tokenAmount.toStringAsFixed(0) ?? 0} \$WAGUS tokens',
                                 style: TextStyle(
                                   color: AppPalette.contrastLight,
                                   fontSize: 12,

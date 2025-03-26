@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_wallet.dart';
@@ -6,8 +7,19 @@ import 'package:solana_web3/programs.dart';
 import 'package:solana_web3/solana_web3.dart' as web3;
 import 'package:wagus/extensions.dart';
 import 'package:wagus/features/lottery/domain/lottery_model.dart';
+import 'package:solana/solana.dart' as solana;
 
 class LotteryRepository {
+  static const String wagMint =
+      'YLu5uLRfZTLMCY9m2CBJ1czWuNJCwFkctnXn4zcrGFM'; // Replace with actual $WAGUS mint
+  static const int wagDecimals = 9; // Confirm this matches $WAGUS
+  static final web3.Pubkey tokenProgramId =
+      web3.Pubkey.fromBase58('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+  static final web3.Pubkey systemProgramId =
+      web3.Pubkey.fromBase58('11111111111111111111111111111111');
+  static final web3.Pubkey rentSysvarId =
+      web3.Pubkey.fromBase58('SysvarRent111111111111111111111111111111111');
+
   final lotteryAddressCollection =
       FirebaseFirestore.instance.collection('lottery');
 
@@ -52,11 +64,35 @@ class LotteryRepository {
     final connection = web3.Connection(cluster);
     final blockHash = await connection.getLatestBlockhash();
 
-    const int hardcodedDecimals = 9;
-    final amountInUnits = _calculateAmountInUnits(amount, hardcodedDecimals);
+    final amountInUnits = _calculateAmountInUnits(amount, wagDecimals);
 
-    final transaction =
-        _createTransaction(wallet, blockHash.blockhash, amountInUnits);
+    // Fetch sender and destination ATAs
+    final senderPubkey = _pubkeyFromBase58(wallet.address);
+    final destinationPubkey =
+        _pubkeyFromBase58('7XScwGzZrxogzaJjVMSC5rb5zKMpSonoFbxkEzdA7iVn');
+    final mintPubkey = _pubkeyFromBase58(wagMint);
+
+    final sourceAta =
+        await _getSenderTokenAccount(connection, senderPubkey, mintPubkey);
+    if (sourceAta == null) {
+      throw Exception('Sender does not have a \$WAGUS token account.');
+    }
+    print('Source ATA: ${sourceAta.toBase58()}');
+
+    final destinationAta =
+        await _getAssociatedTokenAddress(destinationPubkey, mintPubkey);
+    print('Destination ATA: ${destinationAta.toBase58()}');
+
+    final transaction = await _createTransaction(
+      connection,
+      senderPubkey,
+      destinationPubkey,
+      sourceAta,
+      destinationAta,
+      mintPubkey,
+      amountInUnits,
+      blockHash.blockhash,
+    );
     await _signAndSendTransaction(
         wallet, connection, transaction, amount, currentLottery);
   }
@@ -65,21 +101,100 @@ class LotteryRepository {
     return BigInt.from(amount) * BigInt.from(10).pow(decimals);
   }
 
-  web3.Transaction _createTransaction(
-      EmbeddedSolanaWallet wallet, String blockhash, BigInt amountInUnits) {
-    return web3.Transaction.v0(
-      payer: _pubkeyFromBase58(wallet.address),
-      recentBlockhash: blockhash,
-      instructions: [
-        TokenProgram.transfer(
-          source:
-              _pubkeyFromBase58('Dt9wuYamKHHYtZ8SaENVFPWnd4vnpsPrxvEZhiJNdxrD'),
-          destination:
-              _pubkeyFromBase58('7XScwGzZrxogzaJjVMSC5rb5zKMpSonoFbxkEzdA7iVn'),
-          owner: _pubkeyFromBase58(wallet.address),
-          amount: amountInUnits,
+  Future<web3.Pubkey?> _getSenderTokenAccount(
+    web3.Connection connection,
+    web3.Pubkey owner,
+    web3.Pubkey mint,
+  ) async {
+    final tokenAccounts = await connection.getTokenAccountsByOwner(
+      owner,
+      filter: web3.TokenAccountsFilter.mint(mint),
+      config: web3.GetTokenAccountsByOwnerConfig(),
+    );
+    if (tokenAccounts.isEmpty) return null;
+    return web3.Pubkey.fromBase58(tokenAccounts.first.pubkey);
+  }
+
+  Future<web3.Pubkey> _getAssociatedTokenAddress(
+      web3.Pubkey owner, web3.Pubkey mint) async {
+    final solanaOwner = solana.Ed25519HDPublicKey.fromBase58(owner.toBase58());
+    final solanaMint = solana.Ed25519HDPublicKey.fromBase58(mint.toBase58());
+    final tokenProgramId = solana.Ed25519HDPublicKey.fromBase58(
+        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+
+    final seeds = [solanaOwner.bytes, tokenProgramId.bytes, solanaMint.bytes];
+    final solanaAta = await solana.Ed25519HDPublicKey.findProgramAddress(
+      seeds: seeds,
+      programId: solana.AssociatedTokenAccountProgram.id,
+    );
+    return web3.Pubkey.fromUint8List(solanaAta.bytes);
+  }
+
+  Future<web3.Transaction> _createTransaction(
+    web3.Connection connection,
+    web3.Pubkey senderPubkey,
+    web3.Pubkey destinationPubkey,
+    web3.Pubkey sourceAta,
+    web3.Pubkey destinationAta,
+    web3.Pubkey mintPubkey,
+    BigInt amountInUnits,
+    String blockhash,
+  ) async {
+    final instructions = <web3.TransactionInstruction>[];
+
+    // Check if destination ATA exists; create it if not
+    final destinationAccountInfo =
+        await connection.getAccountInfo(destinationAta);
+    if (destinationAccountInfo == null) {
+      print('Destination ATA does not exist, creating it...');
+      instructions.add(
+        _createAssociatedTokenAccountInstruction(
+          payer: senderPubkey,
+          associatedToken: destinationAta,
+          owner: destinationPubkey,
+          mint: mintPubkey,
         ),
-      ],
+      );
+    }
+
+    instructions.add(
+      TokenProgram.transfer(
+        source: sourceAta,
+        destination: destinationAta,
+        owner: senderPubkey,
+        amount: amountInUnits,
+      ),
+    );
+
+    return web3.Transaction.v0(
+      payer: senderPubkey,
+      recentBlockhash: blockhash,
+      instructions: instructions,
+    );
+  }
+
+  web3.TransactionInstruction _createAssociatedTokenAccountInstruction({
+    required web3.Pubkey payer,
+    required web3.Pubkey associatedToken,
+    required web3.Pubkey owner,
+    required web3.Pubkey mint,
+  }) {
+    final keys = [
+      web3.AccountMeta(payer, isSigner: true, isWritable: true),
+      web3.AccountMeta(associatedToken, isSigner: false, isWritable: true),
+      web3.AccountMeta(owner, isSigner: false, isWritable: false),
+      web3.AccountMeta(mint, isSigner: false, isWritable: false),
+      web3.AccountMeta(systemProgramId, isSigner: false, isWritable: false),
+      web3.AccountMeta(tokenProgramId, isSigner: false, isWritable: false),
+      web3.AccountMeta(rentSysvarId, isSigner: false, isWritable: false),
+    ];
+
+    final data = Uint8List.fromList([1]);
+    return web3.TransactionInstruction(
+      keys: keys,
+      programId: web3.Pubkey.fromBase58(
+          'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'), // Associated Token Program
+      data: data,
     );
   }
 
@@ -107,7 +222,6 @@ class LotteryRepository {
         final txId = await connection.sendAndConfirmTransaction(transaction);
         print('Transaction sent successfully: $txId');
 
-        // Firestore update logic
         await _updateLotteryFirestore(wallet.address, amount, currentLottery);
       } catch (e) {
         print('Error during sending: $e');
@@ -126,7 +240,6 @@ class LotteryRepository {
   ) async {
     try {
       await FirebaseFirestore.instance.runTransaction((transaction) async {
-        // Get the latest lottery document reference
         final QuerySnapshot latestLotterySnapshot =
             await lotteryAddressCollection
                 .orderBy('timestamp', descending: true)
@@ -136,28 +249,23 @@ class LotteryRepository {
         DocumentReference lotteryRef;
         LotteryModel lotteryData;
 
-        // Calculate the correct lottery start time (6:00 PM)
         final now = DateTime.now();
-        final lotteryStart =
-            DateTime(now.year, now.month, now.day, 18, 0); // 6:00 PM today
+        final lotteryStart = DateTime(now.year, now.month, now.day, 18, 0);
         final actualStart = now.hour < 18
-            ? lotteryStart.subtract(
-                const Duration(days: 1)) // Previous day if before 6 PM
+            ? lotteryStart.subtract(const Duration(days: 1))
             : lotteryStart;
 
         if (latestLotterySnapshot.docs.isEmpty ||
             _isNewLotteryNeeded(latestLotterySnapshot.docs.first)) {
-          // Create new lottery document with fixed 6:00 PM timestamp
           lotteryRef = lotteryAddressCollection.doc();
           lotteryData = LotteryModel(
             amount: amount,
-            timestamp: Timestamp.fromDate(actualStart), // Set to 6:00 PM
+            timestamp: Timestamp.fromDate(actualStart),
             participants: [participantAddress],
             winner: null,
           );
           transaction.set(lotteryRef, lotteryData.toJson());
         } else {
-          // Update existing lottery
           lotteryRef = latestLotterySnapshot.docs.first.reference;
           final docData =
               latestLotterySnapshot.docs.first.data() as Map<String, dynamic>;
@@ -180,14 +288,11 @@ class LotteryRepository {
     }
   }
 
-// Helper method to determine if a new lottery is needed
   bool _isNewLotteryNeeded(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     final timestamp = (data['timestamp'] as Timestamp).toDate();
     final now = DateTime.now();
     final lotteryStart = DateTime(now.year, now.month, now.day, 18, 0);
-
-    // Adjust start time if before 6PM
     final actualStart = now.hour < 18
         ? lotteryStart.subtract(const Duration(days: 1))
         : lotteryStart;

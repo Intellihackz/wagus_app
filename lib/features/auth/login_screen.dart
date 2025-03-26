@@ -74,6 +74,7 @@ class LoginScreen extends HookWidget {
                           keyboardType: TextInputType.emailAddress,
                           style:
                               TextStyle(color: context.appColors.contrastLight),
+                          autocorrect: false,
                           decoration: InputDecoration(
                             hintText: 'Email',
                             hintStyle: TextStyle(
@@ -160,6 +161,7 @@ class LoginScreen extends HookWidget {
                         onPressed: isLoading.value
                             ? null
                             : () async {
+                                FocusScope.of(context).unfocus();
                                 isLoading.value = true;
                                 errorMessage.value = null;
 
