@@ -4,14 +4,12 @@ class PortalState {
   final int holdersCount;
   final PrivyUser? user;
   final Holder? holder;
-  final List<List<Transaction>> groupedTransactions;
   final String currentTokenAddress;
 
   const PortalState({
     this.holdersCount = 1872,
     this.user,
     this.holder,
-    required this.groupedTransactions,
     required this.currentTokenAddress,
   });
 
@@ -26,7 +24,6 @@ class PortalState {
       holdersCount: holdersCount ?? this.holdersCount,
       user: user?.call() ?? this.user,
       holder: holder?.call() ?? this.holder,
-      groupedTransactions: groupedTransactions ?? this.groupedTransactions,
       currentTokenAddress: currentTokenAddress ?? this.currentTokenAddress,
     );
   }

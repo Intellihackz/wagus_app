@@ -24,6 +24,15 @@ class Holder {
       solanaAmount: solanaAmount ?? this.solanaAmount,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'holderType': holderType,
+      'holdings': holdings,
+      'tokenAmount': tokenAmount,
+      'solanaAmount': solanaAmount,
+    };
+  }
 }
 
 enum HolderType {

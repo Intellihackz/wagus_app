@@ -6,7 +6,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 import 'package:solana_web3/solana_web3.dart' as web3;
-import 'package:wagus/constants.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:flutter/material.dart';
 import 'package:wagus/shared/holder/holder.dart';
@@ -66,7 +65,7 @@ class PortalRepository {
     return success ? true : null;
   }
 
-  Future<Holder> getTokenAccounts(String address) async {
+  Future<Holder> getTokenAccounts(String address, String mintToken) async {
     final cluster = web3.Cluster.mainnet;
     final connection = web3.Connection(cluster);
     final publicKey = web3.Pubkey.fromBase58(address);
@@ -192,50 +191,11 @@ class PortalRepository {
 
     final holderCount = allOwners.length;
     print(
-        'Found $holderCount unique holders for TM/SOL pool LP token via Helius');
+        'Found $holderCount unique holders for WAGUS/SOL pool LP token via Helius');
     return holderCount;
   }
 
-  /// [getRecentTransactions] function to fetch a few recent transactions for a Solana address
-  Future<List<dynamic>> getRecentTransactions(String address,
-      {int limit = 5}) async {
-    final dio = Dio();
-    final apiKey = dotenv.env['HELIUS_API_KEY'];
-    final baseUrl =
-        'https://api.helius.xyz/v0/addresses/$address/transactions?api-key=$apiKey';
-    final url =
-        '$baseUrl&limit=$limit&type=SWAP'; // Filter for SWAP transactions
-
-    try {
-      debugPrint('Fetching recent transactions for address: $address');
-      final response = await dio.get(
-        url,
-        options: Options(
-          headers: {'Content-Type': 'application/json'},
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        final transactions = response.data as List<dynamic>;
-        if (transactions.isNotEmpty) {
-          debugPrint('Fetched ${transactions.length} recent transactions');
-          return transactions;
-        } else {
-          debugPrint('No SWAP transactions found for address: $address');
-          return [];
-        }
-      } else {
-        debugPrint(
-            'Helius API error: ${response.statusCode} - ${response.data}');
-        return [];
-      }
-    } catch (e) {
-      debugPrint('Error fetching transactions from Helius: $e');
-      return [];
-    }
-  }
-
-  /// [getTotalTokenBalance] function to calculate the total TM balance for an address
+  /// [getTotalTokenBalance] function to calculate the total WAGUS balance for an address
   Future<double> getTotalTokenBalance(String address, String tokenMint,
       {int decimals = 6}) async {
     final dio = Dio();
@@ -306,32 +266,5 @@ class PortalRepository {
     }
 
     return totalBalance;
-  }
-
-  /// [getRecentTokenTransactionValue] function to get the value of the most recent TM transaction
-  Future<double?> getRecentTokenTransactionValue(
-      String address, String tokenMint,
-      {int decimals = 6}) async {
-    final transactions = await getRecentTransactions(address,
-        limit: 1); // Get the most recent transaction
-    if (transactions.isEmpty) {
-      debugPrint('No recent transactions found');
-      return null;
-    }
-
-    final recentTx = transactions.first;
-    final tokenTransfers = recentTx['tokenTransfers'] as List<dynamic>? ?? [];
-
-    for (var transfer in tokenTransfers) {
-      final mint = transfer['mint'] as String?;
-      if (mint == tokenMint) {
-        final amount = (transfer['tokenAmount'] as num?)?.toDouble() ?? 0.0;
-        return amount /
-            Math.pow(10, decimals); // Convert to human-readable amount
-      }
-    }
-
-    debugPrint('No TM token transfer found in the recent transaction');
-    return null;
   }
 }

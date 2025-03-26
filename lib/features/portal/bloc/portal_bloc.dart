@@ -1,5 +1,3 @@
-import 'dart:math' as Math;
-
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:privy_flutter/privy_flutter.dart';
@@ -17,9 +15,11 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
   final PortalRepository portalRepository;
 
   PortalBloc({required this.portalRepository})
-      : super(const PortalState(
-            groupedTransactions: [], currentTokenAddress: '')) {
-    on<PortalInitialEvent>(_onPortalInitialEvent);
+      : super(const PortalState(currentTokenAddress: '')) {
+    on<PortalInitialEvent>((event, emit) async {
+      await _setTokenAddress(emit);
+      await _onPortalInitialEvent(event, emit);
+    });
 
     on<PortalAuthorizeEvent>((event, emit) async {
       final user = await portalRepository.connect();
@@ -27,11 +27,11 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     });
 
     on<PortalRefreshEvent>((event, emit) async {
-      final holder = await portalRepository
-          .getTokenAccounts(state.user!.embeddedSolanaWallets.first.address);
+      final holder = await portalRepository.getTokenAccounts(
+          state.user!.embeddedSolanaWallets.first.address,
+          state.currentTokenAddress);
       final holdersCount =
           await portalRepository.getHoldersCount(state.currentTokenAddress);
-
       emit(state.copyWith(
         holdersCount: holdersCount,
         holder: () => holder,
@@ -44,41 +44,53 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
         final currentTokenAddress = tokenAddress.docs.map((doc) {
           return doc.data() as Map<String, dynamic>;
         }).first['address'];
-
+        debugPrint('Token address updated: $currentTokenAddress');
         return state.copyWith(currentTokenAddress: currentTokenAddress);
       });
     });
+  }
+
+  Future<void> _setTokenAddress(Emitter<PortalState> emit) async {
+    final tokenAddressSnapshot =
+        await portalRepository.getCurrentTokenAddress().first;
+    final currentTokenAddress = tokenAddressSnapshot.docs.map((doc) {
+      return doc.data() as Map<String, dynamic>;
+    }).first['address'];
+    emit(state.copyWith(currentTokenAddress: currentTokenAddress));
   }
 
   Future<void> _onPortalInitialEvent(
     PortalInitialEvent event,
     Emitter<PortalState> emit,
   ) async {
-    add(PortalListenTokenAddressEvent());
+    debugPrint(
+        'Starting initial event with token address: ${state.currentTokenAddress}');
     final user = await portalRepository.init();
     Holder? holder;
     int? holdersCount;
 
     if (user != null) {
       if (user.embeddedSolanaWallets.isEmpty) {
+        debugPrint('No embedded wallets found');
         return;
       }
 
       final userAddress = user.embeddedSolanaWallets.first.address;
+      debugPrint('Fetching holder for $userAddress');
 
-      // Fetch holder info for the user
-      holder = await portalRepository.getTokenAccounts(userAddress);
+      holder = await portalRepository.getTokenAccounts(
+          userAddress, state.currentTokenAddress);
+      debugPrint('Holder: ${holder.toJson()}');
 
-      // Fetch total number of holders for the TM token mint address
       holdersCount =
           await portalRepository.getHoldersCount(state.currentTokenAddress);
+      debugPrint('Holders count: $holdersCount');
 
-      // Fetch token accounts for the TM mint address to get account owners
       final dio = Dio();
       final apiKey = dotenv.env['HELIUS_API_KEY'];
       final url = 'https://mainnet.helius-rpc.com/?api-key=$apiKey';
       String? cursor;
-      const limit = 5; // Limit to 5 accounts for this example
+      const limit = 5;
 
       final accountOwners = <String>[];
       while (accountOwners.length < limit) {
@@ -99,6 +111,7 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
             data: jsonEncode(params),
             options: Options(headers: {'Content-Type': 'application/json'}),
           );
+          debugPrint('Helius API response: ${response.data}');
 
           if (response.statusCode == 200) {
             final data = response.data;
@@ -123,10 +136,7 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
               if (accountOwners.length >= limit) break;
             }
             cursor = data['result']['cursor'] as String?;
-            if (cursor == null) {
-              debugPrint('No more pages (cursor is null)');
-              break;
-            }
+            if (cursor == null) break;
           } else {
             debugPrint(
                 'Helius API error: ${response.statusCode} - ${response.data}');
@@ -137,11 +147,7 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
           break;
         }
       }
-
-      if (accountOwners.isEmpty) {
-        debugPrint(
-            'No account owners found for wagusAddress: $state.currentTokenAddress');
-      }
+      debugPrint('Account owners: $accountOwners');
     }
 
     emit(state.copyWith(
@@ -149,14 +155,5 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       user: () => user,
       holder: () => holder,
     ));
-  }
-
-  List<List<Transaction>> groupTransactions(List<Transaction> transactions) {
-    final grouped = <List<Transaction>>[];
-    for (var i = 0; i < transactions.length; i += 3) {
-      final end = Math.min(i + 3, transactions.length);
-      grouped.add(transactions.sublist(i, end));
-    }
-    return grouped;
   }
 }
