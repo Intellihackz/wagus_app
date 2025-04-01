@@ -57,6 +57,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.6.0"
+  asn1lib:
+    dependency: "direct main"
+    description:
+      name: asn1lib
+      sha256: e02d018628c870ef2d7f03e33f9ad179d89ff6ec52ca6c56bcb80bcef979867f
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.6.2"
   async:
     dependency: transitive
     description:
@@ -777,7 +785,7 @@ packages:
     source: hosted
     version: "2.1.8"
   pointycastle:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: pointycastle
       sha256: "4be0097fcf3fd3e8449e53730c631200ebc7b88016acecab2b0da2f0149222fe"
@@ -812,10 +820,10 @@ packages:
     dependency: "direct main"
     description:
       name: privy_flutter
-      sha256: "092b596bbf1742f35e36a1b67335b1c4edfe7393d2d94fe596a5f246a67bf4bb"
+      sha256: "09ca5af65fa6b114eacce794b536287133a55d6daa86bac36abd8a2bc1b07e0f"
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.2"
+    version: "0.0.3"
   provider:
     dependency: transitive
     description:

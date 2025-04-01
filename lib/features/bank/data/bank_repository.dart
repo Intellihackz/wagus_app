@@ -1,5 +1,12 @@
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart'; // for debugPrint
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:pointycastle/api.dart';
+import 'package:pointycastle/ecc/api.dart';
+import 'package:pointycastle/ecc/curves/secp256r1.dart';
+import 'package:pointycastle/key_generators/api.dart';
+import 'package:pointycastle/key_generators/ec_key_generator.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_wallet.dart';
 import 'package:solana/solana.dart' as solana;
@@ -8,13 +15,27 @@ import 'package:solana_web3/solana_web3.dart' as web3;
 import 'package:wagus/extensions.dart';
 
 class BankRepository {
-  static const int wagusDecimals = 6; // Verify this for Tech Medic
+  final Dio _dio = Dio();
+  final String _baseUrl = 'https://api.privy.io/v1';
+
+  static const int wagusDecimals = 6;
   static final web3.Pubkey tokenProgramId =
       web3.Pubkey.fromBase58('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
   static final web3.Pubkey systemProgramId =
       web3.Pubkey.fromBase58('11111111111111111111111111111111');
   static final web3.Pubkey rentSysvarId =
       web3.Pubkey.fromBase58('SysvarRent111111111111111111111111111111111');
+
+  final String _privyAppId = dotenv.env['PRIVY_APP_ID'] ?? '';
+  final String _privySecretId =
+      dotenv.env['PRIVY_SECRET_ID'] ?? ''; // App secret
+
+  BankRepository() {
+    _dio.options.headers['privy-app-id'] = _privyAppId;
+    _dio.options.headers['Content-Type'] = 'application/json';
+    _dio.options.headers['Authorization'] =
+        'Basic ${base64Encode(utf8.encode("$_privyAppId:$_privySecretId"))}';
+  }
 
   Future<void> withdrawFunds({
     required EmbeddedSolanaWallet wallet,
@@ -42,11 +63,11 @@ class BankRepository {
     final destinationPubkey = _pubkeyFromBase58(destinationAddress);
     final mintPubkey = _pubkeyFromBase58(wagusMint);
 
-    // Get sender's token account (ATA) for Tech Medic
+    // Get sender's token account (ATA) for the specified mint
     final sourceAta =
         await _getSenderTokenAccount(connection, senderPubkey, mintPubkey);
     if (sourceAta == null) {
-      throw Exception('Sender does not have a Tech Medic token account.');
+      throw Exception('Sender does not have the minted token account.');
     }
     debugPrint('[BankRepository] Source ATA: ${sourceAta.toBase58()}');
 
@@ -277,12 +298,107 @@ class BankRepository {
         debugPrint('[BankRepository] ✅ Transaction confirmed: $txId');
       } catch (e) {
         debugPrint('[BankRepository] ❌ Error during send: $e');
-        rethrow;
+        throw Exception('Failed to send transaction: $e');
       }
     } else {
       debugPrint(
           '[BankRepository] ❌ Failed to sign message: ${result.failure}');
       throw Exception('Failed to sign message');
+    }
+  }
+
+  Future<String> _generateRecipientPublicKey() async {
+    final curve = ECCurve_secp256r1();
+    final keyGen = ECKeyGenerator()
+      ..init(ParametersWithRandom(
+          ECKeyGeneratorParameters(curve), SecureRandom('Fortuna')));
+    final keyPair = keyGen.generateKeyPair();
+    final publicKey = keyPair.publicKey as ECPublicKey;
+
+    final qBytes = publicKey.Q!.getEncoded(false);
+    final base64PublicKey = base64Encode(qBytes);
+
+    debugPrint('Generated Recipient Public Key: $base64PublicKey');
+    return base64PublicKey;
+  }
+
+  Future<List<Map<String, dynamic>>> _getWallets() async {
+    final url = '$_baseUrl/wallets';
+
+    try {
+      final response = await _dio.get(url);
+      debugPrint('[BankRepository] Get wallets response: ${response.data}');
+      return List<Map<String, dynamic>>.from(response.data['wallets'] ?? []);
+    } catch (e) {
+      debugPrint('[BankRepository] Failed to fetch wallets: $e');
+      if (e is DioException) debugPrint('Dio Error: ${e.response?.data}');
+      throw Exception('Failed to fetch wallets: $e');
+    }
+  }
+
+  Future<(String, String)> exportWalletPrivateKey({
+    required EmbeddedSolanaWallet wallet,
+  }) async {
+    debugPrint('[BankRepository] Starting wallet private key export...');
+
+    // Step 1: Fetch all wallets from Privy API
+    final wallets = await _getWallets();
+
+    // Step 2: Find the wallet ID matching the provided wallet's address
+    final matchingWallet = wallets.firstWhere(
+      (w) => w['address'] == wallet.address,
+      orElse: () => throw Exception(
+          'No matching wallet found for address: ${wallet.address}'),
+    );
+    final walletId = matchingWallet['id'] as String;
+
+    debugPrint('[BankRepository] Matched Wallet ID: $walletId');
+
+    // Step 3: Export the private key with HPKE
+    final url = '$_baseUrl/wallets/$walletId/export';
+    final recipientPublicKey = await _generateRecipientPublicKey();
+    final body = {
+      'encryption_type': 'HPKE',
+      'recipient_public_key': recipientPublicKey,
+    };
+
+    try {
+      final response = await _dio.post(url, data: body);
+      debugPrint('[BankRepository] Export API response: ${response.data}');
+
+      final encryptionType = response.data['encryption_type'] as String;
+      final ciphertext = response.data['ciphertext'] as String;
+      final encapsulatedKey = response.data['encapsulated_key'] as String;
+
+      if (encryptionType != 'HPKE') {
+        throw Exception('Unexpected encryption type: $encryptionType');
+      }
+
+      debugPrint('[BankRepository] Private key exported successfully');
+      return (ciphertext, encapsulatedKey);
+    } catch (e) {
+      debugPrint('[BankRepository] Failed to export private key: $e');
+      if (e is DioException) debugPrint('Dio Error: ${e.response?.data}');
+      throw Exception('Failed to export wallet private key: $e');
+    }
+  }
+
+  Future<void> deleteUser(String userId) async {
+    final url = '$_baseUrl/users/$userId';
+
+    try {
+      final response = await _dio.delete(url);
+      if (response.statusCode == 204) {
+        debugPrint('[BankRepository] ✅ User deleted successfully');
+      } else {
+        debugPrint(
+            '[BankRepository] ❌ Failed to delete user, unexpected status code: ${response.statusCode}');
+        throw Exception('Unexpected status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('[BankRepository] ❌ Error deleting user: $e');
+      if (e is DioException) debugPrint('Dio Error: ${e.response?.data}');
+      throw Exception('Failed to delete user: $e');
     }
   }
 }

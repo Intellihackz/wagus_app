@@ -18,6 +18,9 @@ class AppPalette {
   static const contrastLight = Color(0xFFFFFFFF);
   static const slightlyGrey = Color.fromARGB(255, 185, 184, 184);
   static const contrastDark = Color(0xFF000000);
+
+  // errors
+  static const errorRed = Color(0xFFC5032B);
 }
 
 class AppColors extends ThemeExtension<AppColors> {
@@ -30,6 +33,7 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color contrastLight;
   final Color slightlyGrey;
   final Color contrastDark;
+  final Color errorRed;
 
   AppColors({
     this.neonPurple = AppPalette.neonPurple,
@@ -41,6 +45,7 @@ class AppColors extends ThemeExtension<AppColors> {
     this.contrastLight = AppPalette.contrastLight,
     this.slightlyGrey = AppPalette.slightlyGrey,
     this.contrastDark = AppPalette.contrastDark,
+    this.errorRed = AppPalette.errorRed,
   });
 
   @override
@@ -54,6 +59,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? contrastLight,
     Color? slightlyGrey,
     Color? contrastDark,
+    Color? errorRed,
   }) {
     return AppColors(
       neonPurple: neonPurple ?? this.neonPurple,
@@ -65,6 +71,7 @@ class AppColors extends ThemeExtension<AppColors> {
       contrastLight: contrastLight ?? this.contrastLight,
       slightlyGrey: slightlyGrey ?? this.slightlyGrey,
       contrastDark: contrastDark ?? this.contrastDark,
+      errorRed: errorRed ?? this.errorRed,
     );
   }
 

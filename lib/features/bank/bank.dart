@@ -4,7 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wagus/features/bank/bloc/bank_bloc.dart';
+import 'package:wagus/features/bank/data/bank_repository.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
+import 'package:wagus/router.dart';
 import 'package:wagus/shared/holder/holder.dart';
 import 'package:wagus/theme/app_palette.dart';
 import 'package:wagus/wagus.dart';
@@ -171,6 +173,9 @@ class Bank extends HookWidget {
                                                 context.read<PortalBloc>().add(
                                                       PortalRefreshEvent(),
                                                     );
+
+                                                amountController.clear();
+                                                destinationController.clear();
                                               }
                                             });
                                           }
@@ -259,6 +264,9 @@ class Bank extends HookWidget {
                                                 context.read<PortalBloc>().add(
                                                       PortalRefreshEvent(),
                                                     );
+
+                                                amountController.clear();
+                                                destinationController.clear();
                                               }
                                             });
                                           }
@@ -309,6 +317,164 @@ class Bank extends HookWidget {
                                 ),
                               ),
                             ),
+
+                            // just make the UI and dialog
+                            const SizedBox(
+                              height: 32,
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (dialogContext) {
+                                    return AlertDialog(
+                                      title: const Text(
+                                        'Delete Account',
+                                        style: TextStyle(
+                                          color: AppPalette.contrastDark,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      content: const Text(
+                                        'Are you sure you want to delete your account?',
+                                        style: TextStyle(
+                                          color: AppPalette.contrastDark,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () {
+                                            context.pop();
+                                          },
+                                          child: const Text('Cancel'),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () async {
+                                            // Workaround solution:
+                                            // I will check the balance of SOL and WAGUS
+
+                                            // they should be both 0 because we dont want loss of funds
+
+                                            final holder = context
+                                                .read<PortalBloc>()
+                                                .state
+                                                .holder!;
+
+                                            if (holder.solanaAmount > 0 ||
+                                                holder.tokenAmount > 0) {
+                                              // small alert dialog to warn them to withdraw funds before deleting
+
+                                              showDialog(
+                                                context: context,
+                                                builder: (context) {
+                                                  return AlertDialog(
+                                                    title: const Text(
+                                                      'Warning',
+                                                      style: TextStyle(
+                                                        color: AppPalette
+                                                            .contrastDark,
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                    content: const Text(
+                                                      'You have funds in your account. Please withdraw them before deleting your account.',
+                                                      style: TextStyle(
+                                                        color: AppPalette
+                                                            .contrastDark,
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () async {
+                                                          final userId = context
+                                                              .read<
+                                                                  PortalBloc>()
+                                                              .state
+                                                              .user!
+                                                              .id;
+
+                                                          try {
+                                                            await context
+                                                                .read<
+                                                                    BankRepository>()
+                                                                .deleteUser(
+                                                                    userId);
+
+                                                            if (context
+                                                                .mounted) {
+                                                              context
+                                                                  .pushReplacement(
+                                                                      login);
+                                                            }
+                                                          } on Exception catch (e, _) {
+                                                            ScaffoldMessenger
+                                                                    .of(context)
+                                                                .showSnackBar(
+                                                              const SnackBar(
+                                                                content: Text(
+                                                                    'Error deleting account. Please try again.'),
+                                                                behavior:
+                                                                    SnackBarBehavior
+                                                                        .floating,
+                                                              ),
+                                                            );
+                                                            if (context
+                                                                    .mounted &&
+                                                                context
+                                                                    .canPop()) {
+                                                              context.pop();
+                                                            }
+
+                                                            return;
+                                                          }
+
+                                                          context.pop();
+                                                        },
+                                                        child: const Text(
+                                                            'Proceed'),
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
+                                              );
+                                            }
+
+                                            // delete the account
+                                            // we need the userId
+                                          },
+                                          child: const Text('Delete'),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
+                              style: ButtonStyle(
+                                backgroundColor: WidgetStateProperty.all(
+                                    context.appColors.errorRed),
+                                shape: WidgetStateProperty.all<
+                                    RoundedRectangleBorder>(
+                                  RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                ),
+                                padding: WidgetStateProperty.all(
+                                  const EdgeInsets.symmetric(
+                                      horizontal: 32.0, vertical: 12.0),
+                                ),
+                              ),
+                              child: Text(
+                                'Delete Account',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: context.appColors.contrastLight,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -335,18 +501,59 @@ class Bank extends HookWidget {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: amountController,
-              style: TextStyle(color: context.appColors.contrastDark),
-              decoration: InputDecoration(
-                hintText: isTokenWithdrawal
-                    ? 'Enter amount to withdraw'
-                    : 'Enter SOL amount to withdraw',
-                hintStyle: const TextStyle(
-                    color: AppPalette.contrastDark, fontSize: 12),
+            IntrinsicHeight(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: amountController,
+                      style: TextStyle(color: context.appColors.contrastDark),
+                      decoration: InputDecoration(
+                        hintText: isTokenWithdrawal
+                            ? 'Enter amount to withdraw'
+                            : 'Enter SOL amount to withdraw',
+                        hintStyle: const TextStyle(
+                            color: AppPalette.contrastDark, fontSize: 12),
+                      ),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => amountController.text = isTokenWithdrawal
+                        ? context
+                            .read<PortalBloc>()
+                            .state
+                            .holder!
+                            .tokenAmount
+                            .toInt()
+                            .toString()
+                        : context
+                            .read<PortalBloc>()
+                            .state
+                            .holder!
+                            .solanaAmount
+                            .toString(),
+                    child: Container(
+                      height: double.infinity,
+                      decoration: BoxDecoration(
+                        color: context.appColors.contrastLight,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        'Max',
+                        style: TextStyle(
+                          color: context.appColors.contrastDark,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
             ),
             const SizedBox(height: 16),
             TextField(

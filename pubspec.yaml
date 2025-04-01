@@ -23,7 +23,7 @@ dependencies:
   firebase_storage: ^12.4.4
   carousel_slider: ^5.0.0
   flutter_dotenv: ^5.1.0
-  privy_flutter: ^0.0.2
+  privy_flutter: ^0.0.3
   solana_web3:
     git:
       url: https://github.com/silnt-awaken/solana-web3.git
@@ -41,6 +41,8 @@ dependencies:
   printing: ^5.14.2
   share_plus: ^10.1.4
   solana: ^0.31.0+1
+  pointycastle: ^3.9.1
+  asn1lib: ^1.6.2
 
 dev_dependencies:
   flutter_test:
