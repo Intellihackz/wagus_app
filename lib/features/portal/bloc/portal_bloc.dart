@@ -65,6 +65,7 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
   ) async {
     debugPrint(
         'Starting initial event with token address: ${state.currentTokenAddress}');
+
     final user = await portalRepository.init();
     Holder? holder;
     int? holdersCount;

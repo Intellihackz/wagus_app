@@ -104,15 +104,20 @@ class Wagus extends HookWidget {
                 mini: true,
                 backgroundColor: context.appColors.contrastLight,
                 onPressed: () async {
+                  final portalBloc =
+                      BlocProvider.of<PortalBloc>(mainContext, listen: false);
                   final bankBloc =
                       BlocProvider.of<BankBloc>(mainContext, listen: false);
                   await showModalBottomSheet(
                     backgroundColor: context.appColors.contrastDark,
                     isScrollControlled: true,
                     context: mainContext,
-                    builder: (_) => BlocProvider<BankBloc>.value(
-                      value: bankBloc,
-                      child: Bank(),
+                    builder: (_) => BlocProvider<PortalBloc>.value(
+                      value: portalBloc,
+                      child: BlocProvider<BankBloc>.value(
+                        value: bankBloc,
+                        child: Bank(),
+                      ),
                     ),
                   ).whenComplete(() {
                     if (context.mounted) {

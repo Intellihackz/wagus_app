@@ -54,6 +54,7 @@ class PrivyService {
       );
     } catch (e) {
       debugPrint('Error sending email login: $e');
+      rethrow;
     }
   }
 
@@ -79,6 +80,7 @@ class PrivyService {
       );
     } catch (e) {
       debugPrint('Error verifying OTP: $e');
+      rethrow;
     }
   }
 

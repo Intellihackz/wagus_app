@@ -6,6 +6,7 @@ import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/theme/app_palette.dart';
+import 'package:wagus/utils.dart';
 
 class LoginScreen extends HookWidget {
   const LoginScreen({super.key});
@@ -17,6 +18,22 @@ class LoginScreen extends HookWidget {
     final isLoading = useState(false);
     final isEmailSent = useState(false);
     final errorMessage = useState<String?>(null);
+
+    // Use useEffect to initialize PrivyService when the widget is built
+    useAsyncEffect(
+        effect: () async {
+          final privyService = PrivyService();
+          final user = await privyService.initialize();
+          if (user != null) {
+            // User is already authenticated, update PortalBloc
+            if (context.mounted) {
+              context.read<PortalBloc>().add(PortalAuthorizeEvent(context));
+            }
+          }
+
+          return null;
+        },
+        keys: []);
 
     return BlocListener<PortalBloc, PortalState>(
       listener: (context, state) {
