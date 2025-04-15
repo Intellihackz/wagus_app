@@ -52,10 +52,9 @@ class App extends StatelessWidget {
                 )..add(HomeInitialEvent()),
               ),
               BlocProvider<PortalBloc>(
-                create: (_) => PortalBloc(
-                  portalRepository: context.read<PortalRepository>(),
-                )..add(PortalInitialEvent()),
-              ),
+                  create: (_) => PortalBloc(
+                        portalRepository: context.read<PortalRepository>(),
+                      )),
               BlocProvider<LotteryBloc>(
                 create: (_) => LotteryBloc(
                   lotteryRepository: context.read<LotteryRepository>(),

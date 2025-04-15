@@ -1,13 +1,13 @@
 part of 'portal_bloc.dart';
 
-class PortalState {
+class PortalState extends Equatable {
   final int holdersCount;
   final PrivyUser? user;
   final Holder? holder;
   final String currentTokenAddress;
 
   const PortalState({
-    this.holdersCount = 1872,
+    this.holdersCount = 0,
     this.user,
     this.holder,
     required this.currentTokenAddress,
@@ -27,4 +27,7 @@ class PortalState {
       currentTokenAddress: currentTokenAddress ?? this.currentTokenAddress,
     );
   }
+
+  @override
+  List<Object?> get props => [holdersCount, user, holder, currentTokenAddress];
 }

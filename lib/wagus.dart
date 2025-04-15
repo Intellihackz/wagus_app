@@ -60,7 +60,7 @@ class Wagus extends HookWidget {
                       Home(),
                       Incubator(),
                       AITools(),
-                      Lottery(),
+                      //Lottery(),
                     ],
                   ),
                   Positioned.fill(
@@ -81,7 +81,8 @@ class Wagus extends HookWidget {
                             ),
                             TextButton(
                               onPressed: () async {
-                                final result = await PrivyService().logout();
+                                final result =
+                                    await PrivyService().logout(context);
 
                                 if (result && context.mounted) {
                                   context.go(login);
@@ -100,35 +101,38 @@ class Wagus extends HookWidget {
                   ),
                 ],
               ),
-              floatingActionButton: FloatingActionButton(
-                mini: true,
-                backgroundColor: context.appColors.contrastLight,
-                onPressed: () async {
-                  final portalBloc =
-                      BlocProvider.of<PortalBloc>(mainContext, listen: false);
-                  final bankBloc =
-                      BlocProvider.of<BankBloc>(mainContext, listen: false);
-                  await showModalBottomSheet(
-                    backgroundColor: context.appColors.contrastDark,
-                    isScrollControlled: true,
-                    context: mainContext,
-                    builder: (_) => BlocProvider<PortalBloc>.value(
-                      value: portalBloc,
-                      child: BlocProvider<BankBloc>.value(
-                        value: bankBloc,
-                        child: Bank(),
+              floatingActionButton: Transform.translate(
+                offset: const Offset(0, -10),
+                child: FloatingActionButton(
+                  mini: true,
+                  backgroundColor: context.appColors.contrastLight,
+                  onPressed: () async {
+                    final portalBloc =
+                        BlocProvider.of<PortalBloc>(mainContext, listen: false);
+                    final bankBloc =
+                        BlocProvider.of<BankBloc>(mainContext, listen: false);
+                    await showModalBottomSheet(
+                      backgroundColor: context.appColors.contrastDark,
+                      isScrollControlled: true,
+                      context: mainContext,
+                      builder: (_) => BlocProvider<PortalBloc>.value(
+                        value: portalBloc,
+                        child: BlocProvider<BankBloc>.value(
+                          value: bankBloc,
+                          child: Bank(),
+                        ),
                       ),
-                    ),
-                  ).whenComplete(() {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    }
-                  });
-                },
-                child: Image.asset(
-                  'assets/icons/logo.png',
-                  height: 32,
-                  width: 32,
+                    ).whenComplete(() {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      }
+                    });
+                  },
+                  child: Image.asset(
+                    'assets/icons/logo.png',
+                    height: 32,
+                    width: 32,
+                  ),
                 ),
               ),
               floatingActionButtonLocation:
@@ -166,23 +170,30 @@ class Wagus extends HookWidget {
                     unselectedItemColor: context.appColors.slightlyGrey,
                     items: const [
                       BottomNavigationBarItem(
-                        icon: Icon(Icons.home),
+                        icon: Padding(
+                          padding: EdgeInsets.only(top: 8.0),
+                          child: Icon(Icons.home),
+                        ),
                         label: 'Home',
                       ),
                       BottomNavigationBarItem(
                         // icon that best represnts incubator or launch pad or start up
-                        icon: Icon(Icons.rocket_launch),
+                        icon: Padding(
+                            padding: EdgeInsets.only(top: 8.0),
+                            child: Icon(Icons.rocket_launch)),
                         label: 'Incubator',
                       ),
                       BottomNavigationBarItem(
                         // icon that best represnts ai tools
-                        icon: Icon(Icons.widgets),
+                        icon: Padding(
+                            padding: EdgeInsets.only(top: 8.0),
+                            child: Icon(Icons.widgets)),
                         label: 'AI Tools',
                       ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.casino),
-                        label: 'Lottery',
-                      ),
+                      // BottomNavigationBarItem(
+                      //   icon: Icon(Icons.casino),
+                      //   label: 'Lottery',
+                      // ),
                     ],
                   ),
                 ),

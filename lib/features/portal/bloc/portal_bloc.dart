@@ -1,7 +1,9 @@
 import 'package:bloc/bloc.dart';
+import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
+import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/shared/holder/holder.dart';
 import 'package:wagus/shared/transaction/transaction.dart';
 import 'package:dio/dio.dart';
@@ -18,12 +20,30 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       : super(const PortalState(currentTokenAddress: '')) {
     on<PortalInitialEvent>((event, emit) async {
       await _setTokenAddress(emit);
-      await _onPortalInitialEvent(event, emit);
+
+      // Only proceed if user is already authenticated (from email login, for example)
+      final alreadyInit = PrivyService().isAuthenticated();
+      if (alreadyInit) {
+        await _onPortalInitialEvent(event, emit);
+      } else {
+        debugPrint(
+            '[PortalBloc] Skipped _onPortalInitialEvent: user not ready');
+      }
     });
 
     on<PortalAuthorizeEvent>((event, emit) async {
+      final userInit = await portalRepository.init();
+      if (userInit == null) {
+        debugPrint('Privy initialization failed');
+        return;
+      }
+
       final user = await portalRepository.connect();
       emit(state.copyWith(user: () => user));
+
+      if (PrivyService().isAuthenticated()) {
+        await _onPortalInitialEvent(PortalInitialEvent(), emit);
+      }
     });
 
     on<PortalRefreshEvent>((event, emit) async {
@@ -47,6 +67,13 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
         debugPrint('Token address updated: $currentTokenAddress');
         return state.copyWith(currentTokenAddress: currentTokenAddress);
       });
+    });
+
+    on<PortalClearEvent>((event, emit) async {
+      emit(state.copyWith(
+        user: () => null,
+        holder: () => null,
+      ));
     });
   }
 

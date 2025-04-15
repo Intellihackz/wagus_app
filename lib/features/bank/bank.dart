@@ -69,14 +69,14 @@ class Bank extends HookWidget {
                       InkWell(
                         onTap: () {
                           Clipboard.setData(ClipboardData(
-                            text: context
-                                .read<PortalBloc>()
-                                .state
-                                .user!
-                                .embeddedSolanaWallets
-                                .first
-                                .address,
-                          ));
+                              text: context
+                                      .read<PortalBloc>()
+                                      .state
+                                      .user
+                                      ?.embeddedSolanaWallets
+                                      .first
+                                      .address ??
+                                  ''));
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Address copied to clipboard'),
@@ -86,19 +86,20 @@ class Bank extends HookWidget {
                         },
                         child: Text(
                           context
-                              .read<PortalBloc>()
-                              .state
-                              .user!
-                              .embeddedSolanaWallets
-                              .first
-                              .address,
+                                  .read<PortalBloc>()
+                                  .state
+                                  .user
+                                  ?.embeddedSolanaWallets
+                                  .first
+                                  .address ??
+                              '',
                           textAlign: TextAlign.center,
                         ),
                       ),
                       const SizedBox(height: 50),
-                      BlocSelector<PortalBloc, PortalState, Holder>(
+                      BlocSelector<PortalBloc, PortalState, Holder?>(
                         selector: (state) {
-                          return state.holder!;
+                          return state.holder;
                         },
                         builder: (context, portalState) {
                           return Column(
@@ -128,14 +129,14 @@ class Bank extends HookWidget {
                                 ],
                               ),
                               Text(
-                                '${portalState.solanaAmount.toStringAsFixed(5)} SOL',
+                                '${portalState?.solanaAmount.toStringAsFixed(5) ?? 0.toStringAsFixed(5)} SOL',
                                 style: TextStyle(
                                   color: AppPalette.contrastLight,
                                   fontSize: 14,
                                 ),
                               ),
                               Text(
-                                '${portalState.tokenAmount.toStringAsFixed(0)} \$WAGUS Tokens',
+                                '${portalState?.tokenAmount.toStringAsFixed(0) ?? 0} \$WAGUS Tokens',
                                 style: TextStyle(
                                   color: AppPalette.contrastLight,
                                   fontSize: 14,
@@ -360,10 +361,11 @@ class Bank extends HookWidget {
                                             final holder = context
                                                 .read<PortalBloc>()
                                                 .state
-                                                .holder!;
+                                                .holder;
 
-                                            if (holder.solanaAmount > 0 ||
-                                                holder.tokenAmount > 0) {
+                                            if (holder != null &&
+                                                (holder.solanaAmount > 0 ||
+                                                    holder.tokenAmount > 0)) {
                                               // small alert dialog to warn them to withdraw funds before deleting
 
                                               showDialog(
@@ -393,8 +395,13 @@ class Bank extends HookWidget {
                                                               .read<
                                                                   PortalBloc>()
                                                               .state
-                                                              .user!
-                                                              .id;
+                                                              .user
+                                                              ?.id;
+
+                                                          if (userId == null) {
+                                                            context.pop();
+                                                            return;
+                                                          }
 
                                                           try {
                                                             await context
@@ -405,6 +412,11 @@ class Bank extends HookWidget {
 
                                                             if (context
                                                                 .mounted) {
+                                                              context
+                                                                  .read<
+                                                                      PortalBloc>()
+                                                                  .add(
+                                                                      PortalClearEvent());
                                                               context
                                                                   .pushReplacement(
                                                                       login);
@@ -440,10 +452,51 @@ class Bank extends HookWidget {
                                                   );
                                                 },
                                               );
-                                            }
+                                            } else {
+                                              final userId = context
+                                                  .read<PortalBloc>()
+                                                  .state
+                                                  .user
+                                                  ?.id;
 
-                                            // delete the account
-                                            // we need the userId
+                                              if (userId == null) {
+                                                context.pop();
+                                                return;
+                                              }
+
+                                              try {
+                                                await context
+                                                    .read<BankRepository>()
+                                                    .deleteUser(userId);
+
+                                                if (context.mounted) {
+                                                  context
+                                                      .read<PortalBloc>()
+                                                      .add(PortalClearEvent());
+
+                                                  context
+                                                      .pushReplacement(login);
+                                                }
+                                              } on Exception catch (e, _) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                        'Error deleting account. Please try again.'),
+                                                    behavior: SnackBarBehavior
+                                                        .floating,
+                                                  ),
+                                                );
+                                                if (context.mounted &&
+                                                    context.canPop()) {
+                                                  context.pop();
+                                                }
+
+                                                return;
+                                              }
+
+                                              context.pop();
+                                            }
                                           },
                                           child: const Text('Delete'),
                                         ),
@@ -523,18 +576,20 @@ class Bank extends HookWidget {
                   GestureDetector(
                     onTap: () => amountController.text = isTokenWithdrawal
                         ? context
-                            .read<PortalBloc>()
-                            .state
-                            .holder!
-                            .tokenAmount
-                            .toInt()
-                            .toString()
+                                .read<PortalBloc>()
+                                .state
+                                .holder
+                                ?.tokenAmount
+                                .toInt()
+                                .toString() ??
+                            ''
                         : context
-                            .read<PortalBloc>()
-                            .state
-                            .holder!
-                            .solanaAmount
-                            .toString(),
+                                .read<PortalBloc>()
+                                .state
+                                .holder
+                                ?.solanaAmount
+                                .toString() ??
+                            '',
                     child: Container(
                       height: double.infinity,
                       decoration: BoxDecoration(
@@ -633,26 +688,48 @@ class Bank extends HookWidget {
           }
 
           if (isTokenWithdrawal) {
+            final senderWallet = context
+                .read<PortalBloc>()
+                .state
+                .user
+                ?.embeddedSolanaWallets
+                .first;
+
+            if (senderWallet == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('No sender wallet found'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+              return;
+            }
             context.read<BankBloc>().add(BankWithdrawEvent(
-                  senderWallet: context
-                      .read<PortalBloc>()
-                      .state
-                      .user!
-                      .embeddedSolanaWallets
-                      .first,
+                  senderWallet: senderWallet,
                   amount: amount.toInt(),
                   destinationAddress: destinationController.text,
                   wagusMint:
                       context.read<PortalBloc>().state.currentTokenAddress,
                 ));
           } else {
+            final senderWallet = context
+                .read<PortalBloc>()
+                .state
+                .user
+                ?.embeddedSolanaWallets
+                .first;
+
+            if (senderWallet == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('No sender wallet found'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+              return;
+            }
             context.read<BankBloc>().add(BankWithdrawSolEvent(
-                  senderWallet: context
-                      .read<PortalBloc>()
-                      .state
-                      .user!
-                      .embeddedSolanaWallets
-                      .first,
+                  senderWallet: senderWallet,
                   amount: amount.toDouble(),
                   destinationAddress: destinationController.text,
                 ));

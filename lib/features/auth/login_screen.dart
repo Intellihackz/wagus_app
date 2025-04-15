@@ -6,7 +6,6 @@ import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/theme/app_palette.dart';
-import 'package:wagus/utils.dart';
 
 class LoginScreen extends HookWidget {
   const LoginScreen({super.key});
@@ -18,22 +17,6 @@ class LoginScreen extends HookWidget {
     final isLoading = useState(false);
     final isEmailSent = useState(false);
     final errorMessage = useState<String?>(null);
-
-    // Use useEffect to initialize PrivyService when the widget is built
-    useAsyncEffect(
-        effect: () async {
-          final privyService = PrivyService();
-          final user = await privyService.initialize();
-          if (user != null) {
-            // User is already authenticated, update PortalBloc
-            if (context.mounted) {
-              context.read<PortalBloc>().add(PortalAuthorizeEvent(context));
-            }
-          }
-
-          return null;
-        },
-        keys: []);
 
     return BlocListener<PortalBloc, PortalState>(
       listener: (context, state) {
@@ -174,70 +157,91 @@ class LoginScreen extends HookWidget {
                       const SizedBox(height: 24),
 
                       // Action button
-                      ElevatedButton(
-                        onPressed: isLoading.value
-                            ? null
-                            : () async {
-                                FocusScope.of(context).unfocus();
-                                isLoading.value = true;
-                                errorMessage.value = null;
+                      Column(
+                        spacing: 16,
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: isLoading.value
+                                  ? null
+                                  : () async {
+                                      FocusScope.of(context).unfocus();
+                                      isLoading.value = true;
+                                      errorMessage.value = null;
 
-                                try {
-                                  if (!isEmailSent.value) {
-                                    // Send email verification
-                                    if (emailController.text.trim().isEmpty) {
-                                      errorMessage.value =
-                                          'Please enter your email';
-                                      isLoading.value = false;
-                                      return;
-                                    }
+                                      try {
+                                        if (!isEmailSent.value) {
+                                          // Send email verification
+                                          if (emailController.text
+                                              .trim()
+                                              .isEmpty) {
+                                            errorMessage.value =
+                                                'Please enter your email';
+                                            isLoading.value = false;
+                                            return;
+                                          }
+                                          final privyService = PrivyService();
+                                          await privyService.initialize();
+                                          privyService.loginWithEmail(
+                                              emailController.text.trim());
 
-                                    PrivyService().loginWithEmail(
-                                      emailController.text.trim(),
-                                    );
-                                    isEmailSent.value = true;
-                                  } else {
-                                    // Verify OTP
-                                    if (otpController.text.trim().isEmpty) {
-                                      errorMessage.value =
-                                          'Please enter the verification code';
-                                      isLoading.value = false;
-                                      return;
-                                    }
+                                          isEmailSent.value = true;
+                                        } else {
+                                          // Verify OTP
+                                          if (otpController.text
+                                              .trim()
+                                              .isEmpty) {
+                                            errorMessage.value =
+                                                'Please enter the verification code';
+                                            isLoading.value = false;
+                                            return;
+                                          }
 
-                                    PrivyService().verifyOtp(
-                                      emailController.text.trim(),
-                                      otpController.text.trim(),
-                                      context,
-                                    );
-                                  }
-                                } finally {
-                                  isLoading.value = false;
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: context.appColors.contrastLight,
-                          foregroundColor: context.appColors.contrastDark,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: isLoading.value
-                            ? SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: context.appColors.contrastDark,
+                                          final privyService = PrivyService();
+                                          await privyService.initialize();
+                                          privyService.verifyOtp(
+                                            emailController.text.trim(),
+                                            otpController.text.trim(),
+                                            context,
+                                          );
+                                        }
+                                      } finally {
+                                        isLoading.value = false;
+                                      }
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    context.appColors.contrastLight,
+                                foregroundColor: context.appColors.contrastDark,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                              )
-                            : Text(
-                                !isEmailSent.value
-                                    ? 'Continue with Email'
-                                    : 'Verify Code',
-                                style: const TextStyle(fontSize: 16),
                               ),
+                              child: isLoading.value
+                                  ? SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: context.appColors.contrastDark,
+                                      ),
+                                    )
+                                  : Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8.0),
+                                      child: Text(
+                                        !isEmailSent.value
+                                            ? 'Continue with Email'
+                                            : 'Verify Code',
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ],
                       ),
 
                       if (isEmailSent.value) ...[

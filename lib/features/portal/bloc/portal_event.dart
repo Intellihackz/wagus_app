@@ -14,3 +14,5 @@ class PortalAuthorizeEvent extends PortalEvent {
 class PortalRefreshEvent extends PortalEvent {}
 
 class PortalListenTokenAddressEvent extends PortalEvent {}
+
+class PortalClearEvent extends PortalEvent {}

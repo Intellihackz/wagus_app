@@ -15,9 +15,8 @@ class PortalRepository {
   final _privyService = PrivyService();
 
   Future<PrivyUser?> init() async {
-    final user = await PrivyService().initialize();
-
-    return user;
+    if (!PrivyService().isAuthenticated()) return null;
+    return PrivyService().privy.user;
   }
 
   final currentTokenAddressCollection =
@@ -60,8 +59,8 @@ class PortalRepository {
   }
 
   /// [disconnect] function to disconnect the wallet
-  Future<bool?> disconnect() async {
-    final success = await _privyService.logout();
+  Future<bool?> disconnect(BuildContext context) async {
+    final success = await _privyService.logout(context);
     return success ? true : null;
   }
 
