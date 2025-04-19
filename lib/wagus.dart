@@ -8,7 +8,6 @@ import 'package:wagus/features/ai/ai_tools.dart';
 import 'package:wagus/features/bank/bank.dart';
 import 'package:wagus/features/bank/bloc/bank_bloc.dart';
 import 'package:wagus/features/home/home.dart';
-import 'package:wagus/features/lottery/lottery.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/incubator/incubator.dart';
 import 'package:wagus/router.dart';
