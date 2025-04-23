@@ -200,11 +200,19 @@ class LoginScreen extends HookWidget {
 
                                           final privyService = PrivyService();
                                           await privyService.initialize();
-                                          privyService.verifyOtp(
-                                            emailController.text.trim(),
-                                            otpController.text.trim(),
-                                            context,
-                                          );
+                                          if (context.mounted) {
+                                            await privyService.verifyOtp(
+                                              emailController.text.trim(),
+                                              otpController.text.trim(),
+                                              context,
+                                            );
+                                          }
+
+                                          if (context.mounted) {
+                                            context
+                                                .read<PortalBloc>()
+                                                .add(PortalInitialEvent());
+                                          }
                                         }
                                       } finally {
                                         isLoading.value = false;
@@ -214,6 +222,8 @@ class LoginScreen extends HookWidget {
                                 backgroundColor:
                                     context.appColors.contrastLight,
                                 foregroundColor: context.appColors.contrastDark,
+                                disabledBackgroundColor:
+                                    context.appColors.contrastLight,
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(
@@ -225,7 +235,7 @@ class LoginScreen extends HookWidget {
                                       height: 20,
                                       width: 20,
                                       child: CircularProgressIndicator(
-                                        strokeWidth: 2,
+                                        strokeWidth: 4,
                                         color: context.appColors.contrastDark,
                                       ),
                                     )

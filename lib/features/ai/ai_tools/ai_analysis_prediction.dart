@@ -23,6 +23,15 @@ class AIAnalysisPrediction extends HookWidget {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               mainAxisSize: MainAxisSize.min,
               children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 32.0),
+                    child: BackButton(
+                      color: context.appColors.contrastLight,
+                    ),
+                  ),
+                ),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.only(top: 100.0),

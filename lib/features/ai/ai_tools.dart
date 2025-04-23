@@ -75,9 +75,6 @@ class AITile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: ListTile(
-        shape: Border.all(
-          color: AppPalette.contrastLight,
-        ),
         leading: Icon(
           icon,
           color: AppPalette.contrastLight,

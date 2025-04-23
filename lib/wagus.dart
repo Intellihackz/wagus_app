@@ -59,7 +59,6 @@ class Wagus extends HookWidget {
                       Home(),
                       Incubator(),
                       AITools(),
-                      //Lottery(),
                     ],
                   ),
                   Positioned.fill(
@@ -71,26 +70,31 @@ class Wagus extends HookWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Padding(
-                              padding: const EdgeInsets.only(left: 8.0),
+                              padding: const EdgeInsets.only(left: 16.0),
                               child: Text(
                                 'Holders: ${state.holdersCount}',
                                 style: TextStyle(
-                                    color: context.appColors.contrastLight),
+                                    color: context.appColors.contrastLight,
+                                    fontSize: 12),
                               ),
                             ),
-                            TextButton(
-                              onPressed: () async {
-                                final result =
-                                    await PrivyService().logout(context);
+                            Padding(
+                              padding: const EdgeInsets.only(right: 16.0),
+                              child: TextButton(
+                                onPressed: () async {
+                                  final result =
+                                      await PrivyService().logout(context);
 
-                                if (result && context.mounted) {
-                                  context.go(login);
-                                }
-                              },
-                              child: Text(
-                                'Disconnect',
-                                style: TextStyle(
-                                    color: context.appColors.contrastLight),
+                                  if (result && context.mounted) {
+                                    context.go(login);
+                                  }
+                                },
+                                child: Text(
+                                  'Disconnect',
+                                  style: TextStyle(
+                                      color: context.appColors.contrastLight,
+                                      fontSize: 12),
+                                ),
                               ),
                             ),
                           ],
@@ -103,7 +107,6 @@ class Wagus extends HookWidget {
               floatingActionButton: Transform.translate(
                 offset: const Offset(0, -10),
                 child: FloatingActionButton(
-                  mini: true,
                   backgroundColor: context.appColors.contrastLight,
                   onPressed: () async {
                     final portalBloc =
@@ -129,8 +132,8 @@ class Wagus extends HookWidget {
                   },
                   child: Image.asset(
                     'assets/icons/logo.png',
-                    height: 32,
-                    width: 32,
+                    height: 64,
+                    width: 64,
                   ),
                 ),
               ),
@@ -170,7 +173,7 @@ class Wagus extends HookWidget {
                     items: const [
                       BottomNavigationBarItem(
                         icon: Padding(
-                          padding: EdgeInsets.only(top: 8.0),
+                          padding: EdgeInsets.only(top: 24.0),
                           child: Icon(Icons.home),
                         ),
                         label: 'Home',
@@ -178,14 +181,14 @@ class Wagus extends HookWidget {
                       BottomNavigationBarItem(
                         // icon that best represnts incubator or launch pad or start up
                         icon: Padding(
-                            padding: EdgeInsets.only(top: 8.0),
+                            padding: EdgeInsets.only(top: 24.0),
                             child: Icon(Icons.rocket_launch)),
                         label: 'Incubator',
                       ),
                       BottomNavigationBarItem(
                         // icon that best represnts ai tools
                         icon: Padding(
-                            padding: EdgeInsets.only(top: 8.0),
+                            padding: EdgeInsets.only(top: 24.0),
                             child: Icon(Icons.widgets)),
                         label: 'AI Tools',
                       ),

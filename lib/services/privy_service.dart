@@ -55,7 +55,7 @@ class PrivyService {
     );
   }
 
-  void verifyOtp(String email, String otp, BuildContext context) async {
+  Future<void> verifyOtp(String email, String otp, BuildContext context) async {
     await initialize();
 
     final Result<PrivyUser> result = await privy.email.loginWithCode(

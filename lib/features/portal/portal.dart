@@ -18,13 +18,7 @@ class Portal extends HookWidget {
     return RepositoryProvider(
       create: (context) => PortalRepository(),
       child: BlocListener<PortalBloc, PortalState>(
-        listener: (context, state) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (state.user != null && context.mounted) {
-              context.go(home);
-            }
-          });
-        },
+        listener: (context, state) {},
         child: BlocBuilder<PortalBloc, PortalState>(
           builder: (context, state) {
             return Scaffold(
@@ -51,6 +45,28 @@ class Portal extends HookWidget {
                                     context
                                         .read<PortalBloc>()
                                         .add(PortalAuthorizeEvent(context));
+
+                                    // Wait a moment to ensure state updates
+                                    await Future.delayed(
+                                        const Duration(milliseconds: 300));
+
+                                    final portalBlocState =
+                                        context.read<PortalBloc>().state;
+                                    final user = portalBlocState.user;
+                                    final hasWallets = user
+                                            ?.embeddedSolanaWallets
+                                            .isNotEmpty ??
+                                        false;
+
+                                    if (user != null && hasWallets) {
+                                      if (context.mounted) {
+                                        context.go(
+                                            home); // ✅ Navigate only if wallet exists
+                                      }
+                                    } else {
+                                      errorMessage.value =
+                                          'Please create a wallet first.';
+                                    }
                                   } finally {
                                     isLoading.value = false;
                                   }
@@ -67,7 +83,7 @@ class Portal extends HookWidget {
                               ),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: isLoading.value
+                            child: isLoading.value || state.user == null
                                 ? SizedBox(
                                     height: 20,
                                     width: 20,

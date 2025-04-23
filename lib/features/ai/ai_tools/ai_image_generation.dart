@@ -39,12 +39,21 @@ class AIImageGeneration extends HookWidget {
           },
           child: Scaffold(
             body: Padding(
-              padding: const EdgeInsets.only(
-                  left: 16.0, right: 16.0, top: 100.0, bottom: 64.0),
+              padding:
+                  const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 64.0),
               child: Column(
                 spacing: 16.0,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 32.0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: BackButton(
+                        color: context.appColors.contrastLight,
+                      ),
+                    ),
+                  ),
                   const Text(
                     'AI Image Generation',
                     textAlign: TextAlign.center,

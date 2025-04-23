@@ -13,12 +13,6 @@ class Home extends HookWidget {
   Widget build(BuildContext context) {
     final inputController = useTextEditingController();
 
-    useEffect(() {
-      context.read<PortalBloc>().add(PortalRefreshEvent());
-
-      return null;
-    }, []);
-
     return BlocBuilder<PortalBloc, PortalState>(
       builder: (context, portalState) {
         return BlocBuilder<HomeBloc, HomeState>(
