@@ -28,9 +28,9 @@ class AiWhitePaperGenerator extends HookWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Stack(
             children: [
-              Align(
-                alignment: Alignment.topLeft,
-                child: Positioned.fill(
+              Positioned.fill(
+                child: Align(
+                  alignment: Alignment.topLeft,
                   child: Padding(
                     padding: const EdgeInsets.only(top: 32.0),
                     child: BackButton(
