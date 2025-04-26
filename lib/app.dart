@@ -13,6 +13,8 @@ import 'package:wagus/features/lottery/bloc/lottery_bloc.dart';
 import 'package:wagus/features/lottery/data/lottery_repository.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
+import 'package:wagus/features/quest/bloc/quest_bloc.dart';
+import 'package:wagus/features/quest/data/quest_repository.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/theme/app_palette.dart';
 
@@ -40,6 +42,9 @@ class App extends StatelessWidget {
         ),
         RepositoryProvider<BankRepository>(
           create: (_) => BankRepository(),
+        ),
+        RepositoryProvider<QuestRepository>(
+          create: (_) => QuestRepository(),
         ),
       ],
       child: Builder(
@@ -73,6 +78,11 @@ class App extends StatelessWidget {
               BlocProvider<BankBloc>(
                 create: (_) => BankBloc(
                   bankRepository: context.read<BankRepository>(),
+                ),
+              ),
+              BlocProvider<QuestBloc>(
+                create: (_) => QuestBloc(
+                  questRepository: context.read<QuestRepository>(),
                 ),
               ),
             ],

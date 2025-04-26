@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wagus/features/ai/ai_tools.dart';
 import 'package:wagus/features/bank/bank.dart';
@@ -10,6 +11,7 @@ import 'package:wagus/features/bank/bloc/bank_bloc.dart';
 import 'package:wagus/features/home/home.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/incubator/incubator.dart';
+import 'package:wagus/features/quest/presentation/quest.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/theme/app_palette.dart';
 import 'package:wagus/services/privy_service.dart';
@@ -59,6 +61,7 @@ class Wagus extends HookWidget {
                       Home(),
                       Incubator(),
                       AITools(),
+                      Quest(),
                     ],
                   ),
                   Positioned.fill(
@@ -173,7 +176,7 @@ class Wagus extends HookWidget {
                     items: const [
                       BottomNavigationBarItem(
                         icon: Padding(
-                          padding: EdgeInsets.only(top: 24.0),
+                          padding: EdgeInsets.only(top: 24.0, bottom: 4),
                           child: Icon(Icons.home),
                         ),
                         label: 'Home',
@@ -181,21 +184,24 @@ class Wagus extends HookWidget {
                       BottomNavigationBarItem(
                         // icon that best represnts incubator or launch pad or start up
                         icon: Padding(
-                            padding: EdgeInsets.only(top: 24.0),
+                            padding: EdgeInsets.only(top: 24.0, bottom: 4),
                             child: Icon(Icons.rocket_launch)),
                         label: 'Incubator',
                       ),
                       BottomNavigationBarItem(
                         // icon that best represnts ai tools
                         icon: Padding(
-                            padding: EdgeInsets.only(top: 24.0),
+                            padding: EdgeInsets.only(top: 24.0, bottom: 4),
                             child: Icon(Icons.widgets)),
                         label: 'AI Tools',
                       ),
-                      // BottomNavigationBarItem(
-                      //   icon: Icon(Icons.casino),
-                      //   label: 'Lottery',
-                      // ),
+                      BottomNavigationBarItem(
+                        icon: Padding(
+                          padding: EdgeInsets.only(top: 24.0, bottom: 4),
+                          child: Icon(FontAwesomeIcons.listCheck),
+                        ),
+                        label: 'Quests', // Name it whatever
+                      ),
                     ],
                   ),
                 ),

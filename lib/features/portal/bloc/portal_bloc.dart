@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/services/privy_service.dart';
+import 'package:wagus/services/user_service.dart';
 import 'package:wagus/shared/holder/holder.dart';
 import 'package:wagus/shared/transaction/transaction.dart';
 import 'package:dio/dio.dart';
@@ -40,6 +41,11 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
 
       final user = await portalRepository.connect();
       emit(state.copyWith(user: () => user));
+
+      if (user != null && user.embeddedSolanaWallets.isNotEmpty) {
+        final wallet = user.embeddedSolanaWallets.first.address;
+        await UserService().updateUserLogin(wallet);
+      }
 
       if (PrivyService().isAuthenticated()) {
         await _onPortalInitialEvent(PortalInitialEvent(), emit);
