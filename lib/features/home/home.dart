@@ -3,7 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:wagus/features/home/bloc/home_bloc.dart';
 import 'package:wagus/features/home/domain/message.dart';
+import 'package:wagus/features/home/widgets/home_shop_dialog.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
+import 'package:wagus/features/portal/data/portal_repository.dart';
+import 'package:wagus/services/user_service.dart';
 import 'package:wagus/theme/app_palette.dart';
 
 class Home extends HookWidget {
@@ -12,6 +15,7 @@ class Home extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final inputController = useTextEditingController();
+    final isLoading = useState(false);
 
     return BlocBuilder<PortalBloc, PortalState>(
       builder: (context, portalState) {
@@ -20,34 +24,73 @@ class Home extends HookWidget {
             return Scaffold(
               body: Stack(
                 children: [
-                  GestureDetector(
-                    child: Container(
-                      alignment: Alignment.topCenter,
-                      margin: EdgeInsets.only(top: 32),
-                      width: double.infinity,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 100.0),
-                        child: Column(
-                          children: [
-                            Center(
-                              child: Text(
-                                'You have ${portalState.holder?.tokenAmount.toStringAsFixed(0) ?? 0} \$WAGUS tokens',
-                                style: TextStyle(
-                                  color: AppPalette.contrastLight,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
+                  if (isLoading.value)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withOpacity(0.5),
+                        child: const Center(
+                          child: CircularProgressIndicator(color: Colors.white),
                         ),
                       ),
                     ),
-                  ),
                   Center(
-                    child: Image.asset(
-                      'assets/background/home_logo.png',
-                      height: 200,
-                      fit: BoxFit.cover,
+                    child: GestureDetector(
+                      onTap: () {
+                        showDialog(
+                          barrierDismissible: false,
+                          context: context,
+                          builder: (_) =>
+                              HomeShopDialog(onPurchase: (tier, cost) async {
+                            final portalRepository =
+                                context.read<PortalRepository>();
+                            final portalBloc = context.read<PortalBloc>();
+                            final wallet = portalBloc
+                                .state.user!.embeddedSolanaWallets.first;
+
+                            final userDoc =
+                                await UserService().getUser(wallet.address);
+                            final userData = userDoc.data();
+                            final currentTier =
+                                (userData?['tier'] ?? 'Basic') as String;
+
+                            // Safely convert tier string to enum
+                            final desiredTier = TierStatus.values.firstWhere(
+                              (e) => e.name.toLowerCase() == tier.toLowerCase(),
+                              orElse: () => TierStatus.basic,
+                            );
+
+                            if (_isUpgradeInvalid(currentTier, desiredTier)) {
+                              throw Exception(
+                                  'You already have a higher or same tier.');
+                            }
+
+                            await portalRepository.sendTokens(
+                              senderWallet: wallet,
+                              fromWalletAddress: wallet.address,
+                              toWalletAddress:
+                                  '4R9rEp5HvMjy8RBBSW7fMBPUkYp34FEbVuctDdVfFYwY',
+                              mintAddress: portalBloc.state.currentTokenAddress,
+                              amount: cost,
+                            );
+
+                            await UserService()
+                                .upgradeTier(wallet.address, tier);
+
+                            if (context.mounted) {
+                              context
+                                  .read<PortalBloc>()
+                                  .add(PortalUpdateTierEvent(
+                                    desiredTier,
+                                  ));
+                            }
+                          }),
+                        );
+                      },
+                      child: Image.asset(
+                        'assets/background/home_logo.png',
+                        height: 200,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                   Align(
@@ -63,6 +106,7 @@ class Home extends HookWidget {
                             reverse: true,
                             itemCount: homeState.messages.length,
                             itemBuilder: (context, index) {
+                              final message = homeState.messages[index];
                               return IntrinsicHeight(
                                 child: Row(
                                   mainAxisAlignment:
@@ -77,22 +121,39 @@ class Home extends HookWidget {
                                   children: [
                                     Align(
                                       alignment: Alignment.topLeft,
-                                      child: Text(
-                                        '[${homeState.messages[index].sender.substring(0, 3)}..${homeState.messages[index].sender.substring(homeState.messages[index].sender.length - 3)}]',
-                                        style: TextStyle(
-                                          color: AppPalette.contrastLight,
-                                          fontSize: 12,
+                                      child: RichText(
+                                        text: TextSpan(
+                                          children: [
+                                            TextSpan(
+                                              text:
+                                                  '[${message.tier.name.isNotEmpty ? message.tier.name[0] : ''}]',
+                                              style: TextStyle(
+                                                color: message.tier.color,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            TextSpan(
+                                              text:
+                                                  '[${message.sender.substring(0, 3)}..${message.sender.substring(message.sender.length - 3)}]',
+                                              style: TextStyle(
+                                                color: AppPalette.contrastLight,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ),
                                     SizedBox(width: 8),
                                     Flexible(
                                       child: Text(
-                                        homeState.messages[index].message,
+                                        homeState.messages[index].text,
                                         softWrap: true,
                                         style: TextStyle(
                                           color: AppPalette.contrastLight,
-                                          fontSize: 12,
+                                          fontSize: 10,
                                         ),
                                       ),
                                     ),
@@ -122,19 +183,22 @@ class Home extends HookWidget {
                               ),
                               suffixIcon: GestureDetector(
                                 onTap: () {
-                                  context.read<HomeBloc>().add(
-                                        HomeSendMessageEvent(
-                                          message: Message(
-                                            message: inputController.text,
-                                            sender: portalState
-                                                .user!
-                                                .embeddedSolanaWallets
-                                                .first
-                                                .address,
+                                  final text = inputController.text.trim();
+                                  if (text.isNotEmpty) {
+                                    context.read<HomeBloc>().add(
+                                          HomeSendMessageEvent(
+                                            message: Message(
+                                              text: text,
+                                              sender: portalState
+                                                  .user!
+                                                  .embeddedSolanaWallets
+                                                  .first
+                                                  .address,
+                                              tier: portalState.tierStatus,
+                                            ),
                                           ),
-                                        ),
-                                      );
-
+                                        );
+                                  }
                                   inputController.clear();
                                   FocusScope.of(context).unfocus();
                                 },
@@ -156,5 +220,14 @@ class Home extends HookWidget {
         );
       },
     );
+  }
+
+  bool _isUpgradeInvalid(String currentTier, TierStatus desiredTier) {
+    const tiers = ['Basic', 'Adventurer', 'Elite', 'Creator'];
+
+    final currentIndex = tiers.indexOf(currentTier);
+    final desiredIndex = tiers.indexOf(desiredTier.name);
+
+    return currentIndex >= desiredIndex;
   }
 }

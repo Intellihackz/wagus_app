@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:wagus/features/ai/ai_tools.dart';
 import 'package:wagus/features/bank/bank.dart';
 import 'package:wagus/features/bank/bloc/bank_bloc.dart';
+import 'package:wagus/features/games/game.dart';
 import 'package:wagus/features/home/home.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/incubator/incubator.dart';
@@ -25,15 +26,15 @@ class Wagus extends HookWidget {
     final lastPage = useState<int>(0);
     final pageController = usePageController();
 
-    useEffect(() {
-      debugPrint('Current Page: ${currentPage.value}');
-      debugPrint('Last Page: ${lastPage.value}');
-      if (currentPage.value == 0 && lastPage.value != 0) {
-        mainContext.read<PortalBloc>().add(PortalRefreshEvent());
-        debugPrint('Refreshing Portal');
-      }
-      return null;
-    }, [currentPage.value]);
+    // useEffect(() {
+    //   debugPrint('Current Page: ${currentPage.value}');
+    //   debugPrint('Last Page: ${lastPage.value}');
+    //   if (currentPage.value == 0 && lastPage.value != 0) {
+    //     mainContext.read<PortalBloc>().add(PortalRefreshEvent());
+    //     debugPrint('Refreshing Portal');
+    //   }
+    //   return null;
+    // }, [currentPage.value]);
 
     return Stack(
       fit: StackFit.expand,
@@ -60,6 +61,7 @@ class Wagus extends HookWidget {
                     children: [
                       Home(),
                       Incubator(),
+                      Game(), // Placeholder for the game page
                       AITools(),
                       Quest(),
                     ],
@@ -182,11 +184,16 @@ class Wagus extends HookWidget {
                         label: 'Home',
                       ),
                       BottomNavigationBarItem(
-                        // icon that best represnts incubator or launch pad or start up
                         icon: Padding(
                             padding: EdgeInsets.only(top: 24.0, bottom: 4),
                             child: Icon(Icons.rocket_launch)),
                         label: 'Incubator',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Padding(
+                            padding: EdgeInsets.only(top: 24.0, bottom: 4),
+                            child: Icon(Icons.gamepad)),
+                        label: 'Games',
                       ),
                       BottomNavigationBarItem(
                         // icon that best represnts ai tools

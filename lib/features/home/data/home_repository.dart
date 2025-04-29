@@ -13,8 +13,9 @@ class HomeRepository {
   Future<void> sendMessage(Message message) async {
     try {
       await chatCollection.add({
-        'message': message.message,
+        'message': message.text,
         'sender': message.sender,
+        'tier': message.tier.name,
         'timestamp': FieldValue.serverTimestamp(),
       });
     } catch (e) {

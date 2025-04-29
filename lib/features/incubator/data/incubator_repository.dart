@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_wallet.dart';
 import 'package:solana/base58.dart';
@@ -226,8 +227,13 @@ class IncubatorRepository {
       throw Exception('Invalid walletAddress format: $destinationAddress - $e');
     }
 
-    final cluster = web3.Cluster.mainnet;
-    final connection = web3.Connection(cluster);
+    final rpcUrl = dotenv.env['HELIUS_RPC']!;
+    final wsUrl = dotenv.env['HELIUS_WS']!;
+
+    final connection = web3.Connection(
+      web3.Cluster(Uri.parse(rpcUrl)),
+      websocketCluster: web3.Cluster(Uri.parse(wsUrl)),
+    );
     final blockHash = await connection.getLatestBlockhash();
 
     debugPrint(

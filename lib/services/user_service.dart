@@ -37,4 +37,12 @@ class UserService {
       'last_login': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
+
+  Future<void> upgradeTier(String walletAddress, String newTier) async {
+    await usersCollection.doc(walletAddress).set({
+      'tier': newTier,
+      'last_login': FieldValue.serverTimestamp(),
+      'wallet': walletAddress,
+    }, SetOptions(merge: true));
+  }
 }

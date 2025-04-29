@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:meta/meta.dart';
 import 'package:wagus/features/home/data/home_repository.dart';
 import 'package:wagus/features/home/domain/message.dart';
+import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 
 part 'home_event.dart';
 part 'home_state.dart';
@@ -19,8 +20,12 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         return state.copyWith(
           messages: messages
               .map((message) => Message(
-                    message: message['message'],
+                    text: message['message'],
                     sender: message['sender'],
+                    tier: TierStatus.values.firstWhere(
+                      (t) => t.name == (message['tier'] ?? 'Basic'),
+                      orElse: () => TierStatus.basic,
+                    ),
                   ))
               .toList(),
         );

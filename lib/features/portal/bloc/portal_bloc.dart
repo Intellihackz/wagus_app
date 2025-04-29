@@ -26,6 +26,23 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       final alreadyInit = PrivyService().isAuthenticated();
       if (alreadyInit) {
         await _onPortalInitialEvent(event, emit);
+
+        final user = await portalRepository.init();
+        if (user != null && user.embeddedSolanaWallets.isNotEmpty) {
+          final wallet = user.embeddedSolanaWallets.first.address;
+          final userDoc = await UserService().getUser(wallet);
+          final userData = userDoc.data();
+
+          final tierString = (userData?['tier'] ?? 'Basic') as String;
+
+          // Convert String -> TierStatus enum
+          final tierEnum = TierStatus.values.firstWhere(
+            (e) => e.name.toLowerCase() == tierString.toLowerCase(),
+            orElse: () => TierStatus.basic, // fallback in case it's invalid
+          );
+
+          emit(state.copyWith(tierStatus: tierEnum));
+        }
       } else {
         debugPrint(
             '[PortalBloc] Skipped _onPortalInitialEvent: user not ready');
@@ -80,6 +97,10 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
         user: () => null,
         holder: () => null,
       ));
+    });
+
+    on<PortalUpdateTierEvent>((event, emit) {
+      emit(state.copyWith(tierStatus: event.tier));
     });
   }
 

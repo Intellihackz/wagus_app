@@ -48,8 +48,13 @@ class BankRepository {
     debugPrint('[BankRepository] Destination Wallet: $destinationAddress');
     debugPrint('[BankRepository] Amount: $amount');
 
-    final cluster = web3.Cluster.mainnet;
-    final connection = web3.Connection(cluster);
+    final rpcUrl = dotenv.env['HELIUS_RPC']!;
+    final wsUrl = dotenv.env['HELIUS_WS']!;
+
+    final connection = web3.Connection(
+      web3.Cluster(Uri.parse(rpcUrl)),
+      websocketCluster: web3.Cluster(Uri.parse(wsUrl)),
+    );
     final blockHash = await connection.getLatestBlockhash();
 
     debugPrint(

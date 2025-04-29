@@ -115,6 +115,14 @@ class Portal extends HookWidget {
                             ),
                           ),
                         ],
+                        const SizedBox(height: 16),
+                        Text(
+                          'Current Tier: ${state.tierStatus.name}',
+                          style: TextStyle(
+                            color: context.appColors.contrastLight,
+                            fontSize: 14,
+                          ),
+                        ),
                       ],
                     ),
                   ),
