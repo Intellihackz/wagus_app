@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -20,10 +22,34 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.silnt.wagus</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>This app uses the camera to enable secure identity verification or visual features, if required by future updates.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app may use your location to enhance certain features or detect region-specific utilities.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Please allow access to your photo library to download photos.</string>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -41,30 +67,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<key>FlutterDeepLinkingEnabled</key>
-	<false/>
-	<key>CFBundleURLTypes</key>
-	<array>
-	<dict>
-		<key>CFBundleURLSchemes</key>
-		<array>
-		<string>com.silnt.wagus</string>
-		</array>
-	</dict>
-	</array>
 	<key>com.apple.developer.associated-domains</key>
-    <array>
-        <string>applinks:wagus-app.com</string>
-    </array>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Please allow access to your photo library to download photos.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>This app uses the camera to enable secure identity verification or visual features, if required by future updates.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app may use your location to enhance certain features or detect region-specific utilities.</string>
+	<array>
+		<string>applinks:wagus-app.com</string>
+	</array>
 </dict>
 </plist>
