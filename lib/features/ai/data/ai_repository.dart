@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 
 class AIRepository {
   final Dio _dio = Dio();
@@ -44,7 +44,7 @@ class AIRepository {
         options: Options(responseType: ResponseType.bytes),
       );
 
-      final bytes = await ImageGallerySaver.saveImage(
+      final bytes = await ImageGallerySaverPlus.saveImage(
           Uint8List.fromList(response.data),
           quality: 60,
           name: 'ai_image');

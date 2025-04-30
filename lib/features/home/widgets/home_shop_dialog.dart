@@ -25,7 +25,7 @@ class HomeShopDialog extends HookWidget {
                   Text('Upgrade your tier!',
                       style: TextStyle(color: context.appColors.contrastDark)),
                   const SizedBox(height: 16),
-                  ElevatedButton(
+                  TextButton(
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -53,7 +53,7 @@ class HomeShopDialog extends HookWidget {
                     child: const Text('Buy Adventure Tier (1000)'),
                   ),
                   const SizedBox(height: 8),
-                  ElevatedButton(
+                  TextButton(
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -82,6 +82,17 @@ class HomeShopDialog extends HookWidget {
                   ),
                 ],
               ),
+            const SizedBox(height: 16),
+            TextButton(
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Close',
+                  style: TextStyle(color: context.appColors.contrastDark)),
+            ),
           ],
         ),
       ),
