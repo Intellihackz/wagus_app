@@ -45,4 +45,29 @@ class UserService {
       'wallet': walletAddress,
     }, SetOptions(merge: true));
   }
+
+  Future<void> setSpygusPlayed(String walletAddress) async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(walletAddress)
+        .set({
+      'spygus_played_at': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<bool> hasPlayedSpygus(String walletAddress) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(walletAddress)
+        .get();
+    final playedAt = (doc.data()?['spygus_played_at'] as Timestamp?)?.toDate();
+
+    if (playedAt == null) return false;
+
+    final lastPlayed = DateTime(playedAt.year, playedAt.month, playedAt.day);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    return lastPlayed.isAtSameMomentAs(today);
+  }
 }

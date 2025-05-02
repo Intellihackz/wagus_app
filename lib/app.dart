@@ -5,6 +5,8 @@ import 'package:wagus/features/ai/bloc/ai_bloc.dart';
 import 'package:wagus/features/ai/data/ai_repository.dart';
 import 'package:wagus/features/bank/bloc/bank_bloc.dart';
 import 'package:wagus/features/bank/data/bank_repository.dart';
+import 'package:wagus/features/games/bloc/game_bloc.dart';
+import 'package:wagus/features/games/data/game_repository.dart';
 import 'package:wagus/features/home/bloc/home_bloc.dart';
 import 'package:wagus/features/home/data/home_repository.dart';
 import 'package:wagus/features/incubator/bloc/incubator_bloc.dart';
@@ -46,6 +48,9 @@ class App extends StatelessWidget {
         RepositoryProvider<QuestRepository>(
           create: (_) => QuestRepository(),
         ),
+        RepositoryProvider<GameRepository>(
+          create: (_) => GameRepository(),
+        ),
       ],
       child: Builder(
         builder: (context) {
@@ -84,6 +89,11 @@ class App extends StatelessWidget {
                 create: (_) => QuestBloc(
                   questRepository: context.read<QuestRepository>(),
                 ),
+              ),
+              BlocProvider<GameBloc>(
+                create: (_) => GameBloc(
+                  gameRepository: context.read<GameRepository>(),
+                )..add(GameSpygusInitializeEvent()),
               ),
             ],
             child: MaterialApp.router(

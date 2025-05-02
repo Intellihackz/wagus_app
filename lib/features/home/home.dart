@@ -107,6 +107,20 @@ class Home extends HookWidget {
                             itemCount: homeState.messages.length,
                             itemBuilder: (context, index) {
                               final message = homeState.messages[index];
+
+                              String getTierPrefix(TierStatus? tier) {
+                                if (tier == null ||
+                                    tier == TierStatus.none ||
+                                    tier == TierStatus.basic) {
+                                  return '[B]';
+                                }
+
+                                final name = tier.name;
+                                if (name.isEmpty) return '[B]';
+
+                                return '[${name[0]}]';
+                              }
+
                               return IntrinsicHeight(
                                 child: Row(
                                   mainAxisAlignment:
@@ -125,8 +139,7 @@ class Home extends HookWidget {
                                         text: TextSpan(
                                           children: [
                                             TextSpan(
-                                              text:
-                                                  '[${message.tier.name.isNotEmpty ? message.tier.name[0] : ''}]',
+                                              text: getTierPrefix(message.tier),
                                               style: TextStyle(
                                                 color: message.tier.color,
                                                 fontSize: 12,
@@ -194,7 +207,10 @@ class Home extends HookWidget {
                                                   .embeddedSolanaWallets
                                                   .first
                                                   .address,
-                                              tier: portalState.tierStatus,
+                                              tier: portalState.tierStatus ==
+                                                      TierStatus.none
+                                                  ? TierStatus.basic
+                                                  : portalState.tierStatus,
                                             ),
                                           ),
                                         );

@@ -16,529 +16,564 @@ class Bank extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final rotationController = useAnimationController(
+      duration: const Duration(milliseconds: 500),
+    );
+    final rotationAnimation =
+        Tween<double>(begin: 0, end: 1).animate(rotationController);
+
     final amountController = useTextEditingController();
     final destinationController = useTextEditingController();
 
-    return BlocConsumer<BankBloc, BankState>(
-      listener: (context, state) async {
-        if (state.status == BankStatus.failure &&
-            state.dialogStatus == DialogStatus.input) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Withdrawal failed. Please try again.'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
+    return BlocListener<PortalBloc, PortalState>(
+      listenWhen: (previous, current) =>
+          previous.holder != null && current.holder == null,
+      listener: (context, portalState) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to refresh wallet. Please try again.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       },
-      builder: (context, state) {
-        print('Bank State: ${state.status}');
+      child: BlocConsumer<BankBloc, BankState>(
+        listener: (context, state) async {
+          if (state.status == BankStatus.failure &&
+              state.dialogStatus == DialogStatus.input) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Withdrawal failed. Please try again.'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        },
+        builder: (context, state) {
+          print('Bank State: ${state.status}');
 
-        return Scaffold(
-          body: CustomPaint(
-            painter: CryptoBackgroundPainter(),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Positioned.fill(
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: IconButton(
-                      padding: const EdgeInsets.only(left: 16.0, top: 32.0),
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: AppPalette.contrastLight,
+          return Scaffold(
+            body: CustomPaint(
+              painter: CryptoBackgroundPainter(),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Positioned.fill(
+                    child: Align(
+                      alignment: Alignment.topLeft,
+                      child: IconButton(
+                        padding: const EdgeInsets.only(left: 16.0, top: 32.0),
+                        icon: const Icon(
+                          Icons.arrow_back,
+                          color: AppPalette.contrastLight,
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
                       ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
                     ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    spacing: 24.0,
-                    children: [
-                      Text(
-                        'Deposit SOL or \$WAGUS Tokens to this address:',
-                        textAlign: TextAlign.center,
-                      ),
-                      InkWell(
-                        onTap: () {
-                          Clipboard.setData(ClipboardData(
-                              text: context
-                                      .read<PortalBloc>()
-                                      .state
-                                      .user
-                                      ?.embeddedSolanaWallets
-                                      .first
-                                      .address ??
-                                  ''));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Address copied to clipboard'),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        },
-                        child: Text(
-                          context
-                                  .read<PortalBloc>()
-                                  .state
-                                  .user
-                                  ?.embeddedSolanaWallets
-                                  .first
-                                  .address ??
-                              '',
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      spacing: 24.0,
+                      children: [
+                        Text(
+                          'Deposit SOL or \$WAGUS Tokens to this address:',
                           textAlign: TextAlign.center,
                         ),
-                      ),
-                      const SizedBox(height: 50),
-                      BlocSelector<PortalBloc, PortalState, Holder?>(
-                        selector: (state) {
-                          return state.holder;
-                        },
-                        builder: (context, portalState) {
-                          return Column(
-                            spacing: 12.0,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'Bank Balance',
-                                    style: TextStyle(
-                                      color: AppPalette.contrastLight,
-                                      fontSize: 16,
+                        InkWell(
+                          onTap: () {
+                            Clipboard.setData(ClipboardData(
+                                text: context
+                                        .read<PortalBloc>()
+                                        .state
+                                        .user
+                                        ?.embeddedSolanaWallets
+                                        .first
+                                        .address ??
+                                    ''));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Address copied to clipboard'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          },
+                          child: Text(
+                            context
+                                    .read<PortalBloc>()
+                                    .state
+                                    .user
+                                    ?.embeddedSolanaWallets
+                                    .first
+                                    .address ??
+                                '',
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(height: 50),
+                        BlocSelector<PortalBloc, PortalState, Holder?>(
+                          selector: (state) {
+                            return state.holder;
+                          },
+                          builder: (context, portalState) {
+                            return Column(
+                              spacing: 12.0,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'Bank Balance',
+                                      style: TextStyle(
+                                        color: AppPalette.contrastLight,
+                                        fontSize: 16,
+                                      ),
                                     ),
-                                  ),
-                                  IconButton(
-                                    icon: Icon(
-                                      Icons.refresh,
-                                      color: context.appColors.contrastLight,
-                                    ),
-                                    onPressed: () {
-                                      context
-                                          .read<PortalBloc>()
-                                          .add(PortalRefreshEvent());
-                                    },
-                                  ),
-                                ],
-                              ),
-                              Text(
-                                '${portalState?.solanaAmount.toStringAsFixed(5) ?? 0.toStringAsFixed(5)} SOL',
-                                style: TextStyle(
-                                  color: AppPalette.contrastLight,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Text(
-                                '${portalState?.tokenAmount.toStringAsFixed(0) ?? 0} \$WAGUS Tokens',
-                                style: TextStyle(
-                                  color: AppPalette.contrastLight,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(
-                            left: 32.0, right: 32.0, bottom: 16.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (dialogContext) {
-                                    return BlocProvider.value(
-                                      value: context.read<BankBloc>(),
-                                      child: BlocConsumer<BankBloc, BankState>(
-                                        listener: (context, state) {
-                                          if (state.dialogStatus ==
-                                              DialogStatus.success) {
-                                            Future.delayed(
-                                                const Duration(
-                                                    milliseconds: 1500), () {
-                                              if (context.mounted) {
-                                                context.pop();
-                                                context.read<BankBloc>().add(
-                                                    BankResetDialogEvent());
-                                                context.read<PortalBloc>().add(
-                                                      PortalRefreshEvent(),
-                                                    );
-
-                                                amountController.clear();
-                                                destinationController.clear();
-                                              }
-                                            });
-                                          }
+                                    RotationTransition(
+                                      turns: rotationAnimation,
+                                      child: GestureDetector(
+                                        onTap: () async {
+                                          rotationController.forward(
+                                              from:
+                                                  0); // reset and start animation
+                                          context
+                                              .read<PortalBloc>()
+                                              .add(PortalRefreshEvent());
                                         },
-                                        builder: (context, state) {
-                                          return AlertDialog(
-                                            scrollable: true,
-                                            title: const Text(
-                                              'Withdraw \$WAGUS Tokens',
-                                              style: TextStyle(
-                                                color: AppPalette.contrastDark,
-                                                fontSize: 12,
+                                        child: Icon(
+                                          Icons.refresh,
+                                          color:
+                                              context.appColors.contrastLight,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  '${portalState?.solanaAmount.toStringAsFixed(5) ?? 0.toStringAsFixed(5)} SOL',
+                                  style: TextStyle(
+                                    color: AppPalette.contrastLight,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                Text(
+                                  '${portalState?.tokenAmount.toStringAsFixed(0) ?? 0} \$WAGUS Tokens',
+                                  style: TextStyle(
+                                    color: AppPalette.contrastLight,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(
+                              left: 32.0, right: 32.0, bottom: 16.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              ElevatedButton(
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (dialogContext) {
+                                      return BlocProvider.value(
+                                        value: context.read<BankBloc>(),
+                                        child:
+                                            BlocConsumer<BankBloc, BankState>(
+                                          listener: (context, state) {
+                                            if (state.dialogStatus ==
+                                                DialogStatus.success) {
+                                              Future.delayed(
+                                                  const Duration(
+                                                      milliseconds: 1500), () {
+                                                if (context.mounted) {
+                                                  context.pop();
+                                                  context.read<BankBloc>().add(
+                                                      BankResetDialogEvent());
+                                                  context
+                                                      .read<PortalBloc>()
+                                                      .add(
+                                                        PortalRefreshEvent(),
+                                                      );
+
+                                                  amountController.clear();
+                                                  destinationController.clear();
+                                                }
+                                              });
+                                            }
+                                          },
+                                          builder: (context, state) {
+                                            return AlertDialog(
+                                              scrollable: true,
+                                              title: const Text(
+                                                'Withdraw \$WAGUS Tokens',
+                                                style: TextStyle(
+                                                  color:
+                                                      AppPalette.contrastDark,
+                                                  fontSize: 12,
+                                                ),
                                               ),
-                                            ),
-                                            content: SizedBox(
-                                              width: MediaQuery.of(context)
-                                                      .size
-                                                      .width *
-                                                  0.8,
-                                              child: _buildDialogContent(
+                                              content: SizedBox(
+                                                width: MediaQuery.of(context)
+                                                        .size
+                                                        .width *
+                                                    0.8,
+                                                child: _buildDialogContent(
+                                                  context,
+                                                  state,
+                                                  amountController,
+                                                  destinationController,
+                                                  isTokenWithdrawal: true,
+                                                ),
+                                              ),
+                                              actions: _buildDialogActions(
                                                 context,
                                                 state,
                                                 amountController,
                                                 destinationController,
                                                 isTokenWithdrawal: true,
                                               ),
-                                            ),
-                                            actions: _buildDialogActions(
-                                              context,
-                                              state,
-                                              amountController,
-                                              destinationController,
-                                              isTokenWithdrawal: true,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                              style: ButtonStyle(
-                                backgroundColor: WidgetStateProperty.all(
-                                    context.appColors.contrastLight),
-                                shape: WidgetStateProperty.all<
-                                    RoundedRectangleBorder>(
-                                  RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.0),
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                                style: ButtonStyle(
+                                  backgroundColor: WidgetStateProperty.all(
+                                      context.appColors.contrastLight),
+                                  shape: WidgetStateProperty.all<
+                                      RoundedRectangleBorder>(
+                                    RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                    ),
+                                  ),
+                                  padding: WidgetStateProperty.all(
+                                    const EdgeInsets.symmetric(
+                                        horizontal: 32.0, vertical: 12.0),
                                   ),
                                 ),
-                                padding: WidgetStateProperty.all(
-                                  const EdgeInsets.symmetric(
-                                      horizontal: 32.0, vertical: 12.0),
+                                child: Text(
+                                  'Withdraw \$WAGUS Tokens',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: context.appColors.contrastDark,
+                                    fontSize: 16,
+                                  ),
                                 ),
                               ),
-                              child: Text(
-                                'Withdraw \$WAGUS Tokens',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: context.appColors.contrastDark,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(
-                                height: 16), // Add spacing between buttons
-                            TextButton(
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (dialogContext) {
-                                    return BlocProvider.value(
-                                      value: context.read<BankBloc>(),
-                                      child: BlocConsumer<BankBloc, BankState>(
-                                        listener: (context, state) {
-                                          if (state.dialogStatus ==
-                                              DialogStatus.success) {
-                                            Future.delayed(
-                                                const Duration(
-                                                    milliseconds: 1500), () {
-                                              if (context.mounted) {
-                                                context.pop();
-                                                context.read<BankBloc>().add(
-                                                    BankResetDialogEvent());
-                                                context.read<PortalBloc>().add(
-                                                      PortalRefreshEvent(),
-                                                    );
+                              const SizedBox(
+                                  height: 16), // Add spacing between buttons
+                              TextButton(
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (dialogContext) {
+                                      return BlocProvider.value(
+                                        value: context.read<BankBloc>(),
+                                        child:
+                                            BlocConsumer<BankBloc, BankState>(
+                                          listener: (context, state) {
+                                            if (state.dialogStatus ==
+                                                DialogStatus.success) {
+                                              Future.delayed(
+                                                  const Duration(
+                                                      milliseconds: 1500), () {
+                                                if (context.mounted) {
+                                                  context.pop();
+                                                  context.read<BankBloc>().add(
+                                                      BankResetDialogEvent());
+                                                  context
+                                                      .read<PortalBloc>()
+                                                      .add(
+                                                        PortalRefreshEvent(),
+                                                      );
 
-                                                amountController.clear();
-                                                destinationController.clear();
-                                              }
-                                            });
-                                          }
-                                        },
-                                        builder: (context, state) {
-                                          return AlertDialog(
-                                            scrollable: true,
-                                            title: const Text(
-                                              'Withdraw SOL',
-                                              style: TextStyle(
-                                                color: AppPalette.contrastDark,
-                                                fontSize: 12,
+                                                  amountController.clear();
+                                                  destinationController.clear();
+                                                }
+                                              });
+                                            }
+                                          },
+                                          builder: (context, state) {
+                                            return AlertDialog(
+                                              scrollable: true,
+                                              title: const Text(
+                                                'Withdraw SOL',
+                                                style: TextStyle(
+                                                  color:
+                                                      AppPalette.contrastDark,
+                                                  fontSize: 12,
+                                                ),
                                               ),
-                                            ),
-                                            content: SizedBox(
-                                              width: MediaQuery.of(context)
-                                                      .size
-                                                      .width *
-                                                  0.8,
-                                              child: _buildDialogContent(
+                                              content: SizedBox(
+                                                width: MediaQuery.of(context)
+                                                        .size
+                                                        .width *
+                                                    0.8,
+                                                child: _buildDialogContent(
+                                                  context,
+                                                  state,
+                                                  amountController,
+                                                  destinationController,
+                                                  isTokenWithdrawal: false,
+                                                ),
+                                              ),
+                                              actions: _buildDialogActions(
                                                 context,
                                                 state,
                                                 amountController,
                                                 destinationController,
                                                 isTokenWithdrawal: false,
                                               ),
-                                            ),
-                                            actions: _buildDialogActions(
-                                              context,
-                                              state,
-                                              amountController,
-                                              destinationController,
-                                              isTokenWithdrawal: false,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                              child: Text(
-                                'Withdraw SOL',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: context.appColors.contrastLight,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-
-                            // just make the UI and dialog
-                            const SizedBox(
-                              height: 32,
-                            ),
-                            ElevatedButton(
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (dialogContext) {
-                                    return AlertDialog(
-                                      title: const Text(
-                                        'Delete Account',
-                                        style: TextStyle(
-                                          color: AppPalette.contrastDark,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      content: const Text(
-                                        'Are you sure you want to delete your account?',
-                                        style: TextStyle(
-                                          color: AppPalette.contrastDark,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () {
-                                            context.pop();
+                                            );
                                           },
-                                          child: const Text('Cancel'),
                                         ),
-                                        ElevatedButton(
-                                          onPressed: () async {
-                                            // Workaround solution:
-                                            // I will check the balance of SOL and WAGUS
-
-                                            // they should be both 0 because we dont want loss of funds
-
-                                            final holder = context
-                                                .read<PortalBloc>()
-                                                .state
-                                                .holder;
-
-                                            if (holder != null &&
-                                                (holder.solanaAmount > 0 ||
-                                                    holder.tokenAmount > 0)) {
-                                              // small alert dialog to warn them to withdraw funds before deleting
-
-                                              showDialog(
-                                                context: context,
-                                                builder: (context) {
-                                                  return AlertDialog(
-                                                    title: const Text(
-                                                      'Warning',
-                                                      style: TextStyle(
-                                                        color: AppPalette
-                                                            .contrastDark,
-                                                        fontSize: 12,
-                                                      ),
-                                                    ),
-                                                    content: const Text(
-                                                      'You have funds in your account. Please withdraw them before deleting your account.',
-                                                      style: TextStyle(
-                                                        color: AppPalette
-                                                            .contrastDark,
-                                                        fontSize: 12,
-                                                      ),
-                                                    ),
-                                                    actions: [
-                                                      TextButton(
-                                                        onPressed: () async {
-                                                          final userId = context
-                                                              .read<
-                                                                  PortalBloc>()
-                                                              .state
-                                                              .user
-                                                              ?.id;
-
-                                                          if (userId == null) {
-                                                            context.pop();
-                                                            return;
-                                                          }
-
-                                                          try {
-                                                            await context
-                                                                .read<
-                                                                    BankRepository>()
-                                                                .deleteUser(
-                                                                    userId);
-
-                                                            if (context
-                                                                .mounted) {
-                                                              context
-                                                                  .read<
-                                                                      PortalBloc>()
-                                                                  .add(
-                                                                      PortalClearEvent());
-                                                              context
-                                                                  .pushReplacement(
-                                                                      login);
-                                                            }
-                                                          } on Exception catch (e, _) {
-                                                            ScaffoldMessenger
-                                                                    .of(context)
-                                                                .showSnackBar(
-                                                              const SnackBar(
-                                                                content: Text(
-                                                                    'Error deleting account. Please try again.'),
-                                                                behavior:
-                                                                    SnackBarBehavior
-                                                                        .floating,
-                                                              ),
-                                                            );
-                                                            if (context
-                                                                    .mounted &&
-                                                                context
-                                                                    .canPop()) {
-                                                              context.pop();
-                                                            }
-
-                                                            return;
-                                                          }
-
-                                                          context.pop();
-                                                        },
-                                                        child: const Text(
-                                                            'Proceed'),
-                                                      ),
-                                                    ],
-                                                  );
-                                                },
-                                              );
-                                            } else {
-                                              final userId = context
-                                                  .read<PortalBloc>()
-                                                  .state
-                                                  .user
-                                                  ?.id;
-
-                                              if (userId == null) {
-                                                context.pop();
-                                                return;
-                                              }
-
-                                              try {
-                                                await context
-                                                    .read<BankRepository>()
-                                                    .deleteUser(userId);
-
-                                                if (context.mounted) {
-                                                  context
-                                                      .read<PortalBloc>()
-                                                      .add(PortalClearEvent());
-
-                                                  context
-                                                      .pushReplacement(login);
-                                                }
-                                              } on Exception catch (e, _) {
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text(
-                                                        'Error deleting account. Please try again.'),
-                                                    behavior: SnackBarBehavior
-                                                        .floating,
-                                                  ),
-                                                );
-                                                if (context.mounted &&
-                                                    context.canPop()) {
-                                                  context.pop();
-                                                }
-
-                                                return;
-                                              }
-
-                                              context.pop();
-                                            }
-                                          },
-                                          child: const Text('Delete'),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                              style: ButtonStyle(
-                                backgroundColor: WidgetStateProperty.all(
-                                    context.appColors.errorRed),
-                                shape: WidgetStateProperty.all<
-                                    RoundedRectangleBorder>(
-                                  RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8.0),
+                                      );
+                                    },
+                                  );
+                                },
+                                child: Text(
+                                  'Withdraw SOL',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: context.appColors.contrastLight,
+                                    fontSize: 16,
                                   ),
                                 ),
-                                padding: WidgetStateProperty.all(
-                                  const EdgeInsets.symmetric(
-                                      horizontal: 32.0, vertical: 12.0),
+                              ),
+
+                              // just make the UI and dialog
+                              const SizedBox(
+                                height: 32,
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (dialogContext) {
+                                      return AlertDialog(
+                                        title: const Text(
+                                          'Delete Account',
+                                          style: TextStyle(
+                                            color: AppPalette.contrastDark,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        content: const Text(
+                                          'Are you sure you want to delete your account?',
+                                          style: TextStyle(
+                                            color: AppPalette.contrastDark,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              context.pop();
+                                            },
+                                            child: const Text('Cancel'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () async {
+                                              // Workaround solution:
+                                              // I will check the balance of SOL and WAGUS
+
+                                              // they should be both 0 because we dont want loss of funds
+
+                                              final holder = context
+                                                  .read<PortalBloc>()
+                                                  .state
+                                                  .holder;
+
+                                              if (holder != null &&
+                                                  (holder.solanaAmount > 0 ||
+                                                      holder.tokenAmount > 0)) {
+                                                // small alert dialog to warn them to withdraw funds before deleting
+
+                                                showDialog(
+                                                  context: context,
+                                                  builder: (context) {
+                                                    return AlertDialog(
+                                                      title: const Text(
+                                                        'Warning',
+                                                        style: TextStyle(
+                                                          color: AppPalette
+                                                              .contrastDark,
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                      content: const Text(
+                                                        'You have funds in your account. Please withdraw them before deleting your account.',
+                                                        style: TextStyle(
+                                                          color: AppPalette
+                                                              .contrastDark,
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () async {
+                                                            final userId = context
+                                                                .read<
+                                                                    PortalBloc>()
+                                                                .state
+                                                                .user
+                                                                ?.id;
+
+                                                            if (userId ==
+                                                                null) {
+                                                              context.pop();
+                                                              return;
+                                                            }
+
+                                                            try {
+                                                              await context
+                                                                  .read<
+                                                                      BankRepository>()
+                                                                  .deleteUser(
+                                                                      userId);
+
+                                                              if (context
+                                                                  .mounted) {
+                                                                context
+                                                                    .read<
+                                                                        PortalBloc>()
+                                                                    .add(
+                                                                        PortalClearEvent());
+                                                                context
+                                                                    .pushReplacement(
+                                                                        login);
+                                                              }
+                                                            } on Exception catch (e, _) {
+                                                              ScaffoldMessenger
+                                                                      .of(context)
+                                                                  .showSnackBar(
+                                                                const SnackBar(
+                                                                  content: Text(
+                                                                      'Error deleting account. Please try again.'),
+                                                                  behavior:
+                                                                      SnackBarBehavior
+                                                                          .floating,
+                                                                ),
+                                                              );
+                                                              if (context
+                                                                      .mounted &&
+                                                                  context
+                                                                      .canPop()) {
+                                                                context.pop();
+                                                              }
+
+                                                              return;
+                                                            }
+
+                                                            context.pop();
+                                                          },
+                                                          child: const Text(
+                                                              'Proceed'),
+                                                        ),
+                                                      ],
+                                                    );
+                                                  },
+                                                );
+                                              } else {
+                                                final userId = context
+                                                    .read<PortalBloc>()
+                                                    .state
+                                                    .user
+                                                    ?.id;
+
+                                                if (userId == null) {
+                                                  context.pop();
+                                                  return;
+                                                }
+
+                                                try {
+                                                  await context
+                                                      .read<BankRepository>()
+                                                      .deleteUser(userId);
+
+                                                  if (context.mounted) {
+                                                    context
+                                                        .read<PortalBloc>()
+                                                        .add(
+                                                            PortalClearEvent());
+
+                                                    context
+                                                        .pushReplacement(login);
+                                                  }
+                                                } on Exception catch (e, _) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text(
+                                                          'Error deleting account. Please try again.'),
+                                                      behavior: SnackBarBehavior
+                                                          .floating,
+                                                    ),
+                                                  );
+                                                  if (context.mounted &&
+                                                      context.canPop()) {
+                                                    context.pop();
+                                                  }
+
+                                                  return;
+                                                }
+
+                                                context.pop();
+                                              }
+                                            },
+                                            child: const Text('Delete'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                },
+                                style: ButtonStyle(
+                                  backgroundColor: WidgetStateProperty.all(
+                                      context.appColors.errorRed),
+                                  shape: WidgetStateProperty.all<
+                                      RoundedRectangleBorder>(
+                                    RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                    ),
+                                  ),
+                                  padding: WidgetStateProperty.all(
+                                    const EdgeInsets.symmetric(
+                                        horizontal: 32.0, vertical: 12.0),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Delete Account',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: context.appColors.contrastLight,
+                                    fontSize: 16,
+                                  ),
                                 ),
                               ),
-                              child: Text(
-                                'Delete Account',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: context.appColors.contrastLight,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 

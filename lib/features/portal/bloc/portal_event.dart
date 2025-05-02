@@ -22,3 +22,5 @@ class PortalUpdateTierEvent extends PortalEvent {
 
   PortalUpdateTierEvent(this.tier);
 }
+
+class PortalFetchHoldersCountEvent extends PortalEvent {}
