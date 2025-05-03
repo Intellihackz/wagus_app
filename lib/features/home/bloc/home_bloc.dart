@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:developer';
+
 import 'package:bloc/bloc.dart';
 import 'package:meta/meta.dart';
 import 'package:wagus/features/home/data/home_repository.dart';
@@ -8,32 +11,56 @@ part 'home_event.dart';
 part 'home_state.dart';
 
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
+  StreamSubscription? roomSub;
+
   final HomeRepository homeRepository;
   HomeBloc({required this.homeRepository}) : super(HomeState(messages: [])) {
-    on<HomeInitialEvent>((event, emit) async {
-      await emit.forEach(homeRepository.getMessages(), onData: (data) {
+    on<HomeSetRoomEvent>((event, emit) async {
+      log('Setting room to ${event.room}');
+      if (roomSub != null && event.room == state.currentRoom) return;
+
+      roomSub?.cancel();
+
+      roomSub = homeRepository.getMessages(event.room).listen((data) {
         final messages = data.docs
             .map((doc) => doc.data())
             .toList()
             .cast<Map<String, dynamic>>();
 
-        return state.copyWith(
+        add(HomeInitialEvent(
           messages: messages
-              .map((message) => Message(
-                    text: message['message'],
-                    sender: message['sender'],
+              .map((msg) => Message(
+                    text: msg['message'],
+                    sender: msg['sender'],
+                    room: (msg['room'] as String?)?.trim().isNotEmpty == true
+                        ? msg['room']
+                        : 'General',
                     tier: TierStatus.values.firstWhere(
-                      (t) => t.name == (message['tier'] ?? 'Basic'),
+                      (t) => t.name == (msg['tier'] ?? 'Basic'),
                       orElse: () => TierStatus.basic,
                     ),
                   ))
               .toList(),
-        );
+          room: event.room, // 👈 you forgot this before
+        ));
       });
+    });
+
+    on<HomeInitialEvent>((event, emit) {
+      emit(state.copyWith(
+        messages: event.messages,
+        currentRoom: event.room,
+      ));
     });
 
     on<HomeSendMessageEvent>((event, emit) async {
       await homeRepository.sendMessage(event.message);
     });
+  }
+
+  @override
+  Future<void> close() {
+    roomSub?.cancel();
+    return super.close();
   }
 }

@@ -4,10 +4,12 @@ class Message {
   final String sender;
   final String text;
   final TierStatus tier;
+  final String room;
 
   Message({
     required this.sender,
     required this.text,
+    required this.room,
     TierStatus? tier,
-  }) : tier = tier ?? TierStatus.basic; // 👈 default if missing
+  }) : tier = tier ?? TierStatus.basic;
 }

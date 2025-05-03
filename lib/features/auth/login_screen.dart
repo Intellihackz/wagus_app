@@ -46,26 +46,17 @@ class LoginScreen extends HookWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Logo or title
-                      Text(
-                        'WAGUS',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: context.appColors.contrastLight,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
                       const SizedBox(height: 40),
 
                       // Email or OTP input
                       if (!isEmailSent.value) ...[
-                        Text(
-                          '[ Enter your email to login ]',
-                          style: TextStyle(
-                            color: context.appColors.contrastLight,
-                            fontSize: 16,
+                        Center(
+                          child: Text(
+                            '[ Enter your email to login ]',
+                            style: TextStyle(
+                              color: context.appColors.contrastLight,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),

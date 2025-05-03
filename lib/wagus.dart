@@ -44,33 +44,32 @@ class Wagus extends HookWidget {
         ),
         BlocBuilder<PortalBloc, PortalState>(
           builder: (context, state) {
-            return Scaffold(
-              resizeToAvoidBottomInset: false,
-              body: Stack(
-                fit: StackFit.expand,
-                children: [
-                  PageView(
-                    controller: pageController,
-                    onPageChanged: (currentIndex) {
-                      // Only update lastPage when swiping
-                      if (currentPage.value != currentIndex) {
-                        lastPage.value = currentPage.value;
-                        currentPage.value = currentIndex;
-                      }
-                    },
-                    children: [
-                      Home(),
-                      Incubator(),
-                      Game(), // Placeholder for the game page
-                      AITools(),
-                      Quest(),
-                    ],
-                  ),
-                  Positioned.fill(
-                    child: Align(
-                      alignment: Alignment.topRight,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 32.0),
+            return SafeArea(
+              child: Scaffold(
+                resizeToAvoidBottomInset: false,
+                body: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    PageView(
+                      controller: pageController,
+                      onPageChanged: (currentIndex) {
+                        // Only update lastPage when swiping
+                        if (currentPage.value != currentIndex) {
+                          lastPage.value = currentPage.value;
+                          currentPage.value = currentIndex;
+                        }
+                      },
+                      children: [
+                        Home(),
+                        Incubator(),
+                        Game(), // Placeholder for the game page
+                        AITools(),
+                        Quest(),
+                      ],
+                    ),
+                    Positioned.fill(
+                      child: Align(
+                        alignment: Alignment.topRight,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -106,110 +105,113 @@ class Wagus extends HookWidget {
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              floatingActionButton: Transform.translate(
-                offset: const Offset(0, -10),
-                child: FloatingActionButton(
-                  backgroundColor: context.appColors.contrastLight,
-                  onPressed: () async {
-                    final portalBloc =
-                        BlocProvider.of<PortalBloc>(mainContext, listen: false);
-                    final bankBloc =
-                        BlocProvider.of<BankBloc>(mainContext, listen: false);
-                    await showModalBottomSheet(
-                      backgroundColor: context.appColors.contrastDark,
-                      isScrollControlled: true,
-                      context: mainContext,
-                      builder: (_) => BlocProvider<PortalBloc>.value(
-                        value: portalBloc,
-                        child: BlocProvider<BankBloc>.value(
-                          value: bankBloc,
-                          child: Bank(),
+                  ],
+                ),
+                floatingActionButton: Transform.translate(
+                  offset: const Offset(0, -5),
+                  child: FloatingActionButton(
+                    mini: true,
+                    backgroundColor: context.appColors.contrastLight,
+                    onPressed: () async {
+                      final portalBloc = BlocProvider.of<PortalBloc>(
+                          mainContext,
+                          listen: false);
+                      final bankBloc =
+                          BlocProvider.of<BankBloc>(mainContext, listen: false);
+                      await showModalBottomSheet(
+                        backgroundColor: context.appColors.contrastDark,
+                        isScrollControlled: true,
+                        context: mainContext,
+                        builder: (_) => BlocProvider<PortalBloc>.value(
+                          value: portalBloc,
+                          child: BlocProvider<BankBloc>.value(
+                            value: bankBloc,
+                            child: Bank(),
+                          ),
                         ),
-                      ),
-                    ).whenComplete(() {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      }
-                    });
-                  },
-                  child: Image.asset(
-                    'assets/icons/logo.png',
-                    height: 64,
-                    width: 64,
-                  ),
-                ),
-              ),
-              floatingActionButtonLocation:
-                  FloatingActionButtonLocation.centerDocked,
-              bottomNavigationBar: Theme(
-                data: Theme.of(context).copyWith(
-                  splashColor: Colors.transparent,
-                  highlightColor: Colors.transparent,
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: context.appColors.contrastDark,
-                    boxShadow: [
-                      BoxShadow(
-                        color: context.appColors.contrastLight
-                            .withValues(alpha: 0.4),
-                        blurRadius: 2,
-                        spreadRadius: 0.5,
-                      ),
-                    ],
-                  ),
-                  child: BottomNavigationBar(
-                    backgroundColor: context.appColors.contrastDark,
-                    type: BottomNavigationBarType.fixed,
-                    currentIndex: currentPage.value,
-                    onTap: (index) {
-                      lastPage.value = currentPage.value;
-                      currentPage.value = index;
-                      pageController.jumpToPage(index);
+                      ).whenComplete(() {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        }
+                      });
                     },
-                    selectedLabelStyle: TextStyle(fontSize: 8),
-                    unselectedLabelStyle: TextStyle(fontSize: 8),
-                    landscapeLayout: BottomNavigationBarLandscapeLayout.spread,
-                    selectedItemColor: context.appColors.contrastLight,
-                    unselectedItemColor: context.appColors.slightlyGrey,
-                    items: const [
-                      BottomNavigationBarItem(
-                        icon: Padding(
-                          padding: EdgeInsets.only(top: 24.0, bottom: 4),
-                          child: Icon(Icons.home),
+                    child: Image.asset(
+                      'assets/icons/logo.png',
+                      height: 32,
+                      width: 32,
+                    ),
+                  ),
+                ),
+                floatingActionButtonLocation:
+                    FloatingActionButtonLocation.centerDocked,
+                bottomNavigationBar: Theme(
+                  data: Theme.of(context).copyWith(
+                    splashColor: Colors.transparent,
+                    highlightColor: Colors.transparent,
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: context.appColors.contrastDark,
+                      boxShadow: [
+                        BoxShadow(
+                          color: context.appColors.contrastLight
+                              .withValues(alpha: 0.4),
+                          blurRadius: 2,
+                          spreadRadius: 0.5,
                         ),
-                        label: 'Home',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Padding(
+                      ],
+                    ),
+                    child: BottomNavigationBar(
+                      backgroundColor: context.appColors.contrastDark,
+                      type: BottomNavigationBarType.fixed,
+                      currentIndex: currentPage.value,
+                      onTap: (index) {
+                        lastPage.value = currentPage.value;
+                        currentPage.value = index;
+                        pageController.jumpToPage(index);
+                      },
+                      selectedLabelStyle: TextStyle(fontSize: 8),
+                      unselectedLabelStyle: TextStyle(fontSize: 8),
+                      landscapeLayout:
+                          BottomNavigationBarLandscapeLayout.spread,
+                      selectedItemColor: context.appColors.contrastLight,
+                      unselectedItemColor: context.appColors.slightlyGrey,
+                      items: const [
+                        BottomNavigationBarItem(
+                          icon: Padding(
                             padding: EdgeInsets.only(top: 24.0, bottom: 4),
-                            child: Icon(Icons.rocket_launch)),
-                        label: 'Incubator',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Padding(
-                            padding: EdgeInsets.only(top: 24.0, bottom: 4),
-                            child: Icon(Icons.gamepad)),
-                        label: 'Games',
-                      ),
-                      BottomNavigationBarItem(
-                        // icon that best represnts ai tools
-                        icon: Padding(
-                            padding: EdgeInsets.only(top: 24.0, bottom: 4),
-                            child: Icon(Icons.widgets)),
-                        label: 'AI Tools',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Padding(
-                          padding: EdgeInsets.only(top: 24.0, bottom: 4),
-                          child: Icon(FontAwesomeIcons.listCheck),
+                            child: Icon(Icons.home),
+                          ),
+                          label: 'Home',
                         ),
-                        label: 'Quests', // Name it whatever
-                      ),
-                    ],
+                        BottomNavigationBarItem(
+                          icon: Padding(
+                              padding: EdgeInsets.only(top: 24.0, bottom: 4),
+                              child: Icon(Icons.rocket_launch)),
+                          label: 'Incubator',
+                        ),
+                        BottomNavigationBarItem(
+                          icon: Padding(
+                              padding: EdgeInsets.only(top: 24.0, bottom: 4),
+                              child: Icon(Icons.gamepad)),
+                          label: 'Games',
+                        ),
+                        BottomNavigationBarItem(
+                          // icon that best represnts ai tools
+                          icon: Padding(
+                              padding: EdgeInsets.only(top: 24.0, bottom: 4),
+                              child: Icon(Icons.widgets)),
+                          label: 'AI Tools',
+                        ),
+                        BottomNavigationBarItem(
+                          icon: Padding(
+                            padding: EdgeInsets.only(top: 24.0, bottom: 4),
+                            child: Icon(FontAwesomeIcons.listCheck),
+                          ),
+                          label: 'Quests', // Name it whatever
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

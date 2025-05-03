@@ -330,7 +330,7 @@ class Quest extends HookWidget {
       body: Column(
         children: [
           const Padding(
-            padding: EdgeInsets.only(top: 100.0),
+            padding: EdgeInsets.only(top: 64.0),
             child: Text(
               'Quests',
               style: TextStyle(

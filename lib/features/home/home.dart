@@ -3,11 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:wagus/features/home/bloc/home_bloc.dart';
 import 'package:wagus/features/home/domain/message.dart';
-import 'package:wagus/features/home/widgets/home_shop_dialog.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
-import 'package:wagus/features/portal/data/portal_repository.dart';
-import 'package:wagus/services/user_service.dart';
-import 'package:wagus/theme/app_palette.dart';
 
 class Home extends HookWidget {
   const Home({super.key});
@@ -15,186 +11,179 @@ class Home extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final inputController = useTextEditingController();
-    final isLoading = useState(false);
+    final selectedRoom = useState('General');
+    final chatRooms = ['General', 'Support', 'Games', 'Ideas', 'Tier Lounge'];
+
+    useEffect(() {
+      context.read<HomeBloc>().add(HomeSetRoomEvent(selectedRoom.value));
+      return null;
+    }, []);
 
     return BlocBuilder<PortalBloc, PortalState>(
       builder: (context, portalState) {
         return BlocBuilder<HomeBloc, HomeState>(
           builder: (context, homeState) {
             return Scaffold(
-              body: Stack(
-                children: [
-                  if (isLoading.value)
-                    Positioned.fill(
-                      child: Container(
-                        color: Colors.black.withOpacity(0.5),
-                        child: const Center(
-                          child: CircularProgressIndicator(color: Colors.white),
+              backgroundColor: Colors.black,
+              body: Padding(
+                padding: const EdgeInsets.only(top: 64.0),
+                child: Stack(
+                  children: [
+                    Column(
+                      children: [
+                        // Chat Room Tabs
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: chatRooms.map((room) {
+                                final isSelected = selectedRoom.value == room;
+                                return GestureDetector(
+                                  onTap: () {
+                                    selectedRoom.value = room;
+                                    context
+                                        .read<HomeBloc>()
+                                        .add(HomeSetRoomEvent(room));
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.white),
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.transparent,
+                                    ),
+                                    child: Text(
+                                      room,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: isSelected
+                                            ? Colors.black
+                                            : Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  Center(
-                    child: GestureDetector(
-                      onTap: () {
-                        showDialog(
-                          barrierDismissible: false,
-                          context: context,
-                          builder: (_) =>
-                              HomeShopDialog(onPurchase: (tier, cost) async {
-                            final portalRepository =
-                                context.read<PortalRepository>();
-                            final portalBloc = context.read<PortalBloc>();
-                            final wallet = portalBloc
-                                .state.user!.embeddedSolanaWallets.first;
+                        const Divider(color: Colors.white12, thickness: 1),
+                        // Messages Display
+                        // Messages Display
 
-                            final userDoc =
-                                await UserService().getUser(wallet.address);
-                            final userData = userDoc.data();
-                            final currentTier =
-                                (userData?['tier'] ?? 'Basic') as String;
+                        Expanded(
+                          child: Builder(builder: (context) {
+                            final filteredMessages = homeState.messages
+                                .where(
+                                    (msg) => msg.room == homeState.currentRoom)
+                                .toList();
 
-                            // Safely convert tier string to enum
-                            final desiredTier = TierStatus.values.firstWhere(
-                              (e) => e.name.toLowerCase() == tier.toLowerCase(),
-                              orElse: () => TierStatus.basic,
-                            );
+                            return ListView.builder(
+                              reverse: true,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              itemCount: filteredMessages.length,
+                              itemBuilder: (context, index) {
+                                final message = filteredMessages[index];
 
-                            if (_isUpgradeInvalid(currentTier, desiredTier)) {
-                              throw Exception(
-                                  'You already have a higher or same tier.');
-                            }
+                                Color getTierColor(TierStatus tier) {
+                                  switch (tier) {
+                                    case TierStatus.adventurer:
+                                      return Colors.red;
+                                    case TierStatus.creator:
+                                      return Colors.purple;
+                                    case TierStatus.basic:
+                                    case TierStatus.none:
+                                    default:
+                                      return Colors.yellow;
+                                  }
+                                }
 
-                            await portalRepository.sendTokens(
-                              senderWallet: wallet,
-                              fromWalletAddress: wallet.address,
-                              toWalletAddress:
-                                  '4R9rEp5HvMjy8RBBSW7fMBPUkYp34FEbVuctDdVfFYwY',
-                              mintAddress: portalBloc.state.currentTokenAddress,
-                              amount: cost,
-                            );
-
-                            await UserService()
-                                .upgradeTier(wallet.address, tier);
-
-                            if (context.mounted) {
-                              context
-                                  .read<PortalBloc>()
-                                  .add(PortalUpdateTierEvent(
-                                    desiredTier,
-                                  ));
-                            }
-                          }),
-                        );
-                      },
-                      child: Image.asset(
-                        'assets/background/home_logo.png',
-                        height: 200,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      margin: EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                      height: MediaQuery.sizeOf(context).height * .3,
-                      width: double.infinity,
-                      child: Column(
-                        children: [
-                          Expanded(
-                              child: ListView.builder(
-                            reverse: true,
-                            itemCount: homeState.messages.length,
-                            itemBuilder: (context, index) {
-                              final message = homeState.messages[index];
-
-                              String getTierPrefix(TierStatus? tier) {
-                                if (tier == null ||
-                                    tier == TierStatus.none ||
-                                    tier == TierStatus.basic) {
+                                String getTierPrefix(TierStatus tier) {
+                                  if (tier == TierStatus.adventurer)
+                                    return '[A]';
+                                  if (tier == TierStatus.creator) return '[C]';
                                   return '[B]';
                                 }
 
-                                final name = tier.name;
-                                if (name.isEmpty) return '[B]';
-
-                                return '[${name[0]}]';
-                              }
-
-                              return IntrinsicHeight(
-                                child: Row(
-                                  mainAxisAlignment:
-                                      homeState.messages[index].sender ==
-                                              portalState
-                                                  .user!
-                                                  .embeddedSolanaWallets
-                                                  .first
-                                                  .address
-                                          ? MainAxisAlignment.end
-                                          : MainAxisAlignment.start,
-                                  children: [
-                                    Align(
-                                      alignment: Alignment.topLeft,
-                                      child: RichText(
-                                        text: TextSpan(
-                                          children: [
+                                return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 4.0),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Text.rich(
                                             TextSpan(
-                                              text: getTierPrefix(message.tier),
-                                              style: TextStyle(
-                                                color: message.tier.color,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                              ),
+                                              children: [
+                                                TextSpan(
+                                                  text:
+                                                      '${getTierPrefix(message.tier)}[${message.sender.substring(0, 3)}..${message.sender.substring(message.sender.length - 3)}] ',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: getTierColor(
+                                                        message.tier),
+                                                  ),
+                                                ),
+                                                TextSpan(
+                                                  text: message.text,
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                            TextSpan(
-                                              text:
-                                                  '[${message.sender.substring(0, 3)}..${message.sender.substring(message.sender.length - 3)}]',
-                                              style: TextStyle(
-                                                color: AppPalette.contrastLight,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
+                                            softWrap: true,
+                                          ),
                                         ),
-                                      ),
+                                      ],
+                                    ));
+                              },
+                            );
+                          }),
+                        ),
+                        const Divider(color: Colors.white12, thickness: 1),
+                        // Input Bar
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  onTapOutside: (_) {
+                                    FocusScope.of(context).unfocus();
+                                  },
+                                  controller: inputController,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.white,
+                                  ),
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: Colors.black,
+                                    border: OutlineInputBorder(
+                                      borderSide:
+                                          BorderSide(color: Colors.white),
                                     ),
-                                    SizedBox(width: 8),
-                                    Flexible(
-                                      child: Text(
-                                        homeState.messages[index].text,
-                                        softWrap: true,
-                                        style: TextStyle(
-                                          color: AppPalette.contrastLight,
-                                          fontSize: 10,
-                                        ),
-                                      ),
+                                    hintText: 'Type your message...',
+                                    hintStyle: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.white38,
                                     ),
-                                  ],
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 10),
+                                  ),
                                 ),
-                              );
-                            },
-                          )),
-                          TextField(
-                            controller: inputController,
-                            onTapOutside: (_) =>
-                                FocusScope.of(context).unfocus(),
-                            style: TextStyle(
-                              color: AppPalette.contrastLight,
-                              fontSize: 12,
-                            ),
-                            decoration: InputDecoration(
-                              contentPadding: EdgeInsets.zero,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide.none,
                               ),
-                              hintText: 'Type here',
-                              hintStyle: TextStyle(
-                                color: AppPalette.contrastLight,
-                                fontSize: 12,
-                              ),
-                              suffixIcon: GestureDetector(
+                              const SizedBox(width: 8),
+                              GestureDetector(
                                 onTap: () {
                                   final text = inputController.text.trim();
                                   if (text.isNotEmpty) {
@@ -211,6 +200,7 @@ class Home extends HookWidget {
                                                       TierStatus.none
                                                   ? TierStatus.basic
                                                   : portalState.tierStatus,
+                                              room: selectedRoom.value,
                                             ),
                                           ),
                                         );
@@ -218,32 +208,34 @@ class Home extends HookWidget {
                                   inputController.clear();
                                   FocusScope.of(context).unfocus();
                                 },
-                                child: Icon(
-                                  Icons.send,
-                                  color: AppPalette.contrastLight,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.white),
+                                    color: Colors.white,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 12),
+                                  child: Text(
+                                    'SEND',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.black,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
+                              )
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           },
         );
       },
     );
-  }
-
-  bool _isUpgradeInvalid(String currentTier, TierStatus desiredTier) {
-    const tiers = ['Basic', 'Adventurer', 'Elite', 'Creator'];
-
-    final currentIndex = tiers.indexOf(currentTier);
-    final desiredIndex = tiers.indexOf(desiredTier.name);
-
-    return currentIndex >= desiredIndex;
   }
 }

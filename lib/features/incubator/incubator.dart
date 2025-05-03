@@ -44,345 +44,356 @@ class Incubator extends HookWidget {
         }
       },
       builder: (context, state) {
-        return Scaffold(
-          floatingActionButton: FloatingActionButton(
-            heroTag: 'addProject',
-            backgroundColor: context.appColors.contrastLight,
-            onPressed: () {
-              context.push(projectInterface);
-            },
-            child: const Icon(Icons.playlist_add_rounded),
-          ),
-          body: SizedBox.expand(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 100.0),
-              child: Column(
-                children: [
-                  Text(
-                    'Upcoming Projects',
-                    style: TextStyle(
-                      color: context.appColors.contrastLight,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+        return SafeArea(
+          child: Scaffold(
+            floatingActionButton: FloatingActionButton(
+              heroTag: 'addProject',
+              backgroundColor: context.appColors.contrastLight,
+              onPressed: () {
+                context.push(projectInterface);
+              },
+              child: const Icon(Icons.playlist_add_rounded),
+            ),
+            body: SizedBox.expand(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 64.0),
+                child: Column(
+                  children: [
+                    Text(
+                      'Upcoming Projects',
+                      style: TextStyle(
+                        color: context.appColors.contrastLight,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 32.0),
-                  Expanded(
-                    child: ListView.builder(
-                      physics: const ClampingScrollPhysics(),
-                      padding: EdgeInsets.zero,
-                      itemCount: state.projects.length,
-                      itemBuilder: (context, index) {
-                        final project = state.projects[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 0.0),
-                          child: Column(
-                            children: [
-                              ExpansionTile(
-                                textColor: context.appColors.contrastLight,
-                                tilePadding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 8),
-                                shape: Border(
-                                  top: index == state.projects.length - 1
-                                      ? BorderSide.none
-                                      : BorderSide(
+                    const SizedBox(height: 32.0),
+                    Expanded(
+                      child: ListView.builder(
+                        physics: const ClampingScrollPhysics(),
+                        padding: EdgeInsets.zero,
+                        itemCount: state.projects.length,
+                        itemBuilder: (context, index) {
+                          final project = state.projects[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 0.0),
+                            child: Column(
+                              children: [
+                                ExpansionTile(
+                                  textColor: context.appColors.contrastLight,
+                                  tilePadding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  shape: Border(
+                                    top: index == state.projects.length - 1
+                                        ? BorderSide.none
+                                        : BorderSide(
+                                            color:
+                                                context.appColors.contrastLight,
+                                            width: 1),
+                                    bottom: BorderSide(
+                                        color: context.appColors.contrastLight,
+                                        width: 1),
+                                  ),
+                                  collapsedShape: Border(
+                                    top: index == state.projects.length - 1
+                                        ? BorderSide.none
+                                        : BorderSide(
+                                            color:
+                                                context.appColors.contrastLight,
+                                            width: 1),
+                                    bottom: BorderSide(
+                                        color: context.appColors.contrastLight,
+                                        width: 1),
+                                  ),
+                                  title: Padding(
+                                    padding: const EdgeInsets.only(bottom: 8.0),
+                                    child: Text(
+                                      project.name,
+                                      style: TextStyle(
                                           color:
-                                              context.appColors.contrastLight,
-                                          width: 1),
-                                  bottom: BorderSide(
-                                      color: context.appColors.contrastLight,
-                                      width: 1),
-                                ),
-                                collapsedShape: Border(
-                                  top: index == state.projects.length - 1
-                                      ? BorderSide.none
-                                      : BorderSide(
-                                          color:
-                                              context.appColors.contrastLight,
-                                          width: 1),
-                                  bottom: BorderSide(
-                                      color: context.appColors.contrastLight,
-                                      width: 1),
-                                ),
-                                title: Padding(
-                                  padding: const EdgeInsets.only(bottom: 8.0),
-                                  child: Text(
-                                    project.name,
-                                    style: TextStyle(
-                                        color: context.appColors.contrastLight),
+                                              context.appColors.contrastLight),
+                                    ),
                                   ),
-                                ),
-                                subtitle: Text(
-                                  project.description,
-                                  style: TextStyle(
-                                    color: context.appColors.contrastLight,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                iconColor: context.appColors.contrastLight,
-                                collapsedIconColor:
-                                    context.appColors.contrastLight,
-                                childrenPadding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 16),
-                                children: [
-                                  Wrap(
-                                    alignment: WrapAlignment.spaceEvenly,
-                                    spacing: 16.0,
-                                    runSpacing: 16.0,
-                                    children: [
-                                      LinkTile(
-                                        title: 'GitHub',
-                                        icon: Icons.code,
-                                        onTap: () async =>
-                                            await launchUrlString(
-                                                project.gitHubLink),
-                                      ),
-                                      LinkTile(
-                                        title: 'Website',
-                                        icon: Icons.public,
-                                        onTap: () => launchUrlString(
-                                            project.websiteLink),
-                                      ),
-                                      LinkTile(
-                                        title: 'White Paper',
-                                        icon: Icons.description,
-                                        onTap: () async {
-                                          await showDialog(
-                                            context: context,
-                                            builder: (_) => Dialog(
-                                              shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8)),
-                                              child: SizedBox(
-                                                width: double.infinity,
-                                                child: Column(
-                                                  children: [
-                                                    const SizedBox(height: 16),
-                                                    Text(
-                                                      project.name,
-                                                      style: TextStyle(
-                                                          color: context
-                                                              .appColors
-                                                              .contrastDark),
-                                                    ),
-                                                    Text(
-                                                      'White Paper',
-                                                      style: TextStyle(
-                                                          color: context
-                                                              .appColors
-                                                              .contrastDark),
-                                                    ),
-                                                    const SizedBox(height: 16),
-                                                    Expanded(
-                                                      child: PDF(
-                                                              backgroundColor:
-                                                                  Colors
-                                                                      .transparent)
-                                                          .cachedFromUrl(
-                                                        project.whitePaperLink,
-                                                        placeholder:
-                                                            (progress) => Center(
-                                                                child: Text(
-                                                                    '$progress%')),
-                                                        errorWidget: (error) =>
-                                                            const Center(
-                                                                child: Icon(Icons
-                                                                    .error)),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                      LinkTile(
-                                        title: 'Roadmap',
-                                        icon: Icons.map,
-                                        onTap: () async {
-                                          await showDialog(
-                                            context: context,
-                                            builder: (_) => Dialog(
-                                              shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8)),
-                                              child: SizedBox(
-                                                width: double.infinity,
-                                                child: Column(
-                                                  children: [
-                                                    const SizedBox(height: 16),
-                                                    Text(
-                                                      project.name,
-                                                      style: TextStyle(
-                                                          color: context
-                                                              .appColors
-                                                              .contrastDark),
-                                                    ),
-                                                    Text(
-                                                      'Roadmap',
-                                                      style: TextStyle(
-                                                          color: context
-                                                              .appColors
-                                                              .contrastDark),
-                                                    ),
-                                                    const SizedBox(height: 16),
-                                                    Expanded(
-                                                      child: PDF(
-                                                              backgroundColor:
-                                                                  Colors
-                                                                      .transparent)
-                                                          .cachedFromUrl(
-                                                        project.roadmapLink,
-                                                        placeholder:
-                                                            (progress) => Center(
-                                                                child: Text(
-                                                                    '$progress%')),
-                                                        errorWidget: (error) =>
-                                                            const Center(
-                                                                child: Icon(Icons
-                                                                    .error)),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                      LinkTile(
-                                        title: 'Socials',
-                                        icon: Icons.people,
-                                        onTap: () => launchUrlString(
-                                            project.socialsLink),
-                                      ),
-                                      LinkTile(
-                                        title: 'Telegram',
-                                        icon: Icons.telegram,
-                                        onTap: () => launchUrlString(
-                                            project.telegramLink),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16.0),
-                                  Wrap(
-                                    alignment: WrapAlignment.spaceEvenly,
-                                    spacing: 16.0,
-                                    runSpacing: 16.0,
-                                    children: [
-                                      _buildContributionButton(context, project,
-                                          100, amountController),
-                                      _buildContributionButton(context, project,
-                                          250, amountController),
-                                      _buildContributionButton(context, project,
-                                          500, amountController),
-                                      _buildContributionButton(context, project,
-                                          1000, amountController),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16.0),
-                                  Text(
-                                    'Launch date: ${formatDate(project.launchDate, [
-                                          M,
-                                          ' ',
-                                          d,
-                                          ', ',
-                                          yyyy
-                                        ])}',
+                                  subtitle: Text(
+                                    project.description,
                                     style: TextStyle(
                                       color: context.appColors.contrastLight,
                                       fontSize: 12,
                                     ),
                                   ),
-                                ],
-                              ),
-                              Container(
-                                height: 50,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                        color: context.appColors.contrastLight,
-                                        width: 1),
-                                  ),
-                                ),
-                                child: Row(
+                                  iconColor: context.appColors.contrastLight,
+                                  collapsedIconColor:
+                                      context.appColors.contrastLight,
+                                  childrenPadding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 16),
                                   children: [
-                                    Expanded(
-                                      child: Stack(
-                                        children: [
-                                          SizedBox.expand(
-                                            child: LinearProgressIndicator(
-                                              value: project.fundingProgress,
-                                              backgroundColor: Colors.black,
-                                              color: Colors.green,
-                                            ),
-                                          ),
-                                          Center(
-                                            child: Text(
-                                              'Allocation Pool: ${(project.fundingProgress * 100).toInt()}%',
-                                              style: TextStyle(
-                                                  color: context
-                                                      .appColors.contrastLight),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                    Wrap(
+                                      alignment: WrapAlignment.spaceEvenly,
+                                      spacing: 16.0,
+                                      runSpacing: 16.0,
+                                      children: [
+                                        LinkTile(
+                                          title: 'GitHub',
+                                          icon: Icons.code,
+                                          onTap: () async =>
+                                              await launchUrlString(
+                                                  project.gitHubLink),
+                                        ),
+                                        LinkTile(
+                                          title: 'Website',
+                                          icon: Icons.public,
+                                          onTap: () => launchUrlString(
+                                              project.websiteLink),
+                                        ),
+                                        LinkTile(
+                                          title: 'White Paper',
+                                          icon: Icons.description,
+                                          onTap: () async {
+                                            await showDialog(
+                                              context: context,
+                                              builder: (_) => Dialog(
+                                                shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8)),
+                                                child: SizedBox(
+                                                  width: double.infinity,
+                                                  child: Column(
+                                                    children: [
+                                                      const SizedBox(
+                                                          height: 16),
+                                                      Text(
+                                                        project.name,
+                                                        style: TextStyle(
+                                                            color: context
+                                                                .appColors
+                                                                .contrastDark),
+                                                      ),
+                                                      Text(
+                                                        'White Paper',
+                                                        style: TextStyle(
+                                                            color: context
+                                                                .appColors
+                                                                .contrastDark),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 16),
+                                                      Expanded(
+                                                        child: PDF(
+                                                                backgroundColor:
+                                                                    Colors
+                                                                        .transparent)
+                                                            .cachedFromUrl(
+                                                          project
+                                                              .whitePaperLink,
+                                                          placeholder:
+                                                              (progress) => Center(
+                                                                  child: Text(
+                                                                      '$progress%')),
+                                                          errorWidget: (error) =>
+                                                              const Center(
+                                                                  child: Icon(Icons
+                                                                      .error)),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                        LinkTile(
+                                          title: 'Roadmap',
+                                          icon: Icons.map,
+                                          onTap: () async {
+                                            await showDialog(
+                                              context: context,
+                                              builder: (_) => Dialog(
+                                                shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8)),
+                                                child: SizedBox(
+                                                  width: double.infinity,
+                                                  child: Column(
+                                                    children: [
+                                                      const SizedBox(
+                                                          height: 16),
+                                                      Text(
+                                                        project.name,
+                                                        style: TextStyle(
+                                                            color: context
+                                                                .appColors
+                                                                .contrastDark),
+                                                      ),
+                                                      Text(
+                                                        'Roadmap',
+                                                        style: TextStyle(
+                                                            color: context
+                                                                .appColors
+                                                                .contrastDark),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 16),
+                                                      Expanded(
+                                                        child: PDF(
+                                                                backgroundColor:
+                                                                    Colors
+                                                                        .transparent)
+                                                            .cachedFromUrl(
+                                                          project.roadmapLink,
+                                                          placeholder:
+                                                              (progress) => Center(
+                                                                  child: Text(
+                                                                      '$progress%')),
+                                                          errorWidget: (error) =>
+                                                              const Center(
+                                                                  child: Icon(Icons
+                                                                      .error)),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                        LinkTile(
+                                          title: 'Socials',
+                                          icon: Icons.people,
+                                          onTap: () => launchUrlString(
+                                              project.socialsLink),
+                                        ),
+                                        LinkTile(
+                                          title: 'Telegram',
+                                          icon: Icons.telegram,
+                                          onTap: () => launchUrlString(
+                                              project.telegramLink),
+                                        ),
+                                      ],
                                     ),
-                                    Padding(
-                                      padding:
-                                          const EdgeInsets.only(right: 8.0),
-                                      child: Row(
-                                        children: [
-                                          GestureDetector(
-                                            onTap: () {
-                                              final userId = context
-                                                  .read<PortalBloc>()
-                                                  .state
-                                                  .user!
-                                                  .id;
-                                              if (state.likedProjectsIds
-                                                  .contains(project.id)) {
-                                                context.read<IncubatorBloc>().add(
-                                                    IncubatorProjectUnlikeEvent(
-                                                        project.id, userId));
-                                              } else {
-                                                context.read<IncubatorBloc>().add(
-                                                    IncubatorProjectLikeEvent(
-                                                        project.id, userId));
-                                              }
-                                            },
-                                            child: state.likedProjectsIds.any(
-                                                    (likedProject) =>
-                                                        likedProject ==
-                                                        project.id)
-                                                ? const Icon(Icons.favorite,
-                                                    color: Colors.red)
-                                                : Icon(Icons.favorite_border,
-                                                    color: context.appColors
-                                                        .contrastLight),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            '${project.likesCount}',
-                                            style: TextStyle(
-                                                color: context
-                                                    .appColors.contrastLight),
-                                          ),
-                                        ],
+                                    const SizedBox(height: 16.0),
+                                    Wrap(
+                                      alignment: WrapAlignment.spaceEvenly,
+                                      spacing: 16.0,
+                                      runSpacing: 16.0,
+                                      children: [
+                                        _buildContributionButton(context,
+                                            project, 100, amountController),
+                                        _buildContributionButton(context,
+                                            project, 250, amountController),
+                                        _buildContributionButton(context,
+                                            project, 500, amountController),
+                                        _buildContributionButton(context,
+                                            project, 1000, amountController),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16.0),
+                                    Text(
+                                      'Launch date: ${formatDate(project.launchDate, [
+                                            M,
+                                            ' ',
+                                            d,
+                                            ', ',
+                                            yyyy
+                                          ])}',
+                                      style: TextStyle(
+                                        color: context.appColors.contrastLight,
+                                        fontSize: 12,
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                                Container(
+                                  height: 50,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                          color:
+                                              context.appColors.contrastLight,
+                                          width: 1),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Stack(
+                                          children: [
+                                            SizedBox.expand(
+                                              child: LinearProgressIndicator(
+                                                value: project.fundingProgress,
+                                                backgroundColor: Colors.black,
+                                                color: Colors.green,
+                                              ),
+                                            ),
+                                            Center(
+                                              child: Text(
+                                                'Allocation Pool: ${(project.fundingProgress * 100).toInt()}%',
+                                                style: TextStyle(
+                                                    color: context.appColors
+                                                        .contrastLight),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 8.0),
+                                        child: Row(
+                                          children: [
+                                            GestureDetector(
+                                              onTap: () {
+                                                final userId = context
+                                                    .read<PortalBloc>()
+                                                    .state
+                                                    .user!
+                                                    .id;
+                                                if (state.likedProjectsIds
+                                                    .contains(project.id)) {
+                                                  context.read<IncubatorBloc>().add(
+                                                      IncubatorProjectUnlikeEvent(
+                                                          project.id, userId));
+                                                } else {
+                                                  context.read<IncubatorBloc>().add(
+                                                      IncubatorProjectLikeEvent(
+                                                          project.id, userId));
+                                                }
+                                              },
+                                              child: state.likedProjectsIds.any(
+                                                      (likedProject) =>
+                                                          likedProject ==
+                                                          project.id)
+                                                  ? const Icon(Icons.favorite,
+                                                      color: Colors.red)
+                                                  : Icon(Icons.favorite_border,
+                                                      color: context.appColors
+                                                          .contrastLight),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${project.likesCount}',
+                                              style: TextStyle(
+                                                  color: context
+                                                      .appColors.contrastLight),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

@@ -6,8 +6,11 @@ import 'package:wagus/features/home/domain/message.dart';
 class HomeRepository {
   final chatCollection = FirebaseFirestore.instance.collection('chat');
 
-  Stream<QuerySnapshot> getMessages() {
-    return chatCollection.orderBy('timestamp', descending: true).snapshots();
+  Stream<QuerySnapshot> getMessages(String room) {
+    return chatCollection
+        .where('room', isEqualTo: room)
+        .orderBy('timestamp', descending: true)
+        .snapshots();
   }
 
   Future<void> sendMessage(Message message) async {
@@ -16,6 +19,7 @@ class HomeRepository {
         'message': message.text,
         'sender': message.sender,
         'tier': message.tier.name,
+        'room': message.room,
         'timestamp': FieldValue.serverTimestamp(),
       });
     } catch (e) {

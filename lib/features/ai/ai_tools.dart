@@ -11,7 +11,7 @@ class AITools extends StatelessWidget {
     return Scaffold(
       body: SizedBox.expand(
         child: Padding(
-          padding: const EdgeInsets.only(top: 100.0),
+          padding: const EdgeInsets.only(top: 64.0),
           child: Column(
             children: [
               Text(
@@ -72,22 +72,19 @@ class AITile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: ListTile(
-        leading: Icon(
-          icon,
-          color: AppPalette.contrastLight,
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: context.appColors.contrastLight,
-            fontSize: 12.0,
-          ),
-        ),
-        onTap: onTap,
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: AppPalette.contrastLight,
       ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: context.appColors.contrastLight,
+          fontSize: 12.0,
+        ),
+      ),
+      onTap: onTap,
     );
   }
 }

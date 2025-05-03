@@ -59,7 +59,7 @@ class App extends StatelessWidget {
               BlocProvider<HomeBloc>(
                 create: (_) => HomeBloc(
                   homeRepository: context.read<HomeRepository>(),
-                )..add(HomeInitialEvent()),
+                )..add(HomeSetRoomEvent('General')),
               ),
               BlocProvider<PortalBloc>(
                   create: (_) => PortalBloc(
@@ -108,7 +108,7 @@ class App extends StatelessWidget {
                 extensions: <ThemeExtension<dynamic>>[
                   AppColors(),
                 ],
-                textTheme: GoogleFonts.pressStart2pTextTheme().apply(
+                textTheme: GoogleFonts.anonymousProTextTheme().apply(
                   bodyColor: AppPalette.contrastLight,
                   displayColor: AppPalette.contrastLight,
                   decorationColor: AppPalette.contrastLight,
