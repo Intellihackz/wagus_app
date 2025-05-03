@@ -109,8 +109,10 @@ class BankRepository {
     debugPrint('[BankRepository] Destination Wallet: $destinationAddress');
     debugPrint('[BankRepository] SOL Amount: $solAmount');
 
-    final cluster = web3.Cluster.mainnet;
-    final connection = web3.Connection(cluster);
+    final connection = web3.Connection(
+      web3.Cluster(Uri.parse(dotenv.env['HELIUS_RPC']!)),
+      websocketCluster: web3.Cluster(Uri.parse(dotenv.env['HELIUS_WS']!)),
+    );
     final blockHash = await connection.getLatestBlockhash();
 
     debugPrint(

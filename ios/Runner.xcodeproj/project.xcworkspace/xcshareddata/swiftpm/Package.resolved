@@ -1,5 +1,5 @@
 {
-  "originHash" : "7715110e3684380a2923494fa5981ef3fd8c1524d99c8b6b0da1a19c4048d59d",
+  "originHash" : "cd7889ad567ddb21e0db68304e20f7f8d1bc8c28669d3fb32cfe5dab009fce93",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -141,8 +141,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/privy-io/privy-ios",
       "state" : {
-        "revision" : "b50567ed7cd88660026f75b97f681df49998a917",
-        "version" : "1.9.0"
+        "revision" : "ff9a78ff72a3d66f82701f8165a86e858acfa438",
+        "version" : "2.0.0-beta.8"
       }
     },
     {

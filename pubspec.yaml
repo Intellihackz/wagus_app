@@ -2,7 +2,7 @@ name: wagus
 description: "WAGUS is a coin that is tied to the WAGUS App, and offers exclusive benefits to its holders."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.16+17
+version: 1.0.17+18
 
 environment:
   sdk: ^3.5.4
@@ -23,7 +23,7 @@ dependencies:
   firebase_storage: ^12.4.5
   carousel_slider: ^5.0.0
   flutter_dotenv: ^5.1.0
-  privy_flutter: ^0.0.3
+  privy_flutter: ^0.0.8
   solana_web3:
     git:
       url: https://github.com/silnt-awaken/solana-web3.git

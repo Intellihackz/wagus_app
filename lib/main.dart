@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:go_router/go_router.dart';
 import 'package:wagus/app.dart';
 import 'package:wagus/observer.dart';
+import 'package:wagus/router.dart';
+import 'package:wagus/services/privy_service.dart';
 
 /// Top-level function to handle background messages
 @pragma('vm:entry-point')
@@ -60,7 +63,9 @@ Future<void> main() async {
   await FirebaseMessaging.instance.subscribeToTopic('daily_reward');
   print('✅ Subscribed to daily_reward topic');
 
-  runApp(const App());
+  await PrivyService().initialize();
+
+  runApp(App(router: appRouter));
 }
 
 /// Requests notification permissions from the user

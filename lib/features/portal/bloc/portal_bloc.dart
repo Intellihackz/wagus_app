@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:privy_flutter/privy_flutter.dart';
+import 'package:solana_web3/solana_web3.dart' as web3;
 import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/services/user_service.dart';
@@ -32,12 +33,14 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       PortalInitialEvent event, Emitter<PortalState> emit) async {
     await _setTokenAddress(emit);
 
+    final user = await portalRepository.connect();
+
     if (!PrivyService().isAuthenticated()) {
       debugPrint('[PortalBloc] Skipped init: user not ready');
       return;
     }
 
-    final user = await portalRepository.init();
+    //final user = await portalRepository.init();
     if (user == null || user.embeddedSolanaWallets.isEmpty) return;
 
     final address = user.embeddedSolanaWallets.first.address;
@@ -48,27 +51,25 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       orElse: () => TierStatus.basic,
     );
 
-    final holder = await portalRepository.getTokenAccounts(
-        address, state.currentTokenAddress);
+    // Fetch SOL + token balances
+    final holder =
+        await _getSolAndTokenBalances(address, state.currentTokenAddress);
 
-    // 👇 emits user + tier + holder first
     emit(state.copyWith(
       user: () => user,
       holder: () => holder,
       tierStatus: tierEnum,
     ));
 
-    // 👇 fetch slow holder count after everything else
     add(PortalFetchHoldersCountEvent());
 
-    // Optional: fetch some first N owners from Helius
     final dio = Dio();
     final apiKey = dotenv.env['HELIUS_API_KEY'];
     final url = 'https://mainnet.helius-rpc.com/?api-key=$apiKey';
     String? cursor;
     const limit = 5;
-
     final accountOwners = <String>[];
+
     while (accountOwners.length < limit) {
       final params = {
         'jsonrpc': '2.0',
@@ -87,39 +88,26 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
           data: jsonEncode(params),
           options: Options(headers: {'Content-Type': 'application/json'}),
         );
-        debugPrint('Helius API response: ${response.data}');
 
         if (response.statusCode == 200) {
           final data = response.data;
-          if (data['result'] == null ||
-              data['result']['token_accounts'] == null) {
-            debugPrint('No more token accounts');
-            break;
-          }
-
-          final accounts = data['result']['token_accounts'] as List<dynamic>;
-          if (accounts.isEmpty) {
-            debugPrint('No token accounts found');
-            break;
-          }
+          final accounts = data['result']?['token_accounts'] ?? [];
+          if (accounts.isEmpty) break;
 
           for (var account in accounts) {
-            final owner = account['owner'] as String;
+            final owner = account['owner'];
             if (!accountOwners.contains(owner) &&
                 accountOwners.length < limit) {
               accountOwners.add(owner);
             }
-            if (accountOwners.length >= limit) break;
           }
+
           cursor = data['result']['cursor'] as String?;
           if (cursor == null) break;
         } else {
-          debugPrint(
-              'Helius API error: ${response.statusCode} - ${response.data}');
           break;
         }
       } catch (e) {
-        debugPrint('Error fetching token accounts: $e');
         break;
       }
     }
@@ -130,10 +118,7 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
   Future<void> _handleAuthorize(
       PortalAuthorizeEvent event, Emitter<PortalState> emit) async {
     final userInit = await portalRepository.init();
-    if (userInit == null) {
-      debugPrint('Privy initialization failed');
-      return;
-    }
+    if (userInit == null) return;
 
     final user = await portalRepository.connect();
     emit(state.copyWith(user: () => user));
@@ -151,10 +136,13 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
   Future<void> _handleRefresh(
       PortalRefreshEvent event, Emitter<PortalState> emit) async {
     try {
-      final holder = await portalRepository.getTokenAccounts(
-        state.user!.embeddedSolanaWallets.first.address,
-        state.currentTokenAddress,
-      );
+      final user = state.user;
+      if (user == null || user.embeddedSolanaWallets.isEmpty) return;
+
+      final address = user.embeddedSolanaWallets.first.address;
+
+      final holder =
+          await _getSolAndTokenBalances(address, state.currentTokenAddress);
 
       final holdersCount =
           await portalRepository.getHoldersCount(state.currentTokenAddress);
@@ -165,12 +153,46 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       ));
     } catch (e) {
       debugPrint('[PortalBloc] Refresh failed: $e');
-      // Emit a failure marker (optional: set holder to null or leave as-is)
-      emit(state.copyWith(
-        holder: () => null,
-      ));
-      // Optionally, broadcast the error using a stream or custom BlocListener
+      emit(state.copyWith(holder: () => null));
     }
+  }
+
+  Future<Holder> _getSolAndTokenBalances(
+      String walletAddress, String mintAddress) async {
+    final rpcUrl = dotenv.env['HELIUS_RPC']!;
+    final connection = web3.Connection(web3.Cluster(Uri.parse(rpcUrl)));
+
+    final pubkey = web3.Pubkey.fromBase58(walletAddress);
+    final mintPubkey = web3.Pubkey.fromBase58(mintAddress);
+
+    // SOL balance
+    final solBalanceLamports = await connection.getBalance(pubkey);
+    final solBalance = solBalanceLamports / web3.lamportsPerSol;
+
+    // Token balance
+    final tokenAccounts = await connection.getTokenAccountsByOwner(
+      pubkey,
+      filter: web3.TokenAccountsFilter.mint(mintPubkey),
+      config: web3.GetTokenAccountsByOwnerConfig(
+          encoding: web3.AccountEncoding.jsonParsed),
+    );
+
+    double tokenBalance = 0;
+    if (tokenAccounts.isNotEmpty) {
+      final accountData = tokenAccounts.first.account.data;
+      if (accountData is Map<String, dynamic>) {
+        final parsed = accountData['parsed'];
+        final amountStr = parsed?['info']?['tokenAmount']?['uiAmount'];
+        tokenBalance = (amountStr as num?)?.toDouble() ?? 0;
+      }
+    }
+
+    return Holder(
+      solanaAmount: solBalance,
+      tokenAmount: tokenBalance,
+      holderType: HolderType.plankton,
+      holdings: tokenBalance,
+    );
   }
 
   Future<void> _handleTokenAddress(
