@@ -119,7 +119,13 @@ class Spygus extends HookWidget {
         // Run claim logic in background
         await UserService().setSpygusPlayed(walletAddress);
         try {
-          await context.read<GameRepository>().claimSpygusReward(walletAddress);
+          if (await context
+              .read<GameRepository>()
+              .canClaimSpygusToday(walletAddress)) {
+            await context
+                .read<GameRepository>()
+                .claimSpygusReward(walletAddress);
+          }
         } catch (e) {
           debugPrint('Spygus claim failed: $e');
           // Optionally show retry/snackbar here

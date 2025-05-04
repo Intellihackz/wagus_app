@@ -58,4 +58,27 @@ class GameRepository {
       throw Exception('Spygus claim failed: $e');
     }
   }
+
+  Future<bool> canClaimSpygusToday(String wallet) async {
+    final userDoc = await _usersCollection.doc(wallet).get();
+    final lastPlayed =
+        (userDoc.data()?['spygus_claimed_at'] as Timestamp?)?.toDate();
+
+    final serverTimeDoc = FirebaseFirestore.instance
+        .collection('serverTime')
+        .doc(wallet); // or use a generic 'now' doc
+
+    await serverTimeDoc.set({'now': FieldValue.serverTimestamp()});
+    final nowSnap = await serverTimeDoc.get();
+
+    final serverNow = (nowSnap.data()?['now'] as Timestamp).toDate();
+
+    if (lastPlayed == null) return true;
+
+    final lastDate =
+        DateTime(lastPlayed.year, lastPlayed.month, lastPlayed.day);
+    final nowDate = DateTime(serverNow.year, serverNow.month, serverNow.day);
+
+    return lastDate.isBefore(nowDate); // true = can claim
+  }
 }

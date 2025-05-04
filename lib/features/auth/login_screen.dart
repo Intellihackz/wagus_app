@@ -172,11 +172,33 @@ class LoginScreen extends HookWidget {
                                             isLoading.value = false;
                                             return;
                                           }
+
+                                          final email = emailController.text
+                                              .trim()
+                                              .toLowerCase();
+                                          final domain = email.split('@').last;
+
+                                          final blockedDomains = [
+                                            'tempmail.com',
+                                            'mailinator.com',
+                                            'guerrillamail.com',
+                                            '10minutemail.com',
+                                            'harinv.com',
+                                            'idoidraw.com',
+                                          ];
+
+                                          if (blockedDomains.contains(domain)) {
+                                            errorMessage.value =
+                                                'Temporary emails are not allowed';
+                                            isLoading.value = false;
+                                            return;
+                                          }
+
+// Proceed with Privy
                                           final privyService = PrivyService();
                                           await privyService.initialize();
-                                          privyService.loginWithEmail(
-                                              emailController.text.trim());
-
+                                          privyService
+                                              .loginWithEmail(email.trim());
                                           isEmailSent.value = true;
                                         } else {
                                           // Verify OTP

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -5,7 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:wagus/app.dart';
+import 'package:wagus/config_service.dart';
 import 'package:wagus/observer.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/services/privy_service.dart';
@@ -25,6 +29,50 @@ Future<void> main() async {
   await dotenv.load(fileName: ".env");
 
   await Firebase.initializeApp();
+
+  final configService = ConfigService();
+
+  if (await configService.isKillSwitchEnabled()) {
+    runApp(
+        MaterialApp(home: Scaffold(body: Center(child: Text('App disabled')))));
+    return;
+  }
+
+  if (await configService.isAppOutdated()) {
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('Please update to continue',
+                    style: TextStyle(fontSize: 18)),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () async {
+                    const androidUrl =
+                        'https://play.google.com/store/apps/details?id=com.silnt.wagus';
+                    const iosUrl =
+                        'https://apps.apple.com/us/app/wagus/id6742799148';
+
+                    final url = Platform.isIOS ? iosUrl : androidUrl;
+
+                    if (await canLaunchUrl(Uri.parse(url))) {
+                      await launchUrl(Uri.parse(url),
+                          mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  child: const Text('Update Now'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    return;
+  }
 
   // Set the background messaging handler early on, as a named top-level function
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

@@ -32,13 +32,25 @@ class QuestRepository {
 
     if (lastClaimed == null) return true; // No claims yet
 
-    final now = DateTime.now();
+    await FirebaseFirestore.instance.collection('serverTime').doc('now').set(
+        {'timestamp': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+
+    final serverNowSnap = await FirebaseFirestore.instance
+        .collection('serverTime')
+        .doc('now')
+        .get();
+
+    final serverNow =
+        (serverNowSnap.data()?['timestamp'] as Timestamp).toDate();
+
     final lastClaimedDate = DateTime(
       lastClaimed.year,
       lastClaimed.month,
       lastClaimed.day,
     );
-    final currentDate = DateTime(now.year, now.month, now.day);
+
+    final currentDate =
+        DateTime(serverNow.year, serverNow.month, serverNow.day);
 
     return lastClaimedDate
         .isBefore(currentDate); // Allow claim if it's a new day
