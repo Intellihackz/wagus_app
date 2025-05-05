@@ -160,19 +160,44 @@ Ensure the white paper is well-structured, professional, and persuasive, followi
     }
   }
 
-  String _getCryptoPredictionPrompt(SupportedCryptoPredictions selectedCrypto) {
-    switch (selectedCrypto) {
+  String _getCryptoPredictionPrompt(SupportedCryptoPredictions crypto) {
+    final name = crypto.name.toUpperCase();
+
+    switch (crypto) {
+      case SupportedCryptoPredictions.buckazoids:
+      case SupportedCryptoPredictions.lux:
+      case SupportedCryptoPredictions.snai:
+      case SupportedCryptoPredictions.collat:
+        return "Based on recent Solana trading activity, provide a short swing trading insight and trend direction for the meme coin $name. Use any known price or chart behavior to describe its momentum. Be sharp and actionable.";
+
       case SupportedCryptoPredictions.bitcoin:
-        return "In one sentence, based on current market trends and data, will Bitcoin go up or down in the next week? Give a clear and confident prediction, without disclaimers or hesitation.";
+        return "In one sentence, will Bitcoin go up or down in the next week? Make a strong prediction based on recent trends.";
       case SupportedCryptoPredictions.ethereum:
-        return "In one sentence, considering Ethereum’s recent market behavior and trends, predict whether Ethereum will rise or fall in the short-term. Provide a direct and confident answer.";
+        return "In one sentence, predict short-term Ethereum price movement confidently.";
       case SupportedCryptoPredictions.xrp:
-        return "In one sentence, based on XRP's current performance, will it go up or down? Offer a strong opinion on the short-term direction.";
+        return "Based on current data, will XRP rise or drop in price short-term? Give a bold take.";
       case SupportedCryptoPredictions.solana:
-        return "In one sentence, evaluate Solana's market trend and predict whether it will rise or fall over the next month. Give a decisive, confident answer.";
+        return "Analyze Solana’s momentum. Will it rise or fall soon? One strong sentence.";
       default:
         return "No prediction selected. Please specify a cryptocurrency.";
     }
+  }
+
+  Future<double?> getMemeCoinPrice(String mintAddress) async {
+    final url = 'https://price.jup.ag/v4/price?ids=$mintAddress';
+
+    try {
+      final response = await _dio.get(url);
+      if (response.statusCode == 200) {
+        final price = response.data[mintAddress]?['price'];
+        if (price != null) {
+          return double.tryParse(price.toString());
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to fetch price for $mintAddress: $e');
+    }
+    return null;
   }
 
   PredictionType _parsePredictionType(String prediction) {
@@ -186,11 +211,15 @@ enum SupportedCryptoPredictions {
   bitcoin(color: Colors.yellow),
   ethereum(color: Colors.blue),
   xrp(color: Colors.white),
-  solana(color: Color.fromARGB(255, 112, 96, 209)),
+  solana(color: Color(0xFF7060D1)),
+  buckazoids(color: Color(0xFFFFC107)),
+  lux(color: Color(0xFF00BFA5)),
+  snai(color: Color(0xFF9C27B0)),
+  collat(color: Color(0xFF03A9F4)),
+
   none(color: Colors.grey);
 
   final Color color;
-
   const SupportedCryptoPredictions({required this.color});
 }
 

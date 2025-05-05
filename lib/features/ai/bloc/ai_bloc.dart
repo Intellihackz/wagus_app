@@ -18,19 +18,45 @@ class AiBloc extends Bloc<AiEvent, AiState> {
         )) {
     on<AIGeneratePredictionEvent>((event, emit) async {
       emit(state.copyWith(
-          selectedCrypto: event.selectedCrypto,
-          predictionState: AIAnalysisPredictionState.loading));
-      final prediction = await repository.makeLongOrShortPrediction(
-          selectedCrypto: event.selectedCrypto);
+        selectedCrypto: event.selectedCrypto,
+        predictionState: AIAnalysisPredictionState.loading,
+      ));
 
-      if (prediction == null) {
-        return;
+      // Check for meme coins
+      final isMemeCoin = [
+        SupportedCryptoPredictions.buckazoids,
+        SupportedCryptoPredictions.lux,
+        SupportedCryptoPredictions.snai,
+        SupportedCryptoPredictions.collat,
+      ].contains(event.selectedCrypto);
+
+      if (isMemeCoin) {
+        final mint = _getMemeCoinMint(event.selectedCrypto);
+        final price = await repository.getMemeCoinPrice(mint);
+
+        if (price != null) {
+          emit(state.copyWith(
+            response:
+                'Current price of ${event.selectedCrypto.name.toUpperCase()}: \$${price.toStringAsFixed(6)}',
+            predictionType: PredictionType.none,
+            predictionState: AIAnalysisPredictionState.success,
+          ));
+          return;
+        }
       }
 
-      emit(state.copyWith(
+      // Default to AI prediction
+      final prediction = await repository.makeLongOrShortPrediction(
+        selectedCrypto: event.selectedCrypto,
+      );
+
+      if (prediction != null) {
+        emit(state.copyWith(
           response: prediction.$1,
           predictionType: prediction.$2,
-          predictionState: AIAnalysisPredictionState.success));
+          predictionState: AIAnalysisPredictionState.success,
+        ));
+      }
     });
 
     on<AIGenerateImageEvent>((event, emit) async {
@@ -95,5 +121,20 @@ class AiBloc extends Bloc<AiEvent, AiState> {
         ));
       }
     });
+  }
+
+  String _getMemeCoinMint(SupportedCryptoPredictions coin) {
+    switch (coin) {
+      case SupportedCryptoPredictions.buckazoids:
+        return 'BQQzEvYT4knThhkSPBvSKBLg1LEczisWLhx5ydJipump';
+      case SupportedCryptoPredictions.lux:
+        return 'BmXfbamFqrBzrqihr9hbSmEsfQUXMVaqshAjgvZupump';
+      case SupportedCryptoPredictions.snai:
+        return 'Hjw6bEcHtbHGpQr8onG3izfJY5DJiWdt7uk2BfdSpump';
+      case SupportedCryptoPredictions.collat:
+        return 'C7heQqfNzdMbUFQwcHkL9FvdwsFsDRBnfwZDDyWYCLTZ';
+      default:
+        return '';
+    }
   }
 }

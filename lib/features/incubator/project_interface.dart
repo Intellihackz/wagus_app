@@ -107,17 +107,18 @@ class ProjectInterface extends HookWidget {
           resizeToAvoidBottomInset: true,
           body: Form(
             key: formKey,
-            child: Padding(
-              padding: const EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 64,
-              ),
-              child: SingleChildScrollView(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
                   spacing: 16,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    Align(
+                        alignment: Alignment.centerLeft,
+                        child:
+                            BackButton(color: context.appColors.contrastLight)),
+                    const SizedBox(height: 16),
                     const Text(
                       'Project Interface',
                       textAlign: TextAlign.center,
@@ -285,7 +286,7 @@ class ProjectInterface extends HookWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-// Suggested change here to make it cleaner
+                        // Suggested change here to make it cleaner
                         Expanded(
                           child: TextFormField(
                             controller: projectWhitePaperController,

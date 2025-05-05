@@ -18,7 +18,6 @@ import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/features/quest/bloc/quest_bloc.dart';
 import 'package:wagus/features/quest/data/quest_repository.dart';
-import 'package:wagus/router.dart';
 import 'package:wagus/theme/app_palette.dart';
 
 class App extends StatelessWidget {
@@ -33,7 +32,7 @@ class App extends StatelessWidget {
           create: (_) => PortalRepository(),
         ),
         RepositoryProvider<HomeRepository>(
-          create: (_) => HomeRepository(),
+          create: (_) => HomeRepository(useTestCollection: false),
         ),
         RepositoryProvider<LotteryRepository>(
           create: (_) => LotteryRepository(),
@@ -66,7 +65,7 @@ class App extends StatelessWidget {
               BlocProvider<PortalBloc>(
                   create: (_) => PortalBloc(
                         portalRepository: context.read<PortalRepository>(),
-                      )),
+                      )..add(PortalInitialEvent())),
               BlocProvider<LotteryBloc>(
                 create: (_) => LotteryBloc(
                   lotteryRepository: context.read<LotteryRepository>(),

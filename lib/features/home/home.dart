@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:wagus/features/bank/data/bank_repository.dart';
 import 'package:wagus/features/home/bloc/home_bloc.dart';
+import 'package:wagus/features/home/domain/chat_command_parser.dart';
 import 'package:wagus/features/home/domain/message.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 
@@ -156,57 +158,134 @@ class Home extends HookWidget {
                           child: Row(
                             children: [
                               Expanded(
-                                child: TextField(
-                                  onTapOutside: (_) {
-                                    FocusScope.of(context).unfocus();
-                                  },
-                                  controller: inputController,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.white,
-                                  ),
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: Colors.black,
-                                    border: OutlineInputBorder(
-                                      borderSide:
-                                          BorderSide(color: Colors.white),
-                                    ),
-                                    hintText: 'Type your message...',
-                                    hintStyle: TextStyle(
+                                child: Builder(builder: (context) {
+                                  final isTierLounge =
+                                      selectedRoom.value == 'Tier Lounge';
+                                  final isAllowed = portalState.tierStatus ==
+                                          TierStatus.adventurer ||
+                                      portalState.tierStatus ==
+                                          TierStatus.creator;
+                                  final inputDisabled =
+                                      isTierLounge && !isAllowed;
+
+                                  return TextField(
+                                    enabled: !inputDisabled,
+                                    onTapOutside: (_) {
+                                      FocusScope.of(context).unfocus();
+                                    },
+                                    controller: inputController,
+                                    style: TextStyle(
                                       fontSize: 10,
-                                      color: Colors.white38,
+                                      color: Colors.white,
                                     ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 10),
-                                  ),
-                                ),
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: Colors.black,
+                                      border: OutlineInputBorder(
+                                        borderSide:
+                                            BorderSide(color: Colors.white),
+                                      ),
+                                      hintText: 'Type your message...',
+                                      hintStyle: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.white38,
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 10),
+                                    ),
+                                  );
+                                }),
                               ),
                               const SizedBox(width: 8),
                               GestureDetector(
-                                onTap: () {
+                                onTap: () async {
                                   final text = inputController.text.trim();
+                                  final tier = portalState.tierStatus;
+
+                                  final isTierLounge =
+                                      selectedRoom.value == 'Tier Lounge';
+                                  final isAllowed =
+                                      tier == TierStatus.adventurer ||
+                                          tier == TierStatus.creator;
+
+                                  if (isTierLounge && !isAllowed) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                          content: Text(
+                                              'Only Adventurer tier can chat in Tier Lounge')),
+                                    );
+                                    return;
+                                  }
+
+                                  // Inside your onTap handler for SEND:
                                   if (text.isNotEmpty) {
+                                    final user =
+                                        context.read<PortalBloc>().state.user;
+                                    final wallet =
+                                        user?.embeddedSolanaWallets.first;
                                     context.read<HomeBloc>().add(
                                           HomeSendMessageEvent(
                                             message: Message(
                                               text: text,
-                                              sender: portalState
-                                                  .user!
-                                                  .embeddedSolanaWallets
-                                                  .first
-                                                  .address,
-                                              tier: portalState.tierStatus ==
-                                                      TierStatus.none
-                                                  ? TierStatus.basic
-                                                  : portalState.tierStatus,
+                                              sender: wallet!.address,
+                                              tier: tier,
                                               room: selectedRoom.value,
+                                              solBalance: context
+                                                  .read<PortalBloc>()
+                                                  .state
+                                                  .holder
+                                                  ?.solanaAmount,
+                                              wagBalance: context
+                                                  .read<PortalBloc>()
+                                                  .state
+                                                  .holder
+                                                  ?.tokenAmount
+                                                  .toInt(),
                                             ),
                                           ),
                                         );
+
+                                    // Run the background effect AFTER dispatch
+                                    final parsed =
+                                        ChatCommandParser.parse(text);
+                                    if (parsed?.action == '/send' &&
+                                        parsed!.args.length >= 2) {
+                                      try {
+                                        final amount =
+                                            int.tryParse(parsed.args[0]) ?? 0;
+                                        final recipient = parsed.args[1];
+
+                                        final user = context
+                                            .read<PortalBloc>()
+                                            .state
+                                            .user;
+                                        final mint = context
+                                            .read<PortalBloc>()
+                                            .state
+                                            .currentTokenAddress;
+                                        final wallet =
+                                            user?.embeddedSolanaWallets.first;
+
+                                        if (user != null && wallet != null) {
+                                          await context
+                                              .read<BankRepository>()
+                                              .withdrawFunds(
+                                                wallet: wallet,
+                                                amount: amount,
+                                                destinationAddress: recipient,
+                                                wagusMint: mint,
+                                              );
+                                        }
+                                      } catch (e) {
+                                        debugPrint(
+                                            '[ChatCommand] Failed to execute /send: $e');
+                                      }
+                                    }
+
+                                    inputController.clear();
+                                    FocusScope.of(context).unfocus();
                                   }
-                                  inputController.clear();
-                                  FocusScope.of(context).unfocus();
                                 },
                                 child: Container(
                                   decoration: BoxDecoration(

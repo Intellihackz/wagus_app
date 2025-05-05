@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:wagus/features/ai/bloc/ai_bloc.dart';
 import 'package:wagus/features/ai/data/ai_repository.dart';
+import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/theme/app_palette.dart';
 
 class AIAnalysisPrediction extends HookWidget {
@@ -14,6 +15,8 @@ class AIAnalysisPrediction extends HookWidget {
     final selectedPrediction = useState<SupportedCryptoPredictions>(
       SupportedCryptoPredictions.none,
     );
+
+    final pageController = usePageController();
 
     return BlocBuilder<AiBloc, AiState>(
       builder: (context, state) {
@@ -34,113 +37,80 @@ class AIAnalysisPrediction extends HookWidget {
                   ),
                 ),
                 Column(
-                  spacing: 32,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(top: 100.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        spacing: 24.0,
-                        children: [
-                          Text('Choose a prediction'),
-                          Wrap(
-                            spacing: 8.0,
-                            runSpacing: 8.0,
-                            children: [
-                              _AIPredictionButton(
-                                label: 'Bitcoin',
-                                icon: CryptoFontIcons.btc,
-                                color: SupportedCryptoPredictions.bitcoin.color,
-                                onPressed: () {
-                                  selectedPrediction.value =
-                                      SupportedCryptoPredictions.bitcoin;
-
-                                  context.read<AiBloc>().add(
-                                        AIGeneratePredictionEvent(
-                                          selectedPrediction.value,
-                                        ),
-                                      );
-                                },
-                                isSelected: selectedPrediction.value ==
-                                    SupportedCryptoPredictions.bitcoin,
-                              ),
-                              _AIPredictionButton(
-                                label: 'Ethereum',
-                                icon: CryptoFontIcons.eth,
-                                color:
-                                    SupportedCryptoPredictions.ethereum.color,
-                                onPressed: () {
-                                  selectedPrediction.value =
-                                      SupportedCryptoPredictions.ethereum;
-
-                                  context.read<AiBloc>().add(
-                                        AIGeneratePredictionEvent(
-                                          selectedPrediction.value,
-                                        ),
-                                      );
-                                },
-                                isSelected: selectedPrediction.value ==
-                                    SupportedCryptoPredictions.ethereum,
-                              ),
-                              _AIPredictionButton(
-                                label: 'XRP',
-                                icon: CryptoFontIcons.xrp,
-                                color: SupportedCryptoPredictions.xrp.color,
-                                onPressed: () {
-                                  selectedPrediction.value =
-                                      SupportedCryptoPredictions.xrp;
-
-                                  context.read<AiBloc>().add(
-                                        AIGeneratePredictionEvent(
-                                          selectedPrediction.value,
-                                        ),
-                                      );
-                                },
-                                isSelected: selectedPrediction.value ==
-                                    SupportedCryptoPredictions.xrp,
-                              ),
-                              _AIPredictionButton(
-                                label: 'Solana',
-                                icon: CryptoFontIcons.sol,
-                                color: SupportedCryptoPredictions.solana.color,
-                                onPressed: () {
-                                  selectedPrediction.value =
-                                      SupportedCryptoPredictions.solana;
-
-                                  context.read<AiBloc>().add(
-                                        AIGeneratePredictionEvent(
-                                          selectedPrediction.value,
-                                        ),
-                                      );
-                                },
-                                isSelected: selectedPrediction.value ==
-                                    SupportedCryptoPredictions.solana,
-                              ),
-                            ],
+                      padding: const EdgeInsets.only(top: 64.0),
+                      child: Center(
+                        child: SizedBox(
+                          height: 280,
+                          child:
+                              BlocSelector<PortalBloc, PortalState, TierStatus>(
+                            selector: (state) {
+                              return state.tierStatus;
+                            },
+                            builder: (context, state) {
+                              return PageView(
+                                controller: pageController,
+                                children: [
+                                  _CryptoGrid(
+                                    selectedPrediction: selectedPrediction,
+                                    context: context,
+                                    label: 'Main Cryptos',
+                                    cryptos: [
+                                      SupportedCryptoPredictions.bitcoin,
+                                      SupportedCryptoPredictions.ethereum,
+                                      SupportedCryptoPredictions.xrp,
+                                      SupportedCryptoPredictions.solana,
+                                    ],
+                                  ),
+                                  if (state == TierStatus.adventurer)
+                                    _CryptoGrid(
+                                      selectedPrediction: selectedPrediction,
+                                      context: context,
+                                      label: 'Meme Coins',
+                                      cryptos: [
+                                        SupportedCryptoPredictions.buckazoids,
+                                        SupportedCryptoPredictions.lux,
+                                        SupportedCryptoPredictions.snai,
+                                        SupportedCryptoPredictions.collat,
+                                      ],
+                                    ),
+                                ],
+                              );
+                            },
                           ),
-                        ],
+                        ),
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Icon(Icons.swipe,
+                        color: Colors.white24,
+                        size: 18), // subtle swipe indicator
+                    const SizedBox(height: 12),
+                    // prediction result
                     Visibility(
                       visible: state.predictionState !=
                           AIAnalysisPredictionState.initial,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 32.0, right: 32.0),
-                        child: Column(
-                          spacing: 12.0,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: state.predictionState ==
-                                  AIAnalysisPredictionState.loading
-                              ? [CircularProgressIndicator()]
-                              : [
-                                  Text(state.response),
-                                ],
+                      child: Expanded(
+                        child: SingleChildScrollView(
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 32.0),
+                            child: Column(
+                              spacing: 12.0,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: state.predictionState ==
+                                      AIAnalysisPredictionState.loading
+                                  ? [CircularProgressIndicator()]
+                                  : [Text(state.response)],
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ],
-                ),
+                )
               ],
             ),
           ),
@@ -160,7 +130,7 @@ class _AIPredictionButton extends StatelessWidget {
   });
 
   final String label;
-  final IconData icon;
+  final Widget icon;
   final Color color;
   final VoidCallback onPressed;
   final bool isSelected;
@@ -185,11 +155,67 @@ class _AIPredictionButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           spacing: 12.0,
           children: [
-            Icon(icon, color: color),
+            icon,
             Text(label, style: TextStyle(fontSize: 12)),
           ],
         ),
       ),
     );
+  }
+}
+
+class _CryptoGrid extends StatelessWidget {
+  const _CryptoGrid({
+    required this.selectedPrediction,
+    required this.context,
+    required this.cryptos,
+    required this.label,
+  });
+
+  final ValueNotifier<SupportedCryptoPredictions> selectedPrediction;
+  final BuildContext context;
+  final List<SupportedCryptoPredictions> cryptos;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Wrap(
+        spacing: 8.0,
+        runSpacing: 8.0,
+        children: cryptos.map((crypto) {
+          return _AIPredictionButton(
+            label: crypto.name.toUpperCase(),
+            icon: _getIcon(crypto),
+            color: crypto.color,
+            isSelected: selectedPrediction.value == crypto,
+            onPressed: () {
+              selectedPrediction.value = crypto;
+              context.read<AiBloc>().add(AIGeneratePredictionEvent(crypto));
+            },
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _getIcon(SupportedCryptoPredictions crypto) {
+    switch (crypto) {
+      case SupportedCryptoPredictions.bitcoin:
+        return Icon(CryptoFontIcons.btc, color: crypto.color);
+      case SupportedCryptoPredictions.ethereum:
+        return Icon(CryptoFontIcons.eth, color: crypto.color);
+      case SupportedCryptoPredictions.xrp:
+        return Icon(CryptoFontIcons.xrp, color: crypto.color);
+      case SupportedCryptoPredictions.solana:
+        return Icon(CryptoFontIcons.sol, color: crypto.color);
+      default:
+        return Image.asset(
+          'assets/icons/${crypto.name.toLowerCase()}.png',
+          width: 40,
+          height: 40,
+          fit: BoxFit.contain,
+        );
+    }
   }
 }
