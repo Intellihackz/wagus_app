@@ -6,6 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
+import 'package:privy_flutter/privy_flutter.dart';
+import 'package:wagus/features/bank/data/bank_repository.dart';
 import 'package:wagus/features/home/data/home_repository.dart';
 import 'package:wagus/features/home/domain/chat_command.dart';
 import 'package:wagus/features/home/domain/chat_command_parser.dart';
@@ -15,8 +17,45 @@ import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 part 'home_event.dart';
 part 'home_state.dart';
 
+StreamSubscription? giveawaySub;
+
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
   StreamSubscription? roomSub;
+
+  void watchGiveaways(String currentUserWallet, EmbeddedSolanaWallet wallet,
+      String mint, BankRepository bank) {
+    giveawaySub?.cancel(); // cleanup old one if exists
+
+    giveawaySub = homeRepository.listenToActiveGiveaways().listen((snapshot) {
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+
+        final winner = data['winner'];
+        final hasSent = data['hasSent'] ?? false;
+        final amount = data['amount'];
+        final id = doc.id;
+        log('🔍 Giveaway check: host=${data['host']} winner=$winner hasSent=$hasSent wallet=$currentUserWallet');
+
+        if (!hasSent && winner != null && currentUserWallet == data['host']) {
+          log('🎯 Sending giveaway $id to winner=$winner for $amount \$BUCKAZOIDS');
+
+          bank
+              .withdrawFunds(
+            wallet: wallet,
+            destinationAddress: winner, // ✅ SEND TO WINNER
+            amount: amount,
+            wagusMint: mint,
+          )
+              .then((_) async {
+            await doc.reference.update({'hasSent': true});
+            log('✅ Giveaway reward sent and marked for $id');
+          }).catchError((e) {
+            log('❌ Failed to send giveaway reward for $id: $e');
+          });
+        }
+      }
+    });
+  }
 
   final HomeRepository homeRepository;
   HomeBloc({required this.homeRepository}) : super(HomeState(messages: [])) {
@@ -80,6 +119,12 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
           final amount = int.tryParse(cmd.args[0]) ?? 0;
           final keyword = cmd.flags['keyword'] ?? '???';
+          if (keyword.isEmpty || amount <= 0) {
+            return original.copyWith(
+              text: '[GIVEAWAY] Invalid giveaway parameters.',
+              sender: 'System',
+            );
+          }
           final duration = int.tryParse(cmd.flags['1-60'] ?? "") ?? 60;
 
           final endTime = DateTime.now().add(Duration(seconds: duration));

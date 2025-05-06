@@ -387,7 +387,8 @@ class Incubator extends HookWidget {
                 style: const TextStyle(
                     color: Colors.greenAccent, fontWeight: FontWeight.bold)),
             const SizedBox(width: 4),
-            const Icon(Icons.token, color: Colors.greenAccent, size: 18)
+            Image.asset('assets/icons/logo.png',
+                width: 16, height: 16, color: Colors.greenAccent),
           ],
         ),
       ),

@@ -89,10 +89,9 @@ export const pickGiveawayWinner = onSchedule(
       for (const doc of snapshot.docs) {
         try {
           const data = doc.data();
-          console.log(`📄 Processing giveaway ${doc.id}:`, data);
-
           const participants = Array.isArray(data.participants) ? data.participants : [];
           const amount = typeof data.amount === 'number' ? data.amount : 0;
+          const host = data.host || 'system';
           const winner = participants.length
             ? participants[Math.floor(Math.random() * participants.length)]
             : null;
@@ -100,8 +99,22 @@ export const pickGiveawayWinner = onSchedule(
           await doc.ref.update({
             status: 'ended',
             winner: winner || 'No winner',
+            hasSent: false,
           });
 
+          // Inject the /send message if there is a winner
+          if (winner) {
+            await db.collection('chat').add({
+              message: `/send ${amount} ${winner}`,
+              sender: host,
+              tier: 'adventurer',
+              room: 'General',
+              timestamp: Date.now(),
+            });
+            console.log(`💸 Injected /send ${amount} to ${winner}`);
+          }
+
+          // Send push notification
           const message = {
             topic: 'global_users',
             notification: {
@@ -129,6 +142,7 @@ export const pickGiveawayWinner = onSchedule(
     }
   }
 );
+
 
 export const runGiveawayWinnerNow = onRequest(async (req, res) => {
   const db = getFirestore();
@@ -158,6 +172,7 @@ export const runGiveawayWinnerNow = onRequest(async (req, res) => {
         await doc.ref.update({
           status: 'ended',
           winner: winner || 'No winner',
+          hasSent: false,
         });
 
         const message = {

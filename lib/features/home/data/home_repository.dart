@@ -18,6 +18,20 @@ class HomeRepository {
         .snapshots();
   }
 
+  Stream<DocumentSnapshot> listenToGiveaway(String giveawayId) {
+    return FirebaseFirestore.instance
+        .collection('giveaways')
+        .doc(giveawayId)
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot> listenToActiveGiveaways() {
+    return FirebaseFirestore.instance
+        .collection('giveaways')
+        .where('status', isEqualTo: 'ended')
+        .snapshots();
+  }
+
   Future<void> sendMessage(Message message) async {
     try {
       await chatCollection.add({

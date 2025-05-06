@@ -19,7 +19,19 @@ class Home extends HookWidget {
     final chatRooms = ['General', 'Support', 'Games', 'Ideas', 'Tier Lounge'];
 
     useEffect(() {
-      context.read<HomeBloc>().add(HomeSetRoomEvent(selectedRoom.value));
+      final portalState = context.read<PortalBloc>().state;
+      final homeBloc = context.read<HomeBloc>();
+      final bankRepo = context.read<BankRepository>();
+
+      final user = portalState.user;
+      final wallet = user?.embeddedSolanaWallets.first;
+      final mint = portalState.currentTokenAddress;
+
+      if (wallet != null && user != null && mint.isNotEmpty) {
+        homeBloc.watchGiveaways(wallet.address, wallet, mint, bankRepo);
+      }
+
+      homeBloc.add(HomeSetRoomEvent(selectedRoom.value));
       return null;
     }, []);
 
