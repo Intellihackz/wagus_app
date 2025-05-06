@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:bloc/bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
 import 'package:wagus/features/home/data/home_repository.dart';
 import 'package:wagus/features/home/domain/chat_command.dart';
@@ -43,7 +46,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
                     ),
                   ))
               .toList(),
-          room: event.room, // 👈 you forgot this before
+          room: event.room,
         ));
       });
     });
@@ -55,50 +58,51 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       ));
     });
 
-    Message buildCommandPreview(ChatCommand cmd, Message original) {
+    FutureOr<Message> buildCommandPreview(
+        ChatCommand cmd, Message original) async {
       switch (cmd.action.toLowerCase()) {
-        // case '/burn':
-        //   final amount = cmd.args.isNotEmpty ? cmd.args[0] : '?';
-        //   return original.copyWith(
-        //     text: '[BURN] ${original.sender} has burned $amount \$WAGUS 🔥',
-        //     sender: 'System',
-        //   );
-
         case '/send':
           final amount = cmd.args.isNotEmpty ? cmd.args[0] : '?';
           final target = cmd.args.length > 1 ? cmd.args[1] : 'unknown';
-
           return original.copyWith(
             text:
                 '[SEND] ${original.sender} has sent $amount \$WAGUS to $target 📨',
             sender: 'System',
           );
 
-        // case '/giveaway':
-        //   final amount = cmd.args.isNotEmpty ? cmd.args[0] : '?';
-        //   final keyword = cmd.flags['keyword'] ?? '???';
-        //   final duration = cmd.flags['duration'] ?? '1m';
-        //   return original.copyWith(
-        //     text:
-        //         '[GIVEAWAY] ${original.sender} is giving away $amount \$WAGUS\nType "$keyword" to enter. Ends in $duration ⏳',
-        //     sender: 'System',
-        //   );
+        case '/giveaway':
+          if (original.tier != TierStatus.adventurer) {
+            return original.copyWith(
+              text: '[GIVEAWAY] Only Adventurer tier can start giveaways.',
+              sender: 'System',
+            );
+          }
 
-        // case '/request':
-        //   final amount = cmd.args.isNotEmpty ? cmd.args[0] : '?';
-        //   return original.copyWith(
-        //     text:
-        //         '[REQUEST] ${original.sender} is requesting $amount \$WAGUS 💰',
-        //     sender: 'System',
-        //   );
+          final amount = int.tryParse(cmd.args[0]) ?? 0;
+          final keyword = cmd.flags['keyword'] ?? '???';
+          final duration = int.tryParse(cmd.flags['1-60'] ?? "") ?? 60;
 
-        // case '/rain':
-        //   final amount = cmd.args.isNotEmpty ? cmd.args[0] : '?';
-        //   return original.copyWith(
-        //     text:
-        //         '[RAIN] ${original.sender} is making it rain! $amount \$WAGUS will be split among online users 🌧️',
-        //     sender: 'System',
-        //   );
+          final endTime = DateTime.now().add(Duration(seconds: duration));
+          final giveawayDoc =
+              FirebaseFirestore.instance.collection('giveaways').doc();
+
+          await giveawayDoc.set({
+            'host': original.sender,
+            'amount': amount,
+            'keyword': keyword.toLowerCase(),
+            'endTimestamp': endTime.millisecondsSinceEpoch,
+            'participants': [],
+            'status': 'started',
+            'winner': null,
+          });
+
+          await FirebaseMessaging.instance.subscribeToTopic('global_users');
+
+          return original.copyWith(
+            text:
+                '[GIVEAWAY] ${original.sender} is giving away $amount \$BUCKAZOIDS\nType "$keyword" to enter. Ends in $duration seconds ⏳',
+            sender: 'System',
+          );
 
         case '/flex':
           return original.copyWith(
@@ -119,10 +123,33 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final parsed = ChatCommandParser.parse(event.message.text);
 
       if (parsed != null) {
-        final displayMessage = buildCommandPreview(parsed, event.message);
+        final displayMessage = await buildCommandPreview(parsed, event.message);
         await homeRepository.sendMessage(displayMessage);
       } else {
         await homeRepository.sendMessage(event.message);
+
+        // Check if message is a giveaway entry
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final giveaways = await FirebaseFirestore.instance
+            .collection('giveaways')
+            .where('status', isEqualTo: 'started')
+            .where('endTimestamp', isGreaterThan: now)
+            .get();
+
+        for (final doc in giveaways.docs) {
+          final keyword = doc['keyword']?.toString().toLowerCase() ?? '';
+          final text = event.message.text.trim().toLowerCase();
+          final sender = event.message.sender;
+
+          if (text == keyword) {
+            final participants = List<String>.from(doc['participants'] ?? []);
+            if (!participants.contains(sender)) {
+              participants.add(sender);
+              await doc.reference.update({'participants': participants});
+              log('[Giveaway] $sender entered with keyword "$keyword"');
+            }
+          }
+        }
       }
     });
   }

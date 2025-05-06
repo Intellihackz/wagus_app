@@ -79,6 +79,9 @@ Future<void> main() async {
   await FirebaseMessaging.instance.subscribeToTopic('daily_reward');
   print('✅ Subscribed to daily_reward topic');
 
+  await FirebaseMessaging.instance.subscribeToTopic('global_users');
+  print('✅ Subscribed to global_users topic');
+
   await PrivyService().initialize();
 
   runApp(App(router: appRouter));

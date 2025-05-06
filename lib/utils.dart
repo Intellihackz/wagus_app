@@ -16,3 +16,10 @@ void useAsyncEffect({
     };
   }, keys);
 }
+
+extension StringManipulation on String {
+  String get trimmed => trim();
+  String get capitalized =>
+      isEmpty ? this : '${this[0].toUpperCase()}${substring(1)}';
+  String pluralize(int number) => number == 1 ? this : '${this}s';
+}

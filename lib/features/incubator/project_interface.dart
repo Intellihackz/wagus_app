@@ -485,7 +485,14 @@ class ProjectInterface extends HookWidget {
                                       color: AppPalette.deepMidnightBlue,
                                     ),
                                   )
-                                : const Text('Submit'),
+                                : Text(
+                                    'Submit',
+                                    style: TextStyle(
+                                      color: context.appColors.contrastDark,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                       ),
                     ),
                   ],

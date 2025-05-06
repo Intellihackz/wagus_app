@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:wagus/features/bank/data/bank_repository.dart';
@@ -6,6 +7,7 @@ import 'package:wagus/features/home/bloc/home_bloc.dart';
 import 'package:wagus/features/home/domain/chat_command_parser.dart';
 import 'package:wagus/features/home/domain/message.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
+import 'package:wagus/theme/app_palette.dart';
 
 class Home extends HookWidget {
   const Home({super.key});
@@ -121,28 +123,94 @@ class Home extends HookWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Expanded(
-                                          child: Text.rich(
+                                          child: SelectableText.rich(
                                             TextSpan(
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                              ),
                                               children: [
-                                                TextSpan(
-                                                  text:
+                                                WidgetSpan(
+                                                  alignment:
+                                                      PlaceholderAlignment
+                                                          .middle,
+                                                  child: GestureDetector(
+                                                    onTap: () {
+                                                      showDialog(
+                                                        context: context,
+                                                        builder: (_) =>
+                                                            AlertDialog(
+                                                          backgroundColor:
+                                                              Colors.black,
+                                                          title: Text(
+                                                              'Wallet Address',
+                                                              style: TextStyle(
+                                                                  color: context
+                                                                      .appColors
+                                                                      .contrastLight)),
+                                                          content:
+                                                              SelectableText(
+                                                            message.sender,
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .white),
+                                                          ),
+                                                          actions: [
+                                                            TextButton(
+                                                              onPressed: () {
+                                                                Clipboard.setData(
+                                                                    ClipboardData(
+                                                                        text: message
+                                                                            .sender));
+                                                                Navigator.of(
+                                                                        context)
+                                                                    .pop();
+                                                                ScaffoldMessenger.of(
+                                                                        context)
+                                                                    .showSnackBar(
+                                                                  SnackBar(
+                                                                      content: Text(
+                                                                          'Copied to clipboard')),
+                                                                );
+                                                              },
+                                                              child: Text(
+                                                                  'COPY',
+                                                                  style: TextStyle(
+                                                                      color: Colors
+                                                                          .greenAccent)),
+                                                            ),
+                                                            TextButton(
+                                                              onPressed: () =>
+                                                                  Navigator.of(
+                                                                          context)
+                                                                      .pop(),
+                                                              child: Text(
+                                                                  'CLOSE',
+                                                                  style: TextStyle(
+                                                                      color: Colors
+                                                                          .white)),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: Text(
                                                       '${getTierPrefix(message.tier)}[${message.sender.substring(0, 3)}..${message.sender.substring(message.sender.length - 3)}] ',
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    color: getTierColor(
-                                                        message.tier),
+                                                      style: TextStyle(
+                                                        color: getTierColor(
+                                                            message.tier),
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
                                                 TextSpan(
                                                   text: message.text,
                                                   style: TextStyle(
-                                                    fontSize: 10,
                                                     color: Colors.white,
                                                   ),
                                                 ),
                                               ],
                                             ),
-                                            softWrap: true,
                                           ),
                                         ),
                                       ],
@@ -280,6 +348,10 @@ class Home extends HookWidget {
                                       } catch (e) {
                                         debugPrint(
                                             '[ChatCommand] Failed to execute /send: $e');
+                                      } finally {
+                                        // Clear the input field
+                                        inputController.clear();
+                                        FocusScope.of(context).unfocus();
                                       }
                                     }
 

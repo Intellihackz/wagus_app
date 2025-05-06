@@ -1,15 +1,16 @@
-import 'package:date_format/date_format.dart';
+// Redesign of the Incubator widget to match sleek, mysterious chat UI
+// Focuses on spacing, dark mode tones, smooth tiles, and subtle neon effects
+
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_cached_pdfview/flutter_cached_pdfview.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wagus/features/incubator/bloc/incubator_bloc.dart';
-import 'package:wagus/features/incubator/domain/project.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
+import 'package:date_format/date_format.dart';
 import 'package:wagus/theme/app_palette.dart';
+import 'package:wagus/utils.dart';
 
 class Incubator extends HookWidget {
   const Incubator({super.key});
@@ -44,357 +45,160 @@ class Incubator extends HookWidget {
         }
       },
       builder: (context, state) {
-        return SafeArea(
-          child: Scaffold(
-            floatingActionButton: FloatingActionButton(
-              heroTag: 'addProject',
-              backgroundColor: context.appColors.contrastLight,
-              onPressed: () {
-                context.push(projectInterface);
-              },
-              child: const Icon(Icons.playlist_add_rounded),
-            ),
-            body: SizedBox.expand(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 64.0),
-                child: Column(
+        return Scaffold(
+          backgroundColor: Colors.black,
+          body: Padding(
+            padding: const EdgeInsets.only(top: 64.0),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Upcoming Projects',
-                      style: TextStyle(
-                        color: context.appColors.contrastLight,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    const Padding(
+                      padding: EdgeInsets.only(left: 16.0),
+                      child: Text(
+                        'Incubator',
+                        style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
                       ),
                     ),
-                    const SizedBox(height: 32.0),
-                    Expanded(
-                      child: ListView.builder(
-                        physics: const ClampingScrollPhysics(),
-                        padding: EdgeInsets.zero,
-                        itemCount: state.projects.length,
-                        itemBuilder: (context, index) {
-                          final project = state.projects[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 0.0),
-                            child: Column(
-                              children: [
-                                ExpansionTile(
-                                  textColor: context.appColors.contrastLight,
-                                  tilePadding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
-                                  shape: Border(
-                                    top: index == state.projects.length - 1
-                                        ? BorderSide.none
-                                        : BorderSide(
-                                            color:
-                                                context.appColors.contrastLight,
-                                            width: 1),
-                                    bottom: BorderSide(
-                                        color: context.appColors.contrastLight,
-                                        width: 1),
-                                  ),
-                                  collapsedShape: Border(
-                                    top: index == state.projects.length - 1
-                                        ? BorderSide.none
-                                        : BorderSide(
-                                            color:
-                                                context.appColors.contrastLight,
-                                            width: 1),
-                                    bottom: BorderSide(
-                                        color: context.appColors.contrastLight,
-                                        width: 1),
-                                  ),
-                                  title: Padding(
-                                    padding: const EdgeInsets.only(bottom: 8.0),
-                                    child: Text(
-                                      project.name,
-                                      style: TextStyle(
-                                          color:
-                                              context.appColors.contrastLight),
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    project.description,
-                                    style: TextStyle(
-                                      color: context.appColors.contrastLight,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  iconColor: context.appColors.contrastLight,
-                                  collapsedIconColor:
-                                      context.appColors.contrastLight,
-                                  childrenPadding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 16),
-                                  children: [
-                                    Wrap(
-                                      alignment: WrapAlignment.spaceEvenly,
-                                      spacing: 16.0,
-                                      runSpacing: 16.0,
-                                      children: [
-                                        LinkTile(
-                                          title: 'GitHub',
-                                          icon: Icons.code,
-                                          onTap: () async =>
-                                              await launchUrlString(
-                                                  project.gitHubLink),
-                                        ),
-                                        LinkTile(
-                                          title: 'Website',
-                                          icon: Icons.public,
-                                          onTap: () => launchUrlString(
-                                              project.websiteLink),
-                                        ),
-                                        LinkTile(
-                                          title: 'White Paper',
-                                          icon: Icons.description,
-                                          onTap: () async {
-                                            await showDialog(
-                                              context: context,
-                                              builder: (_) => Dialog(
-                                                shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            8)),
-                                                child: SizedBox(
-                                                  width: double.infinity,
-                                                  child: Column(
-                                                    children: [
-                                                      const SizedBox(
-                                                          height: 16),
-                                                      Text(
-                                                        project.name,
-                                                        style: TextStyle(
-                                                            color: context
-                                                                .appColors
-                                                                .contrastDark),
-                                                      ),
-                                                      Text(
-                                                        'White Paper',
-                                                        style: TextStyle(
-                                                            color: context
-                                                                .appColors
-                                                                .contrastDark),
-                                                      ),
-                                                      const SizedBox(
-                                                          height: 16),
-                                                      Expanded(
-                                                        child: PDF(
-                                                                backgroundColor:
-                                                                    Colors
-                                                                        .transparent)
-                                                            .cachedFromUrl(
-                                                          project
-                                                              .whitePaperLink,
-                                                          placeholder:
-                                                              (progress) => Center(
-                                                                  child: Text(
-                                                                      '$progress%')),
-                                                          errorWidget: (error) =>
-                                                              const Center(
-                                                                  child: Icon(Icons
-                                                                      .error)),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                        LinkTile(
-                                          title: 'Roadmap',
-                                          icon: Icons.map,
-                                          onTap: () async {
-                                            await showDialog(
-                                              context: context,
-                                              builder: (_) => Dialog(
-                                                shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            8)),
-                                                child: SizedBox(
-                                                  width: double.infinity,
-                                                  child: Column(
-                                                    children: [
-                                                      const SizedBox(
-                                                          height: 16),
-                                                      Text(
-                                                        project.name,
-                                                        style: TextStyle(
-                                                            color: context
-                                                                .appColors
-                                                                .contrastDark),
-                                                      ),
-                                                      Text(
-                                                        'Roadmap',
-                                                        style: TextStyle(
-                                                            color: context
-                                                                .appColors
-                                                                .contrastDark),
-                                                      ),
-                                                      const SizedBox(
-                                                          height: 16),
-                                                      Expanded(
-                                                        child: PDF(
-                                                                backgroundColor:
-                                                                    Colors
-                                                                        .transparent)
-                                                            .cachedFromUrl(
-                                                          project.roadmapLink,
-                                                          placeholder:
-                                                              (progress) => Center(
-                                                                  child: Text(
-                                                                      '$progress%')),
-                                                          errorWidget: (error) =>
-                                                              const Center(
-                                                                  child: Icon(Icons
-                                                                      .error)),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                        LinkTile(
-                                          title: 'Socials',
-                                          icon: Icons.people,
-                                          onTap: () => launchUrlString(
-                                              project.socialsLink),
-                                        ),
-                                        LinkTile(
-                                          title: 'Telegram',
-                                          icon: Icons.telegram,
-                                          onTap: () => launchUrlString(
-                                              project.telegramLink),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16.0),
-                                    Wrap(
-                                      alignment: WrapAlignment.spaceEvenly,
-                                      spacing: 16.0,
-                                      runSpacing: 16.0,
-                                      children: [
-                                        _buildContributionButton(context,
-                                            project, 100, amountController),
-                                        _buildContributionButton(context,
-                                            project, 250, amountController),
-                                        _buildContributionButton(context,
-                                            project, 500, amountController),
-                                        _buildContributionButton(context,
-                                            project, 1000, amountController),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16.0),
-                                    Text(
-                                      'Launch date: ${formatDate(project.launchDate, [
-                                            M,
-                                            ' ',
-                                            d,
-                                            ', ',
-                                            yyyy
-                                          ])}',
-                                      style: TextStyle(
-                                        color: context.appColors.contrastLight,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Container(
-                                  height: 50,
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    border: Border(
-                                      bottom: BorderSide(
-                                          color:
-                                              context.appColors.contrastLight,
-                                          width: 1),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Stack(
-                                          children: [
-                                            SizedBox.expand(
-                                              child: LinearProgressIndicator(
-                                                value: project.fundingProgress,
-                                                backgroundColor: Colors.black,
-                                                color: Colors.green,
-                                              ),
-                                            ),
-                                            Center(
-                                              child: Text(
-                                                'Allocation Pool: ${(project.fundingProgress * 100).toInt()}%',
-                                                style: TextStyle(
-                                                    color: context.appColors
-                                                        .contrastLight),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding:
-                                            const EdgeInsets.only(right: 8.0),
-                                        child: Row(
-                                          children: [
-                                            GestureDetector(
-                                              onTap: () {
-                                                final userId = context
-                                                    .read<PortalBloc>()
-                                                    .state
-                                                    .user!
-                                                    .id;
-                                                if (state.likedProjectsIds
-                                                    .contains(project.id)) {
-                                                  context.read<IncubatorBloc>().add(
-                                                      IncubatorProjectUnlikeEvent(
-                                                          project.id, userId));
-                                                } else {
-                                                  context.read<IncubatorBloc>().add(
-                                                      IncubatorProjectLikeEvent(
-                                                          project.id, userId));
-                                                }
-                                              },
-                                              child: state.likedProjectsIds.any(
-                                                      (likedProject) =>
-                                                          likedProject ==
-                                                          project.id)
-                                                  ? const Icon(Icons.favorite,
-                                                      color: Colors.red)
-                                                  : Icon(Icons.favorite_border,
-                                                      color: context.appColors
-                                                          .contrastLight),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '${project.likesCount}',
-                                              style: TextStyle(
-                                                  color: context
-                                                      .appColors.contrastLight),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add, color: Colors.greenAccent),
+                      onPressed: () {
+                        context.push(projectInterface);
+                      },
+                    )
                   ],
                 ),
-              ),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: state.projects.length,
+                    itemBuilder: (context, index) {
+                      final project = state.projects[index];
+                      final isLiked =
+                          state.likedProjectsIds.contains(project.id);
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[900],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isLiked
+                                ? Colors.greenAccent
+                                : Colors.grey[800]!,
+                            width: 1,
+                          ),
+                        ),
+                        child: ExpansionTile(
+                          collapsedIconColor: Colors.white,
+                          iconColor: Colors.greenAccent,
+                          title: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Flexible(
+                                child: Text(project.name,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white)),
+                              ),
+                              Row(
+                                children: [
+                                  Text(
+                                    '${project.likesCount} Like'
+                                        .pluralize(project.likesCount),
+                                    style: TextStyle(
+                                        color: context.appColors.contrastLight,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: () {
+                                      final userId = context
+                                          .read<PortalBloc>()
+                                          .state
+                                          .user!
+                                          .id;
+                                      if (isLiked) {
+                                        context.read<IncubatorBloc>().add(
+                                            IncubatorProjectUnlikeEvent(
+                                                project.id, userId));
+                                      } else {
+                                        context.read<IncubatorBloc>().add(
+                                            IncubatorProjectLikeEvent(
+                                                project.id, userId));
+                                      }
+                                    },
+                                    child: Icon(
+                                      isLiked
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      color: isLiked
+                                          ? Colors.redAccent
+                                          : Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            ],
+                          ),
+                          childrenPadding: const EdgeInsets.all(12),
+                          children: [
+                            Text(project.description,
+                                style: const TextStyle(color: Colors.white70)),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Launch: ${formatDate(project.launchDate, [
+                                        M,
+                                        ' ',
+                                        d,
+                                        ', ',
+                                        yyyy
+                                      ])}',
+                                  style: const TextStyle(
+                                      color: Colors.white54, fontSize: 12),
+                                ),
+                                Text(
+                                  '${(project.fundingProgress * 100).toInt()}% funded',
+                                  style: const TextStyle(
+                                      color: Colors.greenAccent, fontSize: 12),
+                                )
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            LinearProgressIndicator(
+                              value: project.fundingProgress,
+                              backgroundColor: Colors.grey[800],
+                              color: Colors.greenAccent,
+                            ),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: [
+                                _contributionChip(
+                                    context, project, 100, amountController),
+                                _contributionChip(
+                                    context, project, 250, amountController),
+                                _contributionChip(
+                                    context, project, 500, amountController),
+                                _contributionChip(
+                                    context, project, 1000, amountController),
+                              ],
+                            )
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -402,53 +206,145 @@ class Incubator extends HookWidget {
     );
   }
 
-  Widget _buildContributionButton(
-    BuildContext context,
-    Project project,
-    int amount,
-    TextEditingController amountController,
-  ) {
-    return GestureDetector(
+  Widget _contributionChip(BuildContext context, project, int amount,
+      TextEditingController controller) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
       onTap: () {
-        amountController.text = amount.toString();
+        controller.text = amount.toString();
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (dialogContext) {
             return BlocProvider.value(
               value: context.read<IncubatorBloc>(),
-              child: BlocConsumer<IncubatorBloc, IncubatorState>(
-                listener: (context, state) {
+              child: BlocBuilder<IncubatorBloc, IncubatorState>(
+                builder: (context, state) {
                   if (state.transactionStatus ==
                       IncubatorTransactionStatus.success) {
                     Future.delayed(const Duration(milliseconds: 1500), () {
-                      if (context.mounted) {
-                        if (context.canPop()) {
-                          context.pop();
-                        }
-                        // Reset dialog status after closing
+                      if (context.mounted && Navigator.canPop(context)) {
+                        Navigator.pop(context);
                         context
                             .read<IncubatorBloc>()
                             .add(IncubatorResetTransactionStatusEvent());
                       }
                     });
                   }
-                },
-                builder: (context, state) {
+
+                  if (state.transactionStatus ==
+                      IncubatorTransactionStatus.failure) {
+                    Future.delayed(const Duration(milliseconds: 1500), () {
+                      if (context.mounted && Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                        context
+                            .read<IncubatorBloc>()
+                            .add(IncubatorResetTransactionStatusEvent());
+                      }
+                    });
+                  }
+
+                  Widget content;
+                  if (state.transactionStatus ==
+                      IncubatorTransactionStatus.submitting) {
+                    content = const SizedBox(
+                      height: 80,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.greenAccent),
+                        ),
+                      ),
+                    );
+                  } else if (state.transactionStatus ==
+                      IncubatorTransactionStatus.success) {
+                    content = const SizedBox(
+                      height: 80,
+                      child: Center(
+                        child: Icon(Icons.check_circle,
+                            color: Colors.greenAccent, size: 48),
+                      ),
+                    );
+                  } else if (state.transactionStatus ==
+                      IncubatorTransactionStatus.failure) {
+                    content = const SizedBox(
+                      height: 80,
+                      child: Center(
+                        child: Icon(Icons.cancel,
+                            color: Colors.redAccent, size: 48),
+                      ),
+                    );
+                  } else {
+                    content = TextField(
+                      controller: controller,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Amount',
+                        hintStyle: TextStyle(color: Colors.grey[600]),
+                        enabledBorder: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.greenAccent)),
+                        focusedBorder: const UnderlineInputBorder(
+                            borderSide: BorderSide(color: Colors.greenAccent)),
+                      ),
+                    );
+                  }
+
                   return AlertDialog(
-                    scrollable: true,
-                    title: Text(
-                      'Contribute to ${project.name}',
-                      style: const TextStyle(
-                          color: AppPalette.contrastDark, fontSize: 12),
-                    ),
-                    content: SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.8,
-                      child:
-                          _buildDialogContent(context, state, amountController),
-                    ),
-                    actions: _buildDialogActions(context, state, project,
-                        amountController, project.fundingProgress),
+                    backgroundColor: context.appColors.contrastDark,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    title: Text('Contribute to ${project.name}',
+                        style: const TextStyle(color: Colors.white)),
+                    content: content,
+                    actions: (state.transactionStatus ==
+                            IncubatorTransactionStatus.initial)
+                        ? [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel',
+                                  style: TextStyle(color: Colors.redAccent)),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                final int? parsedAmount =
+                                    int.tryParse(controller.text);
+                                if (parsedAmount != null && parsedAmount > 0) {
+                                  final userId =
+                                      context.read<PortalBloc>().state.user!.id;
+                                  context
+                                      .read<IncubatorBloc>()
+                                      .add(IncubatorWithdrawEvent(
+                                        projectId: project.id,
+                                        userId: userId,
+                                        amount: parsedAmount,
+                                        wallet: context
+                                            .read<PortalBloc>()
+                                            .state
+                                            .user!
+                                            .embeddedSolanaWallets
+                                            .first,
+                                        wagusMint: context
+                                            .read<PortalBloc>()
+                                            .state
+                                            .currentTokenAddress,
+                                      ));
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Enter a valid amount'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              },
+                              child: const Text('Contribute',
+                                  style: TextStyle(
+                                      color: Colors.greenAccent,
+                                      fontWeight: FontWeight.bold)),
+                            ),
+                          ]
+                        : [],
                   );
                 },
               ),
@@ -457,178 +353,22 @@ class Incubator extends HookWidget {
         );
       },
       child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
+          color: Colors.black,
+          border: Border.all(color: Colors.greenAccent),
           borderRadius: BorderRadius.circular(8),
-          color: context.appColors.contrastLight,
         ),
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '$amount',
-              style: TextStyle(
-                  color: context.appColors.contrastDark, fontSize: 12),
-            ),
-            Image.asset('assets/icons/logo.png', height: 32, width: 32),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDialogContent(
-    BuildContext context,
-    IncubatorState state,
-    TextEditingController amountController,
-  ) {
-    switch (state.transactionStatus) {
-      case IncubatorTransactionStatus.initial:
-        return Column(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: amountController,
-              style: TextStyle(color: context.appColors.contrastDark),
-              readOnly: true,
-              decoration: const InputDecoration(
-                hintText: 'Enter contribution amount',
-                hintStyle:
-                    TextStyle(color: AppPalette.contrastDark, fontSize: 12),
-              ),
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-            ),
+            Text('$amount',
+                style: const TextStyle(
+                    color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+            const SizedBox(width: 4),
+            const Icon(Icons.token, color: Colors.greenAccent, size: 18)
           ],
-        );
-      case IncubatorTransactionStatus.submitting:
-        return const SizedBox(
-          height: 80,
-          child: Center(
-            child: CircularProgressIndicator(
-              valueColor:
-                  AlwaysStoppedAnimation<Color>(AppPalette.contrastDark),
-            ),
-          ),
-        );
-      case IncubatorTransactionStatus.success:
-        return const SizedBox(
-          height: 80,
-          child: Center(
-            child: Icon(
-              Icons.check_circle,
-              color: Colors.green,
-              size: 48,
-            ),
-          ),
-        );
-      default:
-        return const SizedBox(
-          height: 80,
-          child: Center(
-            child: Icon(
-              Icons.error,
-              color: Colors.red,
-              size: 48,
-            ),
-          ),
-        );
-    }
-  }
-}
-
-List<Widget> _buildDialogActions(
-  BuildContext context,
-  IncubatorState state,
-  Project project,
-  TextEditingController amountController,
-  double fundingProgress,
-) {
-  if (state.transactionStatus != IncubatorTransactionStatus.initial) {
-    return [];
-  }
-
-  return [
-    TextButton(
-      onPressed: () {
-        if (context.canPop()) {
-          context.pop();
-        }
-      },
-      child: const Text('Cancel'),
-    ),
-    ElevatedButton(
-      onPressed: () {
-        if (fundingProgress >= 1) {
-          if (context.canPop()) {
-            context.pop();
-          }
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No more allocation pool available'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-          return;
-        }
-
-        final amount = int.tryParse(
-            amountController.text.isEmpty ? '0' : amountController.text);
-        if (amount == null || amount <= 0) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Please enter a valid amount'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-          return;
-        }
-
-        final userId = context.read<PortalBloc>().state.user!.id;
-        context.read<IncubatorBloc>().add(IncubatorWithdrawEvent(
-              projectId: project.id,
-              wallet: context
-                  .read<PortalBloc>()
-                  .state
-                  .user!
-                  .embeddedSolanaWallets
-                  .first,
-              amount: amount,
-              userId: userId,
-              wagusMint: context.read<PortalBloc>().state.currentTokenAddress,
-            ));
-      },
-      child: const Text('Contribute'),
-    ),
-  ];
-}
-
-class LinkTile extends StatelessWidget {
-  const LinkTile(
-      {required this.title,
-      required this.icon,
-      required this.onTap,
-      super.key});
-
-  final String title;
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: context.appColors.contrastLight),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style:
-                TextStyle(color: context.appColors.contrastLight, fontSize: 12),
-          ),
-        ],
+        ),
       ),
     );
   }
