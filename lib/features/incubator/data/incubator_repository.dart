@@ -16,7 +16,7 @@ import 'package:wagus/features/incubator/domain/project.dart';
 
 class IncubatorRepository {
   static const int wagusDecimals = 6;
-  static const int totalTokenAllocation = 10000; // Fixed allocation per project
+  static const int totalTokenAllocation = 20000; // Fixed allocation per project
   static final web3.Pubkey tokenProgramId = web3.Pubkey.fromBase58(splToken);
   static final web3.Pubkey systemProgramId =
       web3.Pubkey.fromBase58('11111111111111111111111111111111');
@@ -431,6 +431,11 @@ class IncubatorRepository {
         final projectData = projectSnapshot.data() as Map<String, dynamic>;
         final currentTotal =
             (projectData['totalFunded'] as num?)?.toDouble() ?? 0.0;
+        if ((currentTotal + amount) >
+            IncubatorRepository.totalTokenAllocation) {
+          throw Exception('Contribution would exceed project funding cap.');
+        }
+
         final newTotal = currentTotal + amount;
         final fundingProgress = newTotal / totalTokenAllocation;
 

@@ -9,6 +9,7 @@ import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/shared/holder/holder.dart';
 import 'package:wagus/theme/app_palette.dart';
+import 'package:wagus/utils.dart';
 import 'package:wagus/wagus.dart';
 
 class Bank extends HookWidget {
@@ -160,7 +161,7 @@ class Bank extends HookWidget {
                                   ),
                                 ),
                                 Text(
-                                  '${portalState?.tokenAmount.toStringAsFixed(0) ?? 0} \$WAGUS Tokens',
+                                  '${(portalState?.tokenAmount ?? 0).toCompact()} \$WAGUS Tokens',
                                   style: TextStyle(
                                     color: AppPalette.contrastLight,
                                     fontSize: 14,

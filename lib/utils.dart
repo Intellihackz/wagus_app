@@ -23,3 +23,15 @@ extension StringManipulation on String {
       isEmpty ? this : '${this[0].toUpperCase()}${substring(1)}';
   String pluralize(int number) => number == 1 ? this : '${this}s';
 }
+
+extension NumberFormatter on num {
+  String toCompact() {
+    if (this >= 1000000) {
+      return '${(this / 1000000).toStringAsFixed((this % 1000000 == 0) ? 0 : 1)}M';
+    } else if (this >= 1000) {
+      return '${(this / 1000).toStringAsFixed((this % 1000 == 0) ? 0 : 1)}K';
+    } else {
+      return toStringAsFixed(0);
+    }
+  }
+}

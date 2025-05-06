@@ -6,6 +6,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wagus/features/incubator/bloc/incubator_bloc.dart';
+import 'package:wagus/features/incubator/data/incubator_repository.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
 import 'package:date_format/date_format.dart';
@@ -307,11 +308,31 @@ class Incubator extends HookWidget {
                             ),
                             GestureDetector(
                               onTap: () {
+                                if ((project.totalFunded ?? 0) >=
+                                    IncubatorRepository.totalTokenAllocation) {
+                                  return;
+                                }
+
                                 final int? parsedAmount =
                                     int.tryParse(controller.text);
                                 if (parsedAmount != null && parsedAmount > 0) {
                                   final userId =
                                       context.read<PortalBloc>().state.user!.id;
+
+                                  final currentTotal = project.totalFunded ?? 0;
+                                  final maxCap =
+                                      IncubatorRepository.totalTokenAllocation;
+
+                                  if (currentTotal + parsedAmount > maxCap) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'This contribution exceeds the max funding cap.'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                    return;
+                                  }
                                   context
                                       .read<IncubatorBloc>()
                                       .add(IncubatorWithdrawEvent(
