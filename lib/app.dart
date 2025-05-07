@@ -148,8 +148,8 @@ class App extends HookWidget {
                                 children: [
                                   child!,
                                   Visibility(
-                                    visible: !(snapshot.data != login ||
-                                        snapshot.data != portal),
+                                    visible: snapshot.data != login &&
+                                        snapshot.data != portal,
                                     child: Positioned(
                                         bottom: yOffset.value,
                                         right: xOffset.value,

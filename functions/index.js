@@ -4,6 +4,8 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { initializeApp } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 import { onRequest } from 'firebase-functions/v2/https';
+import * as admin from 'firebase-admin';
+
 
 
 // Initialize Firebase Admin SDK once
@@ -100,6 +102,7 @@ export const pickGiveawayWinner = onSchedule(
             status: 'ended',
             winner: winner || 'No winner',
             hasSent: false,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(), // ✅ required
           });
 
           // Inject the /send message if there is a winner
@@ -173,6 +176,7 @@ export const runGiveawayWinnerNow = onRequest(async (req, res) => {
           status: 'ended',
           winner: winner || 'No winner',
           hasSent: false,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(), // ✅ required
         });
 
         const message = {

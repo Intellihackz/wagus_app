@@ -25,10 +25,11 @@ class HomeRepository {
         .snapshots();
   }
 
-  Stream<QuerySnapshot> listenToActiveGiveaways() {
+  Stream<QuerySnapshot> listenToActiveGiveaways(String hostWallet) {
     return FirebaseFirestore.instance
         .collection('giveaways')
-        .where('status', isEqualTo: 'ended')
+        .where('host', isEqualTo: hostWallet)
+        .where('status', whereIn: ['started', 'ended']) // ✅
         .snapshots();
   }
 
