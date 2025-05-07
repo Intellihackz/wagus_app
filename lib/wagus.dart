@@ -6,9 +6,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wagus/features/ai/ai_tools.dart';
-import 'package:wagus/features/bank/bank.dart';
-import 'package:wagus/features/bank/bloc/bank_bloc.dart';
 import 'package:wagus/features/games/game.dart';
+import 'package:wagus/features/home/bloc/home_bloc.dart';
 import 'package:wagus/features/home/home.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/incubator/incubator.dart';
@@ -70,21 +69,42 @@ class Wagus extends HookWidget {
                     Positioned.fill(
                       child: Align(
                         alignment: Alignment.topRight,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(left: 16.0),
-                              child: Text(
-                                'Holders: ${state.holdersCount}',
-                                style: TextStyle(
-                                    color: context.appColors.contrastLight,
-                                    fontSize: 12),
+                        child: SizedBox(
+                          height: 50,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(left: 16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'Holders: ${state.holdersCount}',
+                                      style: TextStyle(
+                                          color:
+                                              context.appColors.contrastLight,
+                                          fontSize: 12),
+                                    ),
+                                    BlocSelector<HomeBloc, HomeState, int>(
+                                      selector: (state) {
+                                        return state.activeUsersCount;
+                                      },
+                                      builder: (context, userCount) {
+                                        return Text(
+                                          'Active Online: $userCount',
+                                          style: TextStyle(
+                                              color: context
+                                                  .appColors.contrastLight,
+                                              fontSize: 12),
+                                        );
+                                      },
+                                    )
+                                  ],
+                                ),
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(right: 16.0),
-                              child: TextButton(
+                              IconButton(
                                 onPressed: () async {
                                   final result =
                                       await PrivyService().logout(context);
@@ -93,57 +113,18 @@ class Wagus extends HookWidget {
                                     context.go(login);
                                   }
                                 },
-                                child: Text(
-                                  'Disconnect',
-                                  style: TextStyle(
-                                      color: context.appColors.contrastLight,
-                                      fontSize: 12),
+                                icon: Icon(
+                                  Icons.logout,
+                                  color: context.appColors.contrastLight,
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
-                floatingActionButton: Transform.translate(
-                  offset: const Offset(0, -5),
-                  child: FloatingActionButton(
-                    mini: true,
-                    backgroundColor: context.appColors.contrastLight,
-                    onPressed: () async {
-                      final portalBloc = BlocProvider.of<PortalBloc>(
-                          mainContext,
-                          listen: false);
-                      final bankBloc =
-                          BlocProvider.of<BankBloc>(mainContext, listen: false);
-                      await showModalBottomSheet(
-                        backgroundColor: context.appColors.contrastDark,
-                        isScrollControlled: true,
-                        context: mainContext,
-                        builder: (_) => BlocProvider<PortalBloc>.value(
-                          value: portalBloc,
-                          child: BlocProvider<BankBloc>.value(
-                            value: bankBloc,
-                            child: Bank(),
-                          ),
-                        ),
-                      ).whenComplete(() {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                        }
-                      });
-                    },
-                    child: Image.asset(
-                      'assets/icons/logo.png',
-                      height: 32,
-                      width: 32,
-                    ),
-                  ),
-                ),
-                floatingActionButtonLocation:
-                    FloatingActionButtonLocation.centerDocked,
                 bottomNavigationBar: Theme(
                   data: Theme.of(context).copyWith(
                     splashColor: Colors.transparent,

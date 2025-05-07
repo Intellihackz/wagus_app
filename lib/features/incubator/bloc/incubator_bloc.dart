@@ -1,17 +1,22 @@
 import 'dart:io';
 import 'package:bloc/bloc.dart';
 import 'package:meta/meta.dart';
+import 'package:wagus/features/home/data/home_repository.dart';
+import 'package:wagus/features/home/domain/message.dart';
 import 'package:wagus/features/incubator/data/incubator_repository.dart';
 import 'package:wagus/features/incubator/domain/project.dart';
 import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_wallet.dart';
+import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 
 part 'incubator_event.dart';
 part 'incubator_state.dart';
 
 class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
   final IncubatorRepository incubatorRepository;
+  final HomeRepository homeRepository;
 
-  IncubatorBloc({required this.incubatorRepository})
+  IncubatorBloc(
+      {required this.incubatorRepository, required this.homeRepository})
       : super(IncubatorState(
           status: IncubatorSubmissionStatus.initial,
           projects: [],
@@ -203,6 +208,19 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
           transactionStatus: IncubatorTransactionStatus.success,
           projects: updatedProjects,
         ));
+
+        final project = updatedProjects
+            .firstWhere((project) => project.id == event.projectId);
+
+        final message = Message(
+          text:
+              '[FUND] ${event.wallet.address} funded ${event.amount} \$WAGUS to project "${project.name}" 🚀',
+          sender: 'System',
+          tier: TierStatus.system,
+          room: 'General',
+        );
+
+        await homeRepository.sendMessage(message);
       } catch (e) {
         print('Error withdrawing to project: $e');
         emit(state.copyWith(

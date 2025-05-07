@@ -4,6 +4,9 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:wagus/features/games/bloc/game_bloc.dart';
 import 'package:wagus/features/games/data/game_repository.dart';
 import 'package:wagus/features/games/domain/spygus_game_data.dart';
+import 'package:wagus/features/home/data/home_repository.dart';
+import 'package:wagus/features/home/domain/message.dart';
+import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/services/user_service.dart';
 import 'package:wagus/theme/app_palette.dart';
 
@@ -125,6 +128,19 @@ class Spygus extends HookWidget {
             await context
                 .read<GameRepository>()
                 .claimSpygusReward(walletAddress);
+
+            final user = context.read<PortalBloc>().state.user;
+            final homeRepo = context.read<HomeRepository>();
+
+            final message = Message(
+              text:
+                  '[SPYGUS] walletAddress found the hidden symbol and won \$0.10 SOL 👀🎉',
+              sender: 'System',
+              tier: TierStatus.system,
+              room: 'General',
+            );
+
+            await homeRepo.sendMessage(message);
           }
         } catch (e) {
           debugPrint('Spygus claim failed: $e');

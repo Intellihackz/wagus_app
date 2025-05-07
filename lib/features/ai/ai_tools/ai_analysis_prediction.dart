@@ -41,8 +41,10 @@ class AIAnalysisPrediction extends HookWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 64.0),
                       child: Center(
-                        child: SizedBox(
-                          height: 280,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxHeight: 400,
+                          ),
                           child:
                               BlocSelector<PortalBloc, PortalState, TierStatus>(
                             selector: (state) {
@@ -73,6 +75,8 @@ class AIAnalysisPrediction extends HookWidget {
                                         SupportedCryptoPredictions.lux,
                                         SupportedCryptoPredictions.snai,
                                         SupportedCryptoPredictions.collat,
+                                        SupportedCryptoPredictions.gork,
+                                        SupportedCryptoPredictions.pumpswap,
                                       ],
                                     ),
                                 ],
@@ -84,7 +88,7 @@ class AIAnalysisPrediction extends HookWidget {
                     ),
                     const SizedBox(height: 8),
                     Icon(Icons.swipe,
-                        color: Colors.white24,
+                        color: context.appColors.contrastLight,
                         size: 18), // subtle swipe indicator
                     const SizedBox(height: 12),
                     // prediction result
@@ -102,7 +106,11 @@ class AIAnalysisPrediction extends HookWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: state.predictionState ==
                                       AIAnalysisPredictionState.loading
-                                  ? [CircularProgressIndicator()]
+                                  ? [
+                                      SizedBox(height: 100),
+                                      CircularProgressIndicator(
+                                          color: Colors.white),
+                                    ]
                                   : [Text(state.response)],
                             ),
                           ),

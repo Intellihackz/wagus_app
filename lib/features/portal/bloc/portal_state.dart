@@ -40,8 +40,9 @@ class PortalState extends Equatable {
 enum TierStatus {
   basic("Basic", Colors.yellow),
   adventurer("Adventurer", Colors.red),
-  elite("Elite", Colors.cyan),
+  elite("Elite", Colors.green),
   creator("Creator", Colors.purple),
+  system("System", Colors.cyan),
   none("", Colors.transparent);
 
   final String name;

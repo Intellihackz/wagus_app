@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/quest/data/quest_repository.dart';
 import 'package:wagus/services/user_service.dart';
 
@@ -33,6 +34,7 @@ class QuestBloc extends Bloc<QuestEvent, QuestState> {
         await questRepository.claimReward(
           userWallet: event.userWalletAddress,
           day: event.day,
+          tier: event.tier,
         );
 
         // Fetch updated claimed days

@@ -13,6 +13,7 @@ import 'package:wagus/features/home/domain/chat_command.dart';
 import 'package:wagus/features/home/domain/chat_command_parser.dart';
 import 'package:wagus/features/home/domain/message.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
+import 'package:wagus/services/user_service.dart';
 
 part 'home_event.dart';
 part 'home_state.dart';
@@ -22,35 +23,66 @@ StreamSubscription? giveawaySub;
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
   StreamSubscription? roomSub;
 
-  void watchGiveaways(String currentUserWallet, EmbeddedSolanaWallet wallet,
-      String mint, BankRepository bank) {
-    giveawaySub?.cancel(); // cleanup old one if exists
+  final Set<String> announcedGiveawayIds = {};
+
+  void watchGiveaways(
+    String currentUserWallet,
+    EmbeddedSolanaWallet wallet,
+    String mint,
+    BankRepository bank,
+  ) {
+    giveawaySub?.cancel(); // Clean up previous subscription
 
     giveawaySub = homeRepository.listenToActiveGiveaways().listen((snapshot) {
       for (final doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
+        final id = doc.id;
 
         final winner = data['winner'];
         final hasSent = data['hasSent'] ?? false;
         final amount = data['amount'];
-        final id = doc.id;
-        log('🔍 Giveaway check: host=${data['host']} winner=$winner hasSent=$hasSent wallet=$currentUserWallet');
 
-        if (!hasSent && winner != null && currentUserWallet == data['host']) {
-          log('🎯 Sending giveaway $id to winner=$winner for $amount \$BUCKAZOIDS');
+        if (!hasSent &&
+            winner != null &&
+            currentUserWallet == data['host'] &&
+            announcedGiveawayIds.add(id)) {
+          log('🧪 Checking giveaway $id for possible reward...');
 
-          bank
-              .withdrawFunds(
-            wallet: wallet,
-            destinationAddress: winner, // ✅ SEND TO WINNER
-            amount: amount,
-            wagusMint: mint,
-          )
-              .then((_) async {
-            await doc.reference.update({'hasSent': true});
-            log('✅ Giveaway reward sent and marked for $id');
+          FirebaseFirestore.instance.runTransaction((transaction) async {
+            final freshDoc = await transaction.get(doc.reference);
+            final freshData = freshDoc.data() as Map<String, dynamic>;
+
+            final alreadySent = freshData['hasSent'] ?? false;
+            final freshWinner = freshData['winner'];
+            final freshAmount = freshData['amount'];
+
+            if (!alreadySent && freshWinner != null) {
+              log('🎯 Running reward for giveaway $id to $freshWinner...');
+
+              await bank.withdrawFunds(
+                wallet: wallet,
+                destinationAddress: freshWinner,
+                amount: freshAmount,
+                wagusMint: mint,
+              );
+
+              transaction.update(doc.reference, {'hasSent': true});
+              log('✅ Giveaway reward sent and marked for $id in transaction');
+
+              final message = Message(
+                text:
+                    '[GIVEAWAY] 🎉 Giveaway for $freshAmount \$BUCKAZOIDS has ended! Winner: ${freshWinner.substring(0, 4)}...${freshWinner.substring(freshWinner.length - 4)}',
+                sender: 'System',
+                tier: TierStatus.system,
+                room: 'General',
+              );
+
+              add(HomeSendMessageEvent(message: message));
+            } else {
+              log('⚠️ Giveaway $id already processed or missing winner.');
+            }
           }).catchError((e) {
-            log('❌ Failed to send giveaway reward for $id: $e');
+            log('❌ Transaction failed for giveaway $id: $e');
           });
         }
       }
@@ -80,7 +112,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
                         ? msg['room']
                         : 'General',
                     tier: TierStatus.values.firstWhere(
-                      (t) => t.name == (msg['tier'] ?? 'Basic'),
+                      (t) => t.name == (msg['tier'] ?? 'basic'),
                       orElse: () => TierStatus.basic,
                     ),
                   ))
@@ -97,6 +129,19 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       ));
     });
 
+    on<HomeWatchOnlineUsersEvent>((event, emit) async {
+      await emit.forEach(UserService.onlineUsersCollection, onData: (data) {
+        final onlineUsers = data.docs
+            .map((doc) => doc.data())
+            .toList()
+            .cast<Map<String, dynamic>>()
+            .map((user) => user['wallet'] as String)
+            .toList();
+
+        return state.copyWith(activeUsersCount: onlineUsers.length);
+      });
+    });
+
     FutureOr<Message> buildCommandPreview(
         ChatCommand cmd, Message original) async {
       switch (cmd.action.toLowerCase()) {
@@ -107,6 +152,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             text:
                 '[SEND] ${original.sender} has sent $amount \$WAGUS to $target 📨',
             sender: 'System',
+            tier: TierStatus.system,
           );
 
         case '/giveaway':
@@ -114,6 +160,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             return original.copyWith(
               text: '[GIVEAWAY] Only Adventurer tier can start giveaways.',
               sender: 'System',
+              tier: TierStatus.system,
             );
           }
 
@@ -123,6 +170,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             return original.copyWith(
               text: '[GIVEAWAY] Invalid giveaway parameters.',
               sender: 'System',
+              tier: TierStatus.system,
             );
           }
           final duration = int.tryParse(cmd.flags['1-60'] ?? "") ?? 60;
@@ -147,6 +195,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             text:
                 '[GIVEAWAY] ${original.sender} is giving away $amount \$BUCKAZOIDS\nType "$keyword" to enter. Ends in $duration seconds ⏳',
             sender: 'System',
+            tier: TierStatus.system,
           );
 
         case '/flex':
@@ -154,12 +203,14 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             text:
                 '[FLEX] ${original.sender} has ${original.solBalance} SOL and ${original.wagBalance} \$WAGUS 💼',
             sender: 'System',
+            tier: TierStatus.system,
           );
 
         default:
           return original.copyWith(
             text: 'Unknown command: ${cmd.action}',
             sender: 'System',
+            tier: TierStatus.system,
           );
       }
     }

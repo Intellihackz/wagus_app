@@ -114,6 +114,7 @@ class ProjectInterface extends HookWidget {
                   spacing: 16,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    const SizedBox(height: 16),
                     Align(
                         alignment: Alignment.centerLeft,
                         child:

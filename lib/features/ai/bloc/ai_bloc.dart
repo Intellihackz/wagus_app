@@ -22,32 +22,24 @@ class AiBloc extends Bloc<AiEvent, AiState> {
         predictionState: AIAnalysisPredictionState.loading,
       ));
 
-      // Check for meme coins
-      final isMemeCoin = [
+      // Try to fetch price first (for meme coins or anything we support later)
+      double? price;
+      if ([
         SupportedCryptoPredictions.buckazoids,
         SupportedCryptoPredictions.lux,
         SupportedCryptoPredictions.snai,
         SupportedCryptoPredictions.collat,
-      ].contains(event.selectedCrypto);
-
-      if (isMemeCoin) {
+        SupportedCryptoPredictions.gork,
+        SupportedCryptoPredictions.pumpswap,
+      ].contains(event.selectedCrypto)) {
         final mint = _getMemeCoinMint(event.selectedCrypto);
-        final price = await repository.getMemeCoinPrice(mint);
-
-        if (price != null) {
-          emit(state.copyWith(
-            response:
-                'Current price of ${event.selectedCrypto.name.toUpperCase()}: \$${price.toStringAsFixed(6)}',
-            predictionType: PredictionType.none,
-            predictionState: AIAnalysisPredictionState.success,
-          ));
-          return;
-        }
+        price = await repository.getMemeCoinPrice(mint);
       }
 
-      // Default to AI prediction
+      // Ask the AI using price as context
       final prediction = await repository.makeLongOrShortPrediction(
         selectedCrypto: event.selectedCrypto,
+        price: price,
       );
 
       if (prediction != null) {
@@ -55,6 +47,12 @@ class AiBloc extends Bloc<AiEvent, AiState> {
           response: prediction.$1,
           predictionType: prediction.$2,
           predictionState: AIAnalysisPredictionState.success,
+        ));
+      } else {
+        emit(state.copyWith(
+          response: '⚠️ Failed to generate prediction.',
+          predictionType: PredictionType.none,
+          predictionState: AIAnalysisPredictionState.failure,
         ));
       }
     });

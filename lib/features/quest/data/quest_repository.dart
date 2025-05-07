@@ -1,12 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:wagus/features/home/data/home_repository.dart';
+import 'package:wagus/features/home/domain/message.dart';
+import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 
 class QuestRepository {
   final CollectionReference usersCollection =
       FirebaseFirestore.instance.collection('users');
 
   final Dio _dio = Dio();
+  final HomeRepository _homeRepository;
+
+  QuestRepository(this._homeRepository);
 
   Future<void> updateLogin(String wallet) async {
     await usersCollection.doc(wallet).set({
@@ -30,7 +36,7 @@ class QuestRepository {
     final userData = userDoc.data();
     final lastClaimed = (userData?['last_claimed'] as Timestamp?)?.toDate();
 
-    if (lastClaimed == null) return true; // No claims yet
+    if (lastClaimed == null) return true;
 
     await FirebaseFirestore.instance.collection('serverTime').doc('now').set(
         {'timestamp': FieldValue.serverTimestamp()}, SetOptions(merge: true));
@@ -52,40 +58,35 @@ class QuestRepository {
     final currentDate =
         DateTime(serverNow.year, serverNow.month, serverNow.day);
 
-    return lastClaimedDate
-        .isBefore(currentDate); // Allow claim if it's a new day
+    return lastClaimedDate.isBefore(currentDate);
   }
 
   Future<void> claimReward({
     required String userWallet,
     required int day,
+    required TierStatus tier, // Inject from PortalBloc
   }) async {
     try {
-      // Fetch user data from server
       final userDoc = await getUser(userWallet);
       final userData = userDoc.data();
       final claimedDays = List<int>.from(userData?['claimed_days'] ?? []);
 
-      // Check if reward is already claimed
       if (claimedDays.contains(day)) {
         throw Exception('Reward already claimed for Day $day');
       }
 
-      // Check sequential claiming
       final expectedDay = claimedDays.length + 1;
       if (day != expectedDay) {
         throw Exception('You must claim in order! (Next up: Day $expectedDay)');
       }
 
-      // Check if user can claim today
       final canClaim = await canClaimToday(userWallet);
       if (!canClaim) {
         throw Exception('You can only claim one reward per day!');
       }
 
-      // Call Node.js server to send SOL
       final response = await _dio.post(
-        'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com/claim', // Update to real server IP
+        'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com/claim',
         data: {
           'userWallet': userWallet,
           'day': day,
@@ -97,12 +98,19 @@ class QuestRepository {
       );
 
       if (response.statusCode == 200) {
-        // Update Firestore with claimed day and last_claimed timestamp
         await usersCollection.doc(userWallet).set({
           'claimed_days': FieldValue.arrayUnion([day]),
           'last_claimed': FieldValue.serverTimestamp(),
           'last_login': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
+
+        // ✅ Send chat message
+        await _homeRepository.sendMessage(Message(
+          text: 'claimed their Day $day reward! 🎁',
+          sender: userWallet,
+          tier: TierStatus.system,
+          room: 'General',
+        ));
       } else {
         throw Exception('Claim server returned error: ${response.data}');
       }

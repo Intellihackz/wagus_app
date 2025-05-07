@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:wagus/features/bank/data/bank_repository.dart';
 import 'package:wagus/features/home/bloc/home_bloc.dart';
 import 'package:wagus/features/home/domain/chat_command_parser.dart';
 import 'package:wagus/features/home/domain/message.dart';
+import 'package:wagus/features/home/widgets/upgrade_dialog.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/theme/app_palette.dart';
 
@@ -107,24 +109,35 @@ class Home extends HookWidget {
                               itemBuilder: (context, index) {
                                 final message = filteredMessages[index];
 
+                                String getTierPrefix(TierStatus tier) {
+                                  if (tier == TierStatus.adventurer)
+                                    return '[A]';
+                                  if (tier == TierStatus.creator) return '[C]';
+
+                                  if (tier == TierStatus.system) return '[S]';
+                                  return '[B]';
+                                }
+
+                                String getDisplaySender(Message msg) {
+                                  if (msg.tier == TierStatus.system)
+                                    return '[System]';
+                                  return '${getTierPrefix(msg.tier)}[${msg.sender.substring(0, 3)}..${msg.sender.substring(msg.sender.length - 3)}]';
+                                }
+
                                 Color getTierColor(TierStatus tier) {
                                   switch (tier) {
                                     case TierStatus.adventurer:
                                       return Colors.red;
                                     case TierStatus.creator:
                                       return Colors.purple;
+                                    case TierStatus.system:
+                                      return Colors.cyan;
+                                    case TierStatus.elite:
+                                      return Colors.green;
                                     case TierStatus.basic:
                                     case TierStatus.none:
-                                    default:
                                       return Colors.yellow;
                                   }
-                                }
-
-                                String getTierPrefix(TierStatus tier) {
-                                  if (tier == TierStatus.adventurer)
-                                    return '[A]';
-                                  if (tier == TierStatus.creator) return '[C]';
-                                  return '[B]';
                                 }
 
                                 return Padding(
@@ -206,11 +219,22 @@ class Home extends HookWidget {
                                                       );
                                                     },
                                                     child: Text(
-                                                      '${getTierPrefix(message.tier)}[${message.sender.substring(0, 3)}..${message.sender.substring(message.sender.length - 3)}] ',
+                                                      getDisplaySender(message),
                                                       style: TextStyle(
-                                                        color: getTierColor(
-                                                            message.tier),
+                                                        color: message.tier ==
+                                                                TierStatus
+                                                                    .system
+                                                            ? Colors
+                                                                .lightBlueAccent
+                                                            : getTierColor(
+                                                                message.tier),
                                                         fontSize: 12,
+                                                        fontWeight: message
+                                                                    .tier ==
+                                                                TierStatus
+                                                                    .system
+                                                            ? FontWeight.w600
+                                                            : FontWeight.normal,
                                                       ),
                                                     ),
                                                   ),
@@ -258,12 +282,20 @@ class Home extends HookWidget {
                                       fontSize: 10,
                                       color: Colors.white,
                                     ),
+                                    cursorColor:
+                                        context.appColors.contrastLight,
                                     decoration: InputDecoration(
                                       filled: true,
                                       fillColor: Colors.black,
                                       border: OutlineInputBorder(
-                                        borderSide:
-                                            BorderSide(color: Colors.white),
+                                        borderSide: BorderSide(
+                                            color: context
+                                                .appColors.contrastLight),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            color: context
+                                                .appColors.contrastLight),
                                       ),
                                       hintText: 'Type your message...',
                                       hintStyle: TextStyle(
@@ -298,17 +330,128 @@ class Home extends HookWidget {
                                     return;
                                   }
 
-                                  // Inside your onTap handler for SEND:
                                   if (text.isNotEmpty) {
                                     final user =
                                         context.read<PortalBloc>().state.user;
                                     final wallet =
                                         user?.embeddedSolanaWallets.first;
+
+                                    if (wallet == null) return;
+
+                                    final parsed =
+                                        ChatCommandParser.parse(text);
+
+                                    // Handle /upgrade
+                                    if (parsed?.action == '/upgrade') {
+                                      if (tier == TierStatus.adventurer) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                              content: Text(
+                                                  'You are already an Adventurer 🧙‍♂️')),
+                                        );
+                                        inputController.clear();
+                                        FocusScope.of(context).unfocus();
+                                        return;
+                                      }
+
+                                      inputController.clear();
+                                      FocusScope.of(context).unfocus();
+
+                                      showDialog(
+                                        context: context,
+                                        builder: (_) => UpgradeDialog(
+                                          wallet: wallet,
+                                          mint: context
+                                              .read<PortalBloc>()
+                                              .state
+                                              .currentTokenAddress,
+                                          onSuccess: () async {
+                                            try {
+                                              final treasuryWallet = dotenv.env[
+                                                  'TREASURY_WALLET_ADDRESS']!;
+                                              final currentTokenAddress =
+                                                  context
+                                                      .read<PortalBloc>()
+                                                      .state
+                                                      .currentTokenAddress;
+
+                                              await context
+                                                  .read<BankRepository>()
+                                                  .withdrawFunds(
+                                                    wallet: wallet,
+                                                    amount: 1000,
+                                                    destinationAddress:
+                                                        treasuryWallet,
+                                                    wagusMint:
+                                                        currentTokenAddress,
+                                                  );
+
+                                              context.read<PortalBloc>().add(
+                                                    PortalUpdateTierEvent(
+                                                        TierStatus.adventurer,
+                                                        wallet.address),
+                                                  );
+
+                                              final systemMsg = Message(
+                                                text:
+                                                    '[UPGRADE] You’ve been upgraded to Adventurer 🧙‍♂️',
+                                                sender: 'System',
+                                                tier: TierStatus.system,
+                                                room: selectedRoom.value,
+                                              );
+
+                                              context.read<HomeBloc>().add(
+                                                    HomeSendMessageEvent(
+                                                        message: systemMsg),
+                                                  );
+                                            } catch (e) {
+                                              debugPrint(
+                                                  '[UpgradeDialog] Failed to withdraw funds: $e');
+                                            }
+                                          },
+                                        ),
+                                      );
+
+                                      return;
+                                    }
+
+                                    // Handle /send
+                                    if (parsed?.action == '/send' &&
+                                        parsed!.args.length >= 2) {
+                                      try {
+                                        final amount =
+                                            int.tryParse(parsed.args[0]) ?? 0;
+                                        final recipient = parsed.args[1];
+                                        final mint = context
+                                            .read<PortalBloc>()
+                                            .state
+                                            .currentTokenAddress;
+
+                                        await context
+                                            .read<BankRepository>()
+                                            .withdrawFunds(
+                                              wallet: wallet,
+                                              amount: amount,
+                                              destinationAddress: recipient,
+                                              wagusMint: mint,
+                                            );
+                                      } catch (e) {
+                                        debugPrint(
+                                            '[ChatCommand] Failed to execute /send: $e');
+                                      } finally {
+                                        inputController.clear();
+                                        FocusScope.of(context).unfocus();
+                                      }
+                                      return;
+                                    }
+
+                                    // Send as a regular message
                                     context.read<HomeBloc>().add(
                                           HomeSendMessageEvent(
                                             message: Message(
                                               text: text,
-                                              sender: wallet!.address,
+                                              sender: wallet.address,
                                               tier: tier,
                                               room: selectedRoom.value,
                                               solBalance: context
@@ -325,47 +468,6 @@ class Home extends HookWidget {
                                             ),
                                           ),
                                         );
-
-                                    // Run the background effect AFTER dispatch
-                                    final parsed =
-                                        ChatCommandParser.parse(text);
-                                    if (parsed?.action == '/send' &&
-                                        parsed!.args.length >= 2) {
-                                      try {
-                                        final amount =
-                                            int.tryParse(parsed.args[0]) ?? 0;
-                                        final recipient = parsed.args[1];
-
-                                        final user = context
-                                            .read<PortalBloc>()
-                                            .state
-                                            .user;
-                                        final mint = context
-                                            .read<PortalBloc>()
-                                            .state
-                                            .currentTokenAddress;
-                                        final wallet =
-                                            user?.embeddedSolanaWallets.first;
-
-                                        if (user != null && wallet != null) {
-                                          await context
-                                              .read<BankRepository>()
-                                              .withdrawFunds(
-                                                wallet: wallet,
-                                                amount: amount,
-                                                destinationAddress: recipient,
-                                                wagusMint: mint,
-                                              );
-                                        }
-                                      } catch (e) {
-                                        debugPrint(
-                                            '[ChatCommand] Failed to execute /send: $e');
-                                      } finally {
-                                        // Clear the input field
-                                        inputController.clear();
-                                        FocusScope.of(context).unfocus();
-                                      }
-                                    }
 
                                     inputController.clear();
                                     FocusScope.of(context).unfocus();

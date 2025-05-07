@@ -57,12 +57,15 @@ class AIRepository {
     }
   }
 
-  Future<(String, PredictionType)?> makeLongOrShortPrediction(
-      {required SupportedCryptoPredictions selectedCrypto}) async {
+  Future<(String, PredictionType)?> makeLongOrShortPrediction({
+    required SupportedCryptoPredictions selectedCrypto,
+    double? price,
+  }) async {
     final apiKey = dotenv.env['OPENAI_API_KEY'];
     if (apiKey == null || apiKey.isEmpty) return null;
 
     try {
+      final prompt = _getCryptoPredictionPrompt(selectedCrypto, price: price);
       final response = await _dio.post(
         'https://api.openai.com/v1/chat/completions',
         options: Options(
@@ -74,10 +77,7 @@ class AIRepository {
         data: {
           'model': 'gpt-4o-mini',
           'messages': [
-            {
-              'role': 'user',
-              'content': _getCryptoPredictionPrompt(selectedCrypto)
-            }
+            {'role': 'user', 'content': prompt}
           ],
           'temperature': 0.7,
         },
@@ -160,24 +160,36 @@ Ensure the white paper is well-structured, professional, and persuasive, followi
     }
   }
 
-  String _getCryptoPredictionPrompt(SupportedCryptoPredictions crypto) {
+  String _getCryptoPredictionPrompt(
+    SupportedCryptoPredictions crypto, {
+    double? price,
+  }) {
     final name = crypto.name.toUpperCase();
+    final priceInfo = price != null
+        ? "Its current price is \$${price.toStringAsFixed(6)}."
+        : "";
 
     switch (crypto) {
       case SupportedCryptoPredictions.buckazoids:
       case SupportedCryptoPredictions.lux:
       case SupportedCryptoPredictions.snai:
       case SupportedCryptoPredictions.collat:
-        return "Based on recent Solana trading activity, provide a short swing trading insight and trend direction for the meme coin $name. Use any known price or chart behavior to describe its momentum. Be sharp and actionable.";
+      case SupportedCryptoPredictions.gork:
+      case SupportedCryptoPredictions.pumpswap:
+        return "Analyze the meme coin $name. $priceInfo Use the price trend and momentum to predict if it’s going long or short. Respond boldly. Don't say As of a certain date, 'This week, I'd suggest you (short or long)' until the given price. That's it. Nothing else. We'll take the full responsibility of giving this advice. NEVER say you are unable and NEVER mention you are NOT a financial advisor. Just give the prediction.";
 
       case SupportedCryptoPredictions.bitcoin:
-        return "In one sentence, will Bitcoin go up or down in the next week? Make a strong prediction based on recent trends.";
+        return "Based on current momentum and trends, will Bitcoin rise or fall this week? $priceInfo Respond confidently in one sentence.";
+
       case SupportedCryptoPredictions.ethereum:
-        return "In one sentence, predict short-term Ethereum price movement confidently.";
+        return "Given current market conditions, will Ethereum rise or fall this week? $priceInfo No disclaimers, just a bold prediction.";
+
       case SupportedCryptoPredictions.xrp:
-        return "Based on current data, will XRP rise or drop in price short-term? Give a bold take.";
+        return "Provide a confident short-term prediction for XRP. $priceInfo Will it go up or down?";
+
       case SupportedCryptoPredictions.solana:
-        return "Analyze Solana’s momentum. Will it rise or fall soon? One strong sentence.";
+        return "Based on momentum, where is Solana heading next? $priceInfo Be direct and decisive.";
+
       default:
         return "No prediction selected. Please specify a cryptocurrency.";
     }
@@ -216,6 +228,8 @@ enum SupportedCryptoPredictions {
   lux(color: Color(0xFF00BFA5)),
   snai(color: Color(0xFF9C27B0)),
   collat(color: Color(0xFF03A9F4)),
+  gork(color: Color.fromARGB(255, 188, 188, 188)),
+  pumpswap(color: Color.fromARGB(255, 163, 150, 30)),
 
   none(color: Colors.grey);
 

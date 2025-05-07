@@ -19,8 +19,9 @@ class PortalClearEvent extends PortalEvent {}
 
 class PortalUpdateTierEvent extends PortalEvent {
   final TierStatus tier;
+  final String walletAddress;
 
-  PortalUpdateTierEvent(this.tier);
+  PortalUpdateTierEvent(this.tier, this.walletAddress);
 }
 
 class PortalFetchHoldersCountEvent extends PortalEvent {}

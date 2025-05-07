@@ -273,6 +273,8 @@ class Quest extends HookWidget {
                                                       day: day,
                                                       userWalletAddress:
                                                           userWallet,
+                                                      tier: portalBloc
+                                                          .state.tierStatus,
                                                     ),
                                                   );
                                                 },

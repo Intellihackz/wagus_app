@@ -20,3 +20,7 @@ class HomeSetRoomEvent extends HomeEvent {
   final String room;
   HomeSetRoomEvent(this.room);
 }
+
+class HomeWatchOnlineUsersEvent extends HomeEvent {
+  HomeWatchOnlineUsersEvent();
+}

@@ -2,6 +2,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserService {
   final usersCollection = FirebaseFirestore.instance.collection('users');
+  static final onlineUsersCollection = FirebaseFirestore.instance
+      .collection('users')
+      .where('is_online', isEqualTo: true)
+      .snapshots();
+
+  static Stream<int> getLiveUserCount() {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .where('is_online', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
 
   Future<void> updateUserLogin(String walletAddress) async {
     await usersCollection.doc(walletAddress).set({
@@ -69,5 +81,16 @@ class UserService {
     final today = DateTime(now.year, now.month, now.day);
 
     return lastPlayed.isAtSameMomentAs(today);
+  }
+
+  Future<void> setUserOnline(String walletAddress) async {
+    await usersCollection.doc(walletAddress).set({
+      'is_online': true,
+      'last_active': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> setUserOffline(String walletAddress) async {
+    await usersCollection.doc(walletAddress).update({'is_online': false});
   }
 }

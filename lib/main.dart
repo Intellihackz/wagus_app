@@ -6,9 +6,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:wagus/app.dart';
 import 'package:wagus/config_service.dart';
+import 'package:wagus/lifecycle_handler.dart';
 import 'package:wagus/observer.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/services/privy_service.dart';
+import 'package:wagus/services/user_service.dart';
 import 'package:wagus/update_required_screen.dart';
 
 /// Top-level function to handle background messages
@@ -82,7 +84,16 @@ Future<void> main() async {
   await FirebaseMessaging.instance.subscribeToTopic('global_users');
   print('✅ Subscribed to global_users topic');
 
-  await PrivyService().initialize();
+  final privyUser = await PrivyService().initialize();
+  final wallet = privyUser?.embeddedSolanaWallets.firstOrNull?.address;
+  print('🔑 Wallet address: $wallet');
+
+  if (wallet != null) {
+    WidgetsBinding.instance.addObserver(LifecycleHandler(wallet));
+    await UserService().setUserOnline(wallet);
+  } else {
+    print("⚠️ No wallet found, skipping lifecycle observer.");
+  }
 
   runApp(App(router: appRouter));
 }

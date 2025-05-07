@@ -18,9 +18,10 @@ class QuestInitialEvent extends QuestEvent {
 class QuestClaimDailyRewardEvent extends QuestEvent {
   final int day;
   final String userWalletAddress;
+  final TierStatus tier;
 
   const QuestClaimDailyRewardEvent(
-      {required this.day, required this.userWalletAddress});
+      {required this.day, required this.userWalletAddress, required this.tier});
 
   @override
   List<Object> get props => [day, userWalletAddress];

@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wagus/features/ai/ai_tools/ai_tools.dart';
 import 'package:wagus/features/auth/login_screen.dart';
@@ -16,8 +19,21 @@ const String aiAnalysisPrediction = '/ai-analysis-prediction';
 const String aiWhitePaperGeneration = '/ai-whitepaper';
 const String projectInterface = '/project-interface';
 
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
+final StreamController<String?> locationControler =
+    StreamController<String?>.broadcast();
+
 final GoRouter appRouter = GoRouter(
+  navigatorKey: rootNavigatorKey,
   initialLocation: '',
+  redirect: (_, state) async {
+    final location = state.fullPath;
+
+    locationControler.add(location);
+
+    return null;
+  },
   routes: [
     GoRoute(
       path: '/',

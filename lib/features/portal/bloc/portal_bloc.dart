@@ -216,8 +216,13 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
   }
 
   void _handleUpdateTier(
-      PortalUpdateTierEvent event, Emitter<PortalState> emit) {
-    emit(state.copyWith(tierStatus: event.tier));
+      PortalUpdateTierEvent event, Emitter<PortalState> emit) async {
+    try {
+      await UserService().upgradeTier(event.walletAddress, event.tier.name);
+      emit(state.copyWith(tierStatus: event.tier));
+    } catch (e) {
+      debugPrint('[PortalBloc] Update tier failed: $e');
+    }
   }
 
   Future<void> _handleFetchHoldersCount(

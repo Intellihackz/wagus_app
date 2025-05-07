@@ -4,7 +4,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wagus/features/incubator/bloc/incubator_bloc.dart';
 import 'package:wagus/features/incubator/data/incubator_repository.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
@@ -92,18 +94,31 @@ class Incubator extends HookWidget {
                                 : Colors.grey[800]!,
                             width: 1,
                           ),
+                          boxShadow: [
+                            if (isLiked)
+                              BoxShadow(
+                                color: Colors.greenAccent.withOpacity(0.3),
+                                blurRadius: 12,
+                                spreadRadius: 1,
+                              ),
+                          ],
                         ),
                         child: ExpansionTile(
                           collapsedIconColor: Colors.white,
                           iconColor: Colors.greenAccent,
+                          shape: const RoundedRectangleBorder(
+                            side: BorderSide.none,
+                          ),
                           title: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Flexible(
-                                child: Text(project.name,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white)),
+                                child: Text(
+                                  project.name,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white),
+                                ),
                               ),
                               Row(
                                 children: [
@@ -151,6 +166,132 @@ class Incubator extends HookWidget {
                             Text(project.description,
                                 style: const TextStyle(color: Colors.white70)),
                             const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: [
+                                LinkTile(
+                                    title: 'Website',
+                                    icon: Icons.web,
+                                    onTap: () async {
+                                      if (await canLaunchUrlString(
+                                          project.websiteLink)) {
+                                        await launchUrlString(
+                                          project.websiteLink,
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                                'Could not launch website'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    }),
+                                LinkTile(
+                                    title: 'Socials',
+                                    icon: FontAwesomeIcons.solidCircleUser,
+                                    onTap: () async {
+                                      if (await canLaunchUrlString(
+                                          project.socialsLink)) {
+                                        await launchUrlString(
+                                          project.socialsLink,
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                                'Could not launch socials'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    }),
+                                LinkTile(
+                                    title: 'Telegram',
+                                    icon: FontAwesomeIcons.telegram,
+                                    onTap: () async {
+                                      if (await canLaunchUrlString(
+                                          project.telegramLink)) {
+                                        await launchUrlString(
+                                          project.telegramLink,
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                                'Could not launch telegram'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    }),
+                                LinkTile(
+                                    title: 'GitHub',
+                                    icon: FontAwesomeIcons.github,
+                                    onTap: () async {
+                                      if (await canLaunchUrlString(
+                                          project.gitHubLink)) {
+                                        await launchUrlString(
+                                            project.gitHubLink);
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content:
+                                                Text('Could not launch GitHub'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    }),
+                                LinkTile(
+                                    title: 'Whitepaper',
+                                    icon: FontAwesomeIcons.sheetPlastic,
+                                    onTap: () async {
+                                      if (await canLaunchUrlString(
+                                          project.whitePaperLink)) {
+                                        await launchUrlString(
+                                          project.whitePaperLink,
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                                'Could not launch whitepaper'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    }),
+                                LinkTile(
+                                    title: 'Roadmap',
+                                    icon: FontAwesomeIcons.road,
+                                    onTap: () async {
+                                      if (await canLaunchUrlString(
+                                          project.roadmapLink)) {
+                                        await launchUrlString(
+                                          project.roadmapLink,
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                                'Could not launch roadmap'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    }),
+                              ],
+                            ),
+                            SizedBox(height: 12),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -277,6 +418,7 @@ class Incubator extends HookWidget {
                     );
                   } else {
                     content = TextField(
+                      readOnly: true,
                       controller: controller,
                       keyboardType: TextInputType.number,
                       style: const TextStyle(color: Colors.white),
@@ -391,6 +533,43 @@ class Incubator extends HookWidget {
                 width: 16, height: 16, color: Colors.greenAccent),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class LinkTile extends StatelessWidget {
+  const LinkTile({
+    required this.title,
+    required this.icon,
+    required this.onTap,
+    super.key,
+  });
+
+  final String title;
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      splashColor: Colors.greenAccent.withOpacity(0.2),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.white70),
+          const SizedBox(width: 6),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.white70,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
