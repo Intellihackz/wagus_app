@@ -21,7 +21,7 @@ class UpgradeDialog extends StatefulWidget {
 }
 
 class _UpgradeDialogState extends State<UpgradeDialog> {
-  bool loading = true;
+  bool loading = false;
   bool failed = false;
 
   @override
@@ -56,19 +56,7 @@ class _UpgradeDialogState extends State<UpgradeDialog> {
                           });
 
                           try {
-                            await context.read<BankRepository>().withdrawFunds(
-                                  wallet: widget.wallet,
-                                  amount: 1000,
-                                  destinationAddress:
-                                      'DZuJUNmVxNQwq55wrrrpFeE4PES1cyBv2bxuSqm7UXdj',
-                                  wagusMint: widget.mint,
-                                );
-
-                            await UserService().upgradeTier(
-                                widget.wallet.address, 'adventurer');
-
                             widget.onSuccess();
-                            Navigator.of(context).pop();
                           } catch (e) {
                             setState(() {
                               failed = true;

@@ -252,34 +252,44 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     }
 
     on<HomeSendMessageEvent>((event, emit) async {
-      final parsed = ChatCommandParser.parse(event.message.text);
+      log('[BLOC] HomeSendMessageEvent received: ${event.message.text}');
 
+      final parsed = ChatCommandParser.parse(event.message.text);
       if (parsed != null) {
         final displayMessage = await buildCommandPreview(parsed, event.message);
         await homeRepository.sendMessage(displayMessage);
       } else {
         await homeRepository.sendMessage(event.message);
+      }
 
-        // Check if message is a giveaway entry
-        final now = DateTime.now().millisecondsSinceEpoch;
-        final giveaways = await FirebaseFirestore.instance
-            .collection('giveaways')
-            .where('status', isEqualTo: 'started')
-            .where('endTimestamp', isGreaterThan: now)
-            .get();
+      if (parsed != null) {
+        final displayMessage = await buildCommandPreview(parsed, event.message);
+        await homeRepository.sendMessage(displayMessage);
+        return;
+      }
 
-        for (final doc in giveaways.docs) {
-          final keyword = doc['keyword']?.toString().toLowerCase() ?? '';
-          final text = event.message.text.trim().toLowerCase();
-          final sender = event.message.sender;
+      // Regular user message
+      await homeRepository.sendMessage(event.message);
 
-          if (text == keyword) {
-            final participants = List<String>.from(doc['participants'] ?? []);
-            if (!participants.contains(sender)) {
-              participants.add(sender);
-              await doc.reference.update({'participants': participants});
-              log('[Giveaway] $sender entered with keyword "$keyword"');
-            }
+      // Check if message matches giveaway keyword
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final giveaways = await FirebaseFirestore.instance
+          .collection('giveaways')
+          .where('status', isEqualTo: 'started')
+          .where('endTimestamp', isGreaterThan: now)
+          .get();
+
+      for (final doc in giveaways.docs) {
+        final keyword = doc['keyword']?.toString().toLowerCase() ?? '';
+        final text = event.message.text.trim().toLowerCase();
+        final sender = event.message.sender;
+
+        if (text == keyword) {
+          final participants = List<String>.from(doc['participants'] ?? []);
+          if (!participants.contains(sender)) {
+            participants.add(sender);
+            await doc.reference.update({'participants': participants});
+            log('[Giveaway] $sender entered with keyword "$keyword"');
           }
         }
       }

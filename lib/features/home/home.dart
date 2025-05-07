@@ -362,56 +362,90 @@ class Home extends HookWidget {
                                       showDialog(
                                         context: context,
                                         builder: (_) => UpgradeDialog(
-                                          wallet: wallet,
-                                          mint: context
-                                              .read<PortalBloc>()
-                                              .state
-                                              .currentTokenAddress,
-                                          onSuccess: () async {
-                                            try {
-                                              final treasuryWallet = dotenv.env[
-                                                  'TREASURY_WALLET_ADDRESS']!;
-                                              final currentTokenAddress =
-                                                  context
-                                                      .read<PortalBloc>()
-                                                      .state
-                                                      .currentTokenAddress;
+                                            wallet: wallet,
+                                            mint: context
+                                                .read<PortalBloc>()
+                                                .state
+                                                .currentTokenAddress,
+                                            onSuccess: () async {
+                                              try {
+                                                print(
+                                                    '[UpgradeDialog] onSuccess started');
 
-                                              await context
-                                                  .read<BankRepository>()
-                                                  .withdrawFunds(
-                                                    wallet: wallet,
-                                                    amount: 1000,
-                                                    destinationAddress:
-                                                        treasuryWallet,
-                                                    wagusMint:
-                                                        currentTokenAddress,
-                                                  );
+                                                final treasuryWallet = dotenv
+                                                        .env[
+                                                    'TREASURY_WALLET_ADDRESS'];
+                                                if (treasuryWallet == null) {
+                                                  print(
+                                                      '[UpgradeDialog] ERROR: TREASURY_WALLET_ADDRESS is null');
+                                                  return;
+                                                }
 
-                                              context.read<PortalBloc>().add(
-                                                    PortalUpdateTierEvent(
-                                                        TierStatus.adventurer,
-                                                        wallet.address),
-                                                  );
+                                                final currentTokenAddress =
+                                                    context
+                                                        .read<PortalBloc>()
+                                                        .state
+                                                        .currentTokenAddress;
+                                                final wallet = context
+                                                    .read<PortalBloc>()
+                                                    .state
+                                                    .user
+                                                    ?.embeddedSolanaWallets
+                                                    .first;
 
-                                              final systemMsg = Message(
-                                                text:
-                                                    '[UPGRADE] You’ve been upgraded to Adventurer 🧙‍♂️',
-                                                sender: 'System',
-                                                tier: TierStatus.system,
-                                                room: selectedRoom.value,
-                                              );
+                                                if (wallet == null) {
+                                                  print(
+                                                      '[UpgradeDialog] ERROR: Wallet is null');
+                                                  return;
+                                                }
 
-                                              context.read<HomeBloc>().add(
+                                                await context
+                                                    .read<BankRepository>()
+                                                    .withdrawFunds(
+                                                      wallet: wallet,
+                                                      amount: 1000,
+                                                      destinationAddress:
+                                                          treasuryWallet,
+                                                      wagusMint:
+                                                          currentTokenAddress,
+                                                    );
+                                                final systemMsg = Message(
+                                                  text:
+                                                      '[UPGRADE] You’ve been upgraded to Adventurer 🧙‍♂️',
+                                                  sender: 'System',
+                                                  tier: TierStatus.system,
+                                                  room: 'General',
+                                                );
+
+                                                print(
+                                                    'the system message: $systemMsg');
+
+                                                context.read<HomeBloc>().add(
                                                     HomeSendMessageEvent(
-                                                        message: systemMsg),
-                                                  );
-                                            } catch (e) {
-                                              debugPrint(
-                                                  '[UpgradeDialog] Failed to withdraw funds: $e');
-                                            }
-                                          },
-                                        ),
+                                                        message: systemMsg));
+
+                                                print(
+                                                    '[UpgradeDialog] Withdrawal complete');
+
+                                                context.read<PortalBloc>().add(
+                                                      PortalUpdateTierEvent(
+                                                          TierStatus.adventurer,
+                                                          wallet.address),
+                                                    );
+
+                                                print(
+                                                    '[UpgradeDialog] Tier updated');
+
+                                                print(
+                                                    '[UpgradeDialog] System message dispatched');
+                                              } catch (e, st) {
+                                                print(
+                                                    '[UpgradeDialog] CRASH: $e');
+                                                print(st);
+                                              } finally {
+                                                Navigator.of(context).pop();
+                                              }
+                                            }),
                                       );
 
                                       return;
@@ -420,6 +454,9 @@ class Home extends HookWidget {
                                     // Handle /send
                                     if (parsed?.action == '/send' &&
                                         parsed!.args.length >= 2) {
+                                      inputController.clear();
+                                      FocusScope.of(context).unfocus();
+
                                       try {
                                         final amount =
                                             int.tryParse(parsed.args[0]) ?? 0;
@@ -428,6 +465,18 @@ class Home extends HookWidget {
                                             .read<PortalBloc>()
                                             .state
                                             .currentTokenAddress;
+
+                                        context.read<HomeBloc>().add(
+                                              HomeSendMessageEvent(
+                                                message: Message(
+                                                  text:
+                                                      '[SEND] ${wallet.address} has sent $amount \$WAGUS to $recipient 📨',
+                                                  sender: 'System',
+                                                  tier: TierStatus.system,
+                                                  room: selectedRoom.value,
+                                                ),
+                                              ),
+                                            );
 
                                         await context
                                             .read<BankRepository>()
@@ -440,9 +489,6 @@ class Home extends HookWidget {
                                       } catch (e) {
                                         debugPrint(
                                             '[ChatCommand] Failed to execute /send: $e');
-                                      } finally {
-                                        inputController.clear();
-                                        FocusScope.of(context).unfocus();
                                       }
                                       return;
                                     }
