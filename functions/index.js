@@ -106,12 +106,24 @@ export const pickGiveawayWinner = onSchedule(
 
           await doc.ref.update({
             status: 'ended',
-            winner: winner || 'No winner',
+            winner: winner ?? 'No winner',
             hasSent: false,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(), // ✅ required
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           });
 
-          // Send push notification
+          if (winner) {
+            await db.collection('chat').add({
+              message: `/send ${amount} ${winner}`,
+              sender: host,
+              tier: 'adventurer',
+              room: 'General',
+              timestamp: Date.now(),
+            });
+            console.log(`💸 Injected /send ${amount} to ${winner}`);
+          }
+
+          console.log(`✅ Giveaway ended: ${doc.id}, winner: ${winner ?? 'none'}`);
+
           const message = {
             topic: 'global_users',
             notification: {
@@ -135,7 +147,6 @@ export const pickGiveawayWinner = onSchedule(
       }
     } catch (outerErr) {
       console.error('🔥 Error running pickGiveawayWinner:', outerErr);
-      throw outerErr;
     }
   }
 );
@@ -166,12 +177,29 @@ export const runGiveawayWinnerNow = onRequest(async (req, res) => {
           ? participants[Math.floor(Math.random() * participants.length)]
           : null;
 
-        await doc.ref.update({
-          status: 'ended',
-          winner: winner || 'No winner',
-          hasSent: false,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(), // ✅ required
-        });
+        try {
+  await doc.ref.update({
+    status: 'ended',
+    winner: winner ?? 'No winner',
+    hasSent: false,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  if (winner) {
+  await db.collection('chat').add({
+    message: `/send ${amount} ${winner}`,
+    sender: host,
+    tier: 'adventurer',
+    room: 'General',
+    timestamp: Date.now(),
+  });
+  console.log(`💸 Injected /send ${amount} to ${winner}`);
+}
+
+  console.log(`✅ Giveaway ended: ${doc.id}, winner: ${winner ?? 'none'}`);
+} catch (err) {
+  console.error(`❌ Failed to end giveaway ${doc.id}`, data, err);
+}
+
 
         const message = {
           topic: 'global_users',
