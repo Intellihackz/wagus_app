@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:privy_flutter/privy_flutter.dart';
+import 'package:wagus/services/privy_service.dart';
 
 void useAsyncEffect({
   required FutureOr<dynamic> Function() effect,
@@ -34,4 +36,9 @@ extension NumberFormatter on num {
       return toStringAsFixed(0);
     }
   }
+}
+
+Future<EmbeddedSolanaWallet?> getActiveWallet() async {
+  final user = await PrivyService().initialize();
+  return user?.embeddedSolanaWallets.firstOrNull;
 }

@@ -6,6 +6,12 @@ import { getMessaging } from 'firebase-admin/messaging';
 import { onRequest } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
 
+// Return the server timestamp
+export const getServerTime = onRequest(async (req, res) => {
+  res.json({ now: Date.now() });
+});
+
+
 
 
 // Initialize Firebase Admin SDK once
@@ -104,18 +110,6 @@ export const pickGiveawayWinner = onSchedule(
             hasSent: false,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(), // ✅ required
           });
-
-          // Inject the /send message if there is a winner
-          if (winner) {
-            await db.collection('chat').add({
-              message: `/send ${amount} ${winner}`,
-              sender: host,
-              tier: 'adventurer',
-              room: 'General',
-              timestamp: Date.now(),
-            });
-            console.log(`💸 Injected /send ${amount} to ${winner}`);
-          }
 
           // Send push notification
           const message = {

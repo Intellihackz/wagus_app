@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,7 +9,9 @@ import 'package:wagus/features/home/domain/chat_command_parser.dart';
 import 'package:wagus/features/home/domain/message.dart';
 import 'package:wagus/features/home/widgets/upgrade_dialog.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
+import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/theme/app_palette.dart';
+import 'package:wagus/utils.dart';
 
 class Home extends HookWidget {
   const Home({super.key});
@@ -21,22 +22,25 @@ class Home extends HookWidget {
     final selectedRoom = useState('General');
     final chatRooms = ['General', 'Support', 'Games', 'Ideas', 'Tier Lounge'];
 
-    useEffect(() {
-      final portalState = context.read<PortalBloc>().state;
-      final homeBloc = context.read<HomeBloc>();
-      final bankRepo = context.read<BankRepository>();
+    useAsyncEffect(
+        effect: () async {
+          final portalState = context.read<PortalBloc>().state;
+          final homeBloc = context.read<HomeBloc>();
+          final bankRepo = context.read<BankRepository>();
 
-      final user = portalState.user;
-      final wallet = user?.embeddedSolanaWallets.first;
-      final mint = portalState.currentTokenAddress;
+          final user = portalState.user;
+          final wallet = await getActiveWallet();
 
-      if (wallet != null && user != null && mint.isNotEmpty) {
-        homeBloc.watchGiveaways(wallet.address, wallet, mint, bankRepo);
-      }
+          final mint = portalState.currentTokenAddress;
 
-      homeBloc.add(HomeSetRoomEvent(selectedRoom.value));
-      return null;
-    }, []);
+          if (wallet != null && user != null && mint.isNotEmpty) {
+            homeBloc.watchGiveaways(wallet.address, wallet, mint, bankRepo);
+          }
+
+          homeBloc.add(HomeSetRoomEvent(selectedRoom.value));
+          return null;
+        },
+        keys: []);
 
     return BlocBuilder<PortalBloc, PortalState>(
       builder: (context, portalState) {
@@ -422,7 +426,9 @@ class Home extends HookWidget {
 
                                                 context.read<HomeBloc>().add(
                                                     HomeSendMessageEvent(
-                                                        message: systemMsg));
+                                                        message: systemMsg,
+                                                        currentTokenAddress:
+                                                            currentTokenAddress));
 
                                                 print(
                                                     '[UpgradeDialog] Withdrawal complete');
@@ -475,6 +481,7 @@ class Home extends HookWidget {
                                                   tier: TierStatus.system,
                                                   room: selectedRoom.value,
                                                 ),
+                                                currentTokenAddress: mint,
                                               ),
                                             );
 
@@ -513,6 +520,10 @@ class Home extends HookWidget {
                                                   ?.tokenAmount
                                                   .toInt(),
                                             ),
+                                            currentTokenAddress: context
+                                                .read<PortalBloc>()
+                                                .state
+                                                .currentTokenAddress,
                                           ),
                                         );
 

@@ -13,6 +13,7 @@ import 'package:wagus/features/home/domain/chat_command.dart';
 import 'package:wagus/features/home/domain/chat_command_parser.dart';
 import 'package:wagus/features/home/domain/message.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
+import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/services/user_service.dart';
 
 part 'home_event.dart';
@@ -64,12 +65,17 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
                     DateTime.now();
             final isStale = DateTime.now().difference(updatedAt).inMinutes > 2;
 
-            if (!alreadySent && (!isPending || isStale)) {
+            log('Giveaway TX — hasSent: $alreadySent, isPending: $isPending, isStale: $isStale');
+
+            if (!alreadySent && (!isPending || isStale || status == 'ended')) {
               transaction.update(doc.reference, {
                 'pending': true,
                 'updatedAt': FieldValue.serverTimestamp(),
               });
               markedPending = true;
+              log('Giveaway TX marked as pending ✅');
+            } else {
+              log('Giveaway TX skipped payout ❌');
             }
           });
 
@@ -101,6 +107,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               tier: TierStatus.system,
               room: 'General',
             ),
+            currentTokenAddress: mint,
           ));
         } catch (e) {
           log('❌ Giveaway $id failed: $e');
@@ -124,7 +131,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 
   final HomeRepository homeRepository;
-  HomeBloc({required this.homeRepository}) : super(HomeState(messages: [])) {
+  final BankRepository bankRepository;
+  HomeBloc({required this.homeRepository, required this.bankRepository})
+      : super(HomeState(messages: [])) {
     on<HomeSetRoomEvent>((event, emit) async {
       log('Setting room to ${event.room}');
       if (roomSub != null && event.room == state.currentRoom) return;
@@ -139,17 +148,24 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
         add(HomeInitialEvent(
           messages: messages
-              .map((msg) => Message(
-                    text: msg['message'],
-                    sender: msg['sender'],
-                    room: (msg['room'] as String?)?.trim().isNotEmpty == true
-                        ? msg['room']
-                        : 'General',
-                    tier: TierStatus.values.firstWhere(
-                      (t) => t.name == (msg['tier'] ?? 'basic'),
-                      orElse: () => TierStatus.basic,
-                    ),
-                  ))
+              .map((msg) {
+                final sender = msg['sender'] as String?;
+                final text = msg['message'] as String?; // 👈 fix here
+                if (sender == null || text == null) return null;
+
+                return Message(
+                  text: text,
+                  sender: sender,
+                  room: (msg['room'] as String?)?.trim().isNotEmpty == true
+                      ? msg['room']
+                      : 'General',
+                  tier: TierStatus.values.firstWhere(
+                    (t) => t.name == (msg['tier'] ?? 'basic'),
+                    orElse: () => TierStatus.basic,
+                  ),
+                );
+              })
+              .whereType<Message>()
               .toList(),
           room: event.room,
         ));
@@ -177,7 +193,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     });
 
     FutureOr<Message> buildCommandPreview(
-        ChatCommand cmd, Message original) async {
+        ChatCommand cmd, Message original, String currentTokenAddress) async {
       switch (cmd.action.toLowerCase()) {
         case '/send':
           final amount = cmd.args.isNotEmpty ? cmd.args[0] : '?';
@@ -188,6 +204,55 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             sender: 'System',
             tier: TierStatus.system,
           );
+
+        case '/burn':
+          final amount = int.tryParse(cmd.args.firstOrNull ?? '') ?? 0;
+
+          if (amount <= 0) {
+            return original.copyWith(
+              text: '[BURN] Invalid amount. Usage: /burn 100',
+              sender: 'System',
+              tier: TierStatus.system,
+            );
+          }
+
+          final user =
+              await PrivyService().initialize(); // ✅ your singleton service
+
+          final wallet = user?.embeddedSolanaWallets.first;
+          final mint = currentTokenAddress;
+
+          if (wallet == null) {
+            return original.copyWith(
+              text: '[BURN] Error: Wallet or mint address not found.',
+              sender: 'System',
+              tier: TierStatus.system,
+            );
+          }
+
+          try {
+            // Burn = send to black hole
+            const blackHoleAddress = '11111111111111111111111111111111';
+            await bankRepository.withdrawFunds(
+              wallet: wallet,
+              amount: amount,
+              destinationAddress: blackHoleAddress,
+              wagusMint: mint,
+            );
+
+            return original.copyWith(
+              text:
+                  '[BURN] ${original.sender} just burned $amount \$BUCKAZOIDS 🔥\nSometimes destruction is art.',
+              sender: 'System',
+              tier: TierStatus.system,
+            );
+          } catch (e) {
+            return original.copyWith(
+              text: '[BURN] Failed to burn tokens: $e',
+              sender: 'System',
+              tier: TierStatus.system,
+            );
+          }
 
         case '/giveaway':
           if (original.tier != TierStatus.adventurer) {
@@ -207,9 +272,22 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               tier: TierStatus.system,
             );
           }
-          final duration = int.tryParse(cmd.flags['1-60'] ?? "") ?? 60;
+          final duration =
+              int.tryParse(cmd.flags['duration'] ?? cmd.flags['1-60'] ?? '') ??
+                  60;
 
-          final endTime = DateTime.now().add(Duration(seconds: duration));
+          final doc = await FirebaseFirestore.instance
+              .collection('meta')
+              .doc('serverTime')
+              .get();
+
+          final now = doc.exists && doc.data()?['now'] != null
+              ? doc['now']
+              : DateTime.now().millisecondsSinceEpoch;
+
+          final endTime = DateTime.fromMillisecondsSinceEpoch(now)
+              .add(Duration(seconds: duration));
+
           final giveawayDoc =
               FirebaseFirestore.instance.collection('giveaways').doc();
 
@@ -258,7 +336,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
       if (parsed != null && event.message.text.trim().startsWith('/')) {
         // Message is a command – transform and send only the preview
-        final displayMessage = await buildCommandPreview(parsed, event.message);
+        final displayMessage = await buildCommandPreview(
+            parsed, event.message, event.currentTokenAddress);
         await homeRepository.sendMessage(displayMessage);
         return;
       }

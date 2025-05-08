@@ -25,16 +25,6 @@ class Wagus extends HookWidget {
     final lastPage = useState<int>(0);
     final pageController = usePageController();
 
-    // useEffect(() {
-    //   debugPrint('Current Page: ${currentPage.value}');
-    //   debugPrint('Last Page: ${lastPage.value}');
-    //   if (currentPage.value == 0 && lastPage.value != 0) {
-    //     mainContext.read<PortalBloc>().add(PortalRefreshEvent());
-    //     debugPrint('Refreshing Portal');
-    //   }
-    //   return null;
-    // }, [currentPage.value]);
-
     return Stack(
       fit: StackFit.expand,
       children: [
