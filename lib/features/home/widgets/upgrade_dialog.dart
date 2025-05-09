@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_wallet.dart';
-import 'package:provider/provider.dart';
-import 'package:wagus/features/bank/data/bank_repository.dart';
-import 'package:wagus/services/user_service.dart';
 
 class UpgradeDialog extends StatefulWidget {
   final EmbeddedSolanaWallet wallet;

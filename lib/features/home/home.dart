@@ -9,7 +9,6 @@ import 'package:wagus/features/home/domain/chat_command_parser.dart';
 import 'package:wagus/features/home/domain/message.dart';
 import 'package:wagus/features/home/widgets/upgrade_dialog.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
-import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/theme/app_palette.dart';
 import 'package:wagus/utils.dart';
 

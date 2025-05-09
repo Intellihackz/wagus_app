@@ -129,7 +129,7 @@ class Spygus extends HookWidget {
                 .read<GameRepository>()
                 .claimSpygusReward(walletAddress);
 
-            final user = context.read<PortalBloc>().state.user;
+            //final user = context.read<PortalBloc>().state.user;
             final homeRepo = context.read<HomeRepository>();
 
             final message = Message(
