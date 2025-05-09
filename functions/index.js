@@ -3,7 +3,7 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { onRequest } from 'firebase-functions/v2/https';
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 
 admin.initializeApp();
 
