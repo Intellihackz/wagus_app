@@ -7,7 +7,7 @@ import 'package:wagus/services/user_service.dart';
 class UpgradeDialog extends StatefulWidget {
   final EmbeddedSolanaWallet wallet;
   final String mint;
-  final VoidCallback onSuccess;
+  final Future<bool> Function() onSuccess;
 
   const UpgradeDialog({
     super.key,
@@ -56,8 +56,14 @@ class _UpgradeDialogState extends State<UpgradeDialog> {
                           });
 
                           try {
-                            widget.onSuccess();
-                          } catch (e) {
+                            final success = await widget.onSuccess();
+                            if (!success) {
+                              setState(() {
+                                failed = true;
+                                loading = false;
+                              });
+                            }
+                          } catch (_) {
                             setState(() {
                               failed = true;
                               loading = false;

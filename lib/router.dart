@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:wagus/features/ai/ai_tools/ai_roadmap.dart';
+import 'package:wagus/features/ai/ai_tools/ai_tokenomics.dart';
 import 'package:wagus/features/ai/ai_tools/ai_tools.dart';
 import 'package:wagus/features/auth/login_screen.dart';
 import 'package:wagus/features/games/presentation/widgets/spygus.dart';
@@ -17,6 +19,8 @@ const String spygus = '/spygus';
 const String aiImageGeneration = '/ai-image-generation';
 const String aiAnalysisPrediction = '/ai-analysis-prediction';
 const String aiWhitePaperGeneration = '/ai-whitepaper';
+const String aiTokenomicsGeneration = '/ai-tokenomics';
+const String aiRoadmapGeneration = '/ai-roadmap';
 const String projectInterface = '/project-interface';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -72,6 +76,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: aiWhitePaperGeneration,
       builder: (context, state) => const AiWhitePaperGenerator(),
+    ),
+    GoRoute(
+      path: aiRoadmapGeneration,
+      builder: (context, state) => const AiRoadmapGenerator(),
+    ),
+    GoRoute(
+      path: aiTokenomicsGeneration,
+      builder: (context, state) => const AiTokenomicsGenerator(),
     ),
     GoRoute(
       path: projectInterface,

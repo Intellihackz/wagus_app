@@ -47,6 +47,18 @@ class AITools extends StatelessWidget {
                         context.push(aiWhitePaperGeneration);
                       },
                     ),
+                    AITile(
+                      icon: Icons.map,
+                      title: 'AI Roadmap Generator',
+                      onTap: () {
+                        context.push(aiRoadmapGeneration);
+                      },
+                    ),
+                    AITile(
+                      icon: Icons.pie_chart,
+                      title: 'AI Tokenomics Generator',
+                      onTap: () => context.push(aiTokenomicsGeneration),
+                    ),
                   ],
                 ),
               ),

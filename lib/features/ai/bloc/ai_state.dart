@@ -7,9 +7,13 @@ class AiState {
   final AIAnalysisPredictionState predictionState;
   final AIImageGenerationState imageGenerationState;
   final AIWhitePaperFormState whitePaperFormState;
+  final AIRoadmapFormState roadmapFormState;
+  final AITokenomicsFormState tokenomicsFormState;
   final String? imageUrl;
   final String? errorMessage;
   final String? whitePaper;
+  final String? tokenomics;
+  final String? roadmap;
 
   const AiState({
     required this.selectedCrypto,
@@ -18,9 +22,13 @@ class AiState {
     required this.predictionState,
     required this.imageGenerationState,
     required this.whitePaperFormState,
+    required this.roadmapFormState,
+    required this.tokenomicsFormState,
     this.imageUrl,
     this.errorMessage,
     this.whitePaper,
+    this.roadmap,
+    this.tokenomics,
   });
 
   AiState copyWith({
@@ -30,9 +38,13 @@ class AiState {
     AIAnalysisPredictionState? predictionState,
     AIImageGenerationState? imageGenerationState,
     AIWhitePaperFormState? whitePaperFormState,
+    AIRoadmapFormState? roadmapFormState,
+    AITokenomicsFormState? tokenomicsFormState,
     String? Function()? imageUrl,
     String? Function()? errorMessage,
     String? Function()? whitePaper,
+    String? Function()? roadmap,
+    String? Function()? tokenomics,
   }) {
     return AiState(
       selectedCrypto: selectedCrypto ?? this.selectedCrypto,
@@ -41,9 +53,13 @@ class AiState {
       predictionState: predictionState ?? this.predictionState,
       imageGenerationState: imageGenerationState ?? this.imageGenerationState,
       whitePaperFormState: whitePaperFormState ?? this.whitePaperFormState,
+      roadmapFormState: roadmapFormState ?? this.roadmapFormState,
+      tokenomicsFormState: tokenomicsFormState ?? this.tokenomicsFormState,
       imageUrl: imageUrl != null ? imageUrl() : this.imageUrl,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
       whitePaper: whitePaper != null ? whitePaper() : this.whitePaper,
+      roadmap: roadmap != null ? roadmap() : this.roadmap,
+      tokenomics: tokenomics != null ? tokenomics() : this.tokenomics,
     );
   }
 }
@@ -63,6 +79,20 @@ enum AIImageGenerationState {
 }
 
 enum AIWhitePaperFormState {
+  initial,
+  loading,
+  success,
+  failure,
+}
+
+enum AIRoadmapFormState {
+  initial,
+  loading,
+  success,
+  failure,
+}
+
+enum AITokenomicsFormState {
   initial,
   loading,
   success,

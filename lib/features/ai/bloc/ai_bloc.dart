@@ -15,6 +15,8 @@ class AiBloc extends Bloc<AiEvent, AiState> {
           predictionState: AIAnalysisPredictionState.initial,
           imageGenerationState: AIImageGenerationState.initial,
           whitePaperFormState: AIWhitePaperFormState.initial,
+          roadmapFormState: AIRoadmapFormState.initial,
+          tokenomicsFormState: AITokenomicsFormState.initial,
         )) {
     on<AIGeneratePredictionEvent>((event, emit) async {
       emit(state.copyWith(
@@ -115,6 +117,74 @@ class AiBloc extends Bloc<AiEvent, AiState> {
       } catch (e) {
         emit(state.copyWith(
           whitePaperFormState: AIWhitePaperFormState.failure,
+          errorMessage: () => e.toString(),
+        ));
+      }
+    });
+
+    on<AISubmitRoadmapFormEvent>((event, emit) async {
+      emit(state.copyWith(
+        roadmapFormState: AIRoadmapFormState.loading,
+        roadmap: () => null,
+        errorMessage: () => null,
+      ));
+
+      try {
+        final roadmap = await repository.generateRoadmap(
+          projectName: event.projectName,
+          milestones: event.milestones,
+          duration: event.duration,
+        );
+
+        if (roadmap != null) {
+          emit(state.copyWith(
+            roadmapFormState: AIRoadmapFormState.success,
+            roadmap: () => roadmap,
+            errorMessage: () => null,
+          ));
+        } else {
+          emit(state.copyWith(
+            roadmapFormState: AIRoadmapFormState.failure,
+            errorMessage: () => 'Failed to generate roadmap',
+          ));
+        }
+      } catch (e) {
+        emit(state.copyWith(
+          roadmapFormState: AIRoadmapFormState.failure,
+          errorMessage: () => e.toString(),
+        ));
+      }
+    });
+
+    on<AISubmitTokenomicsFormEvent>((event, emit) async {
+      emit(state.copyWith(
+        tokenomicsFormState: AITokenomicsFormState.loading,
+        tokenomics: () => null,
+        errorMessage: () => null,
+      ));
+
+      try {
+        final result = await repository.generateTokenomics(
+          projectName: event.projectName,
+          tokenSupply: event.tokenSupply,
+          tokenUtility: event.tokenUtility,
+          tokenDistribution: event.tokenDistribution,
+        );
+
+        if (result != null) {
+          emit(state.copyWith(
+            tokenomicsFormState: AITokenomicsFormState.success,
+            tokenomics: () => result,
+          ));
+        } else {
+          emit(state.copyWith(
+            tokenomicsFormState: AITokenomicsFormState.failure,
+            errorMessage: () => 'Failed to generate tokenomics.',
+          ));
+        }
+      } catch (e) {
+        emit(state.copyWith(
+          tokenomicsFormState: AITokenomicsFormState.failure,
           errorMessage: () => e.toString(),
         ));
       }

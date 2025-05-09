@@ -49,22 +49,46 @@ class Game extends StatelessWidget {
                         GameTile(
                           icon: FontAwesomeIcons.skull,
                           title: 'Zombie Apocalypse',
-                          onTap: () {},
+                          onTap: () =>
+                              ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Coming soon!'),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          ),
                         ),
                         GameTile(
                           icon: FontAwesomeIcons.robot,
                           title: 'Battle Bots',
-                          onTap: () {},
+                          onTap: () =>
+                              ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Coming soon!'),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          ),
                         ),
                         GameTile(
                           icon: FontAwesomeIcons.puzzlePiece,
                           title: 'Guess the Drawing',
-                          onTap: () {},
+                          onTap: () =>
+                              ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Coming soon!'),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          ),
                         ),
                         GameTile(
                           icon: FontAwesomeIcons.egg,
                           title: 'WAGUS: The Origins',
-                          onTap: () {},
+                          onTap: () =>
+                              ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Coming soon!'),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          ),
                         ),
                       ],
                     ),

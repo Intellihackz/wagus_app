@@ -386,7 +386,7 @@ class Home extends HookWidget {
                                                 if (treasuryWallet == null) {
                                                   print(
                                                       '[UpgradeDialog] ERROR: TREASURY_WALLET_ADDRESS is null');
-                                                  return;
+                                                  return false;
                                                 }
 
                                                 final currentTokenAddress =
@@ -404,7 +404,7 @@ class Home extends HookWidget {
                                                 if (wallet == null) {
                                                   print(
                                                       '[UpgradeDialog] ERROR: Wallet is null');
-                                                  return;
+                                                  return false;
                                                 }
 
                                                 await context
@@ -417,6 +417,7 @@ class Home extends HookWidget {
                                                       wagusMint:
                                                           currentTokenAddress,
                                                     );
+
                                                 final systemMsg = Message(
                                                   text:
                                                       '[UPGRADE] You’ve been upgraded to Adventurer 🧙‍♂️',
@@ -425,17 +426,13 @@ class Home extends HookWidget {
                                                   room: 'General',
                                                 );
 
-                                                print(
-                                                    'the system message: $systemMsg');
-
                                                 context.read<HomeBloc>().add(
-                                                    HomeSendMessageEvent(
+                                                      HomeSendMessageEvent(
                                                         message: systemMsg,
                                                         currentTokenAddress:
-                                                            currentTokenAddress));
-
-                                                print(
-                                                    '[UpgradeDialog] Withdrawal complete');
+                                                            currentTokenAddress,
+                                                      ),
+                                                    );
 
                                                 context.read<PortalBloc>().add(
                                                       PortalUpdateTierEvent(
@@ -444,16 +441,15 @@ class Home extends HookWidget {
                                                     );
 
                                                 print(
-                                                    '[UpgradeDialog] Tier updated');
+                                                    '[UpgradeDialog] Success');
 
-                                                print(
-                                                    '[UpgradeDialog] System message dispatched');
+                                                Navigator.of(context).pop();
+                                                return true;
                                               } catch (e, st) {
                                                 print(
                                                     '[UpgradeDialog] CRASH: $e');
                                                 print(st);
-                                              } finally {
-                                                Navigator.of(context).pop();
+                                                return false;
                                               }
                                             }),
                                       );

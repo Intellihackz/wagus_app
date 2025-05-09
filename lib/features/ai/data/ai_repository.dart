@@ -160,6 +160,107 @@ Ensure the white paper is well-structured, professional, and persuasive, followi
     }
   }
 
+  Future<String?> generateRoadmap({
+    required String projectName,
+    required String milestones,
+    required String duration,
+  }) async {
+    final apiKey = dotenv.env['OPENAI_API_KEY'];
+    if (apiKey == null || apiKey.isEmpty) return null;
+
+    final response = await _dio.post(
+      'https://api.openai.com/v1/chat/completions',
+      options: Options(
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $apiKey'
+        },
+      ),
+      data: {
+        'model': 'gpt-4o-mini',
+        'messages': [
+          {
+            'role': 'system',
+            'content': '''
+You are an expert crypto strategist. Create a structured roadmap for a crypto project launch. Use clear milestone formatting with estimated timeframes, focusing on execution phases such as planning, development, marketing, token launch, and scaling. Avoid vague language. Format it in bullet point style or with numbered phases. Output must be concise and readable.
+'''
+          },
+          {
+            'role': 'user',
+            'content': '''
+Generate a roadmap for $projectName with the following details:
+- Milestones: $milestones
+- Expected Duration: $duration
+
+Keep it concise and clear.
+'''
+          }
+        ],
+      },
+    );
+
+    final content = response.data?['choices']?[0]['message']['content'];
+    return content as String?;
+  }
+
+  Future<String?> generateTokenomics({
+    required String projectName,
+    required String tokenSupply,
+    required String tokenUtility,
+    required String tokenDistribution,
+  }) async {
+    final apiKey = dotenv.env['OPENAI_API_KEY'];
+    if (apiKey == null || apiKey.isEmpty) return null;
+
+    try {
+      final response = await _dio.post(
+        'https://api.openai.com/v1/chat/completions',
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $apiKey',
+          },
+        ),
+        data: {
+          'model': 'gpt-4o-mini',
+          'messages': [
+            {
+              'role': 'system',
+              'content': '''
+You are a professional crypto tokenomics strategist. Create a clean, structured tokenomics summary for a new project launch. It must include:
+
+1. Token Name
+2. Total Supply
+3. Token Utility (real-world use case)
+4. Token Distribution (percentages to categories like Team, Public Sale, Ecosystem, etc.)
+5. Vesting Schedule (if relevant)
+
+Output in plain readable text with clear sections (no markdown). Avoid disclaimers. Fit within 300-500 words.
+'''
+            },
+            {
+              'role': 'user',
+              'content': '''
+Generate tokenomics for:
+
+- Project: $projectName
+- Total Supply: $tokenSupply
+- Utility: $tokenUtility
+- Distribution: $tokenDistribution
+'''
+            }
+          ],
+          'temperature': 0.7,
+        },
+      );
+
+      return response.data?['choices']?[0]['message']['content'] as String?;
+    } catch (e) {
+      print('Error generating tokenomics: $e');
+      return null;
+    }
+  }
+
   String _getCryptoPredictionPrompt(
     SupportedCryptoPredictions crypto, {
     double? price,
