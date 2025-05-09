@@ -276,17 +276,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               int.tryParse(cmd.flags['duration'] ?? cmd.flags['1-60'] ?? '') ??
                   60;
 
-          final doc = await FirebaseFirestore.instance
-              .collection('meta')
-              .doc('serverTime')
-              .get();
-
-          final now = doc.exists && doc.data()?['now'] != null
-              ? doc['now']
-              : DateTime.now().millisecondsSinceEpoch;
-
-          final endTime = DateTime.fromMillisecondsSinceEpoch(now)
-              .add(Duration(seconds: duration));
+          final now = DateTime.now();
+          final endTime = now.add(Duration(seconds: duration));
 
           final giveawayDoc =
               FirebaseFirestore.instance.collection('giveaways').doc();

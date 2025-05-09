@@ -48,10 +48,24 @@ export const dailyRewardNotification = onSchedule(
 export const giveawayNotification = onDocumentCreated(
   { document: 'giveaways/{giveawayId}' },
   async (event) => {
+    const db = getFirestore();
+    const ref = event.data?.ref;
     const data = event.data?.data();
-    if (!data) return;
 
-    const { amount, keyword, endTimestamp } = data;
+    if (!data || !ref) return;
+
+    let { amount, keyword, endTimestamp, duration } = data;
+
+    // ✅ Patch: If endTimestamp missing, generate it using server time
+    if (!endTimestamp) {
+      const fallbackDuration = typeof duration === 'number' ? duration : 60;
+      endTimestamp = Date.now() + fallbackDuration * 1000;
+
+      // Update Firestore doc with trusted server time
+      await ref.update({ endTimestamp });
+      console.log(`⏱️ Patched endTimestamp on server for ${ref.id}`);
+    }
+
     const timeLeft = Math.floor((endTimestamp - Date.now()) / 1000);
 
     const message = {
@@ -75,6 +89,7 @@ export const giveawayNotification = onDocumentCreated(
     }
   }
 );
+
 
 export const pickGiveawayWinner = onSchedule(
   { schedule: '* * * * *', timeZone: 'America/New_York' },
