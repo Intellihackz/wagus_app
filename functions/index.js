@@ -1,21 +1,21 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 import { onRequest } from 'firebase-functions/v2/https';
 import * as admin from 'firebase-admin';
+
+admin.initializeApp();
+
+const db = admin.firestore();
+
+const FieldValue = admin.firestore.FieldValue;
 
 // Return the server timestamp
 export const getServerTime = onRequest(async (req, res) => {
   res.json({ now: Date.now() });
 });
 
-
-
-
-// Initialize Firebase Admin SDK once
-initializeApp();
 
 export const dailyRewardNotification = onSchedule(
   {
@@ -123,7 +123,7 @@ export const pickGiveawayWinner = onSchedule(
             status: 'ended',
             winner: winner ?? 'No winner',
             hasSent: false,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
           });
 
           if (winner) {
@@ -188,6 +188,7 @@ export const runGiveawayWinnerNow = onRequest(async (req, res) => {
         const data = doc.data();
         const participants = Array.isArray(data.participants) ? data.participants : [];
         const amount = typeof data.amount === 'number' ? data.amount : 0;
+        const host = data.host || 'system';
         const winner = participants.length
           ? participants[Math.floor(Math.random() * participants.length)]
           : null;
@@ -197,7 +198,7 @@ export const runGiveawayWinnerNow = onRequest(async (req, res) => {
     status: 'ended',
     winner: winner ?? 'No winner',
     hasSent: false,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   });
   if (winner) {
   await db.collection('chat').add({
