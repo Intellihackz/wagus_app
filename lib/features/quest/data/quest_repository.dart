@@ -106,7 +106,8 @@ class QuestRepository {
 
         // ✅ Send chat message
         await _homeRepository.sendMessage(Message(
-          text: 'claimed their Day $day reward! 🎁',
+          text:
+              '${userWallet.substring(0, 3)}..${userWallet.substring(userWallet.length - 3)} claimed their Day $day reward! 🎁',
           sender: userWallet,
           tier: TierStatus.system,
           room: 'General',

@@ -24,6 +24,9 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 final StreamController<String?> locationControler =
     StreamController<String?>.broadcast();
 
+final StreamController<String?> previousLocationControler =
+    StreamController<String?>.broadcast();
+
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: '',

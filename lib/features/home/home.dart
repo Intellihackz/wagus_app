@@ -22,25 +22,29 @@ class Home extends HookWidget {
     final selectedRoom = useState('General');
     final chatRooms = ['General', 'Support', 'Games', 'Ideas', 'Tier Lounge'];
 
-    useAsyncEffect(
-        effect: () async {
-          final portalState = context.read<PortalBloc>().state;
-          final homeBloc = context.read<HomeBloc>();
-          final bankRepo = context.read<BankRepository>();
+    useEffect(() {
+      final portalState = context.read<PortalBloc>().state;
 
-          final user = portalState.user;
-          final wallet = await getActiveWallet();
+      if (portalState.user != null &&
+          portalState.currentTokenAddress.isNotEmpty) {
+        final homeBloc = context.read<HomeBloc>();
+        final bankRepo = context.read<BankRepository>();
 
-          final mint = portalState.currentTokenAddress;
-
-          if (wallet != null && user != null && mint.isNotEmpty) {
-            homeBloc.watchGiveaways(wallet.address, wallet, mint, bankRepo);
+        getActiveWallet().then((wallet) {
+          if (wallet != null) {
+            homeBloc.watchGiveaways(
+              wallet.address,
+              wallet,
+              portalState.currentTokenAddress,
+              bankRepo,
+            );
+            homeBloc.add(HomeSetRoomEvent(selectedRoom.value));
           }
+        });
+      }
 
-          homeBloc.add(HomeSetRoomEvent(selectedRoom.value));
-          return null;
-        },
-        keys: []);
+      return null;
+    }, [context.read<PortalBloc>().state]);
 
     return BlocBuilder<PortalBloc, PortalState>(
       builder: (context, portalState) {

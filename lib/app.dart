@@ -32,6 +32,7 @@ class App extends HookWidget {
     final isDragging = useState(false);
     var xOffset = useState(154.5);
     var yOffset = useState(46.36);
+    final previousLocation = useState<String?>(null);
 
     final homeRepository = useState(HomeRepository(useTestCollection: false));
 
@@ -142,7 +143,10 @@ class App extends HookWidget {
                         return StreamBuilder<String?>(
                             stream: locationControler.stream,
                             builder: (context, snapshot) {
-                              print('current location: ${snapshot.data}');
+                              if (snapshot.hasData &&
+                                  snapshot.data != '/bank') {
+                                previousLocation.value = snapshot.data;
+                              }
 
                               return Stack(
                                 fit: StackFit.expand,
@@ -150,7 +154,8 @@ class App extends HookWidget {
                                   child!,
                                   Visibility(
                                     visible: snapshot.data != login &&
-                                        snapshot.data != portal,
+                                        snapshot.data != portal &&
+                                        snapshot.data != '/bank',
                                     child: Positioned(
                                         bottom: yOffset.value,
                                         right: xOffset.value,
@@ -205,6 +210,8 @@ class App extends HookWidget {
                                                 backgroundColor: context
                                                     .appColors.contrastLight,
                                                 onPressed: () async {
+                                                  locationControler
+                                                      .add('/bank');
                                                   final portalBloc =
                                                       BlocProvider.of<
                                                               PortalBloc>(
@@ -230,7 +237,11 @@ class App extends HookWidget {
                                                       child: BlocProvider<
                                                           BankBloc>.value(
                                                         value: bankBloc,
-                                                        child: Bank(),
+                                                        child: Bank(
+                                                          previousLocation:
+                                                              previousLocation
+                                                                  .value,
+                                                        ),
                                                       ),
                                                     ),
                                                   ).whenComplete(() {

@@ -41,19 +41,38 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         final data = doc.data() as Map<String, dynamic>;
         final id = doc.id;
 
-        final winner = data['winner'];
+        final winner = data['winner'] as String?;
         final status = data['status'];
         final amount = data['amount'] ?? 0;
+        final isPending = data['pending'] ?? false;
+        final hasSent = data['hasSent'] ?? false;
+        final error = data['error'];
+        final updatedAt =
+            (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+        final isStale = DateTime.now().difference(updatedAt).inMinutes > 2;
 
-        if (winner == null || status != 'ended') continue;
+        // ✅ Skip if not ended or winner missing
+        if (winner == null ||
+            winner.isEmpty ||
+            winner == 'No winner' ||
+            status != 'ended') continue;
+
+        // ✅ Only host can send
         if (currentUserWallet != data['host']) continue;
-        if (!announcedGiveawayIds.add(id)) continue;
 
-        log('🧪 Checking giveaway $id for possible reward...');
+        // ✅ Already sent or already processed this in memory
+        if (hasSent || announcedGiveawayIds.contains(id)) continue;
+
+        // ✅ Skip if previously errored and not marked pending (unless stale)
+        final shouldRetryErrored = error != null && !isPending && isStale;
+        if (error != null && !shouldRetryErrored) continue;
+
+        log('🧪 Evaluating giveaway $id');
 
         bool markedPending = false;
 
         try {
+          // 🚧 Transactional lock
           await FirebaseFirestore.instance.runTransaction((transaction) async {
             final freshDoc = await transaction.get(doc.reference);
             final freshData = freshDoc.data() as Map<String, dynamic>;
@@ -65,22 +84,22 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
                     DateTime.now();
             final isStale = DateTime.now().difference(updatedAt).inMinutes > 2;
 
-            log('Giveaway TX — hasSent: $alreadySent, isPending: $isPending, isStale: $isStale');
-
-            if (!alreadySent && (!isPending || isStale || status == 'ended')) {
+            if (!alreadySent && (!isPending || isStale)) {
               transaction.update(doc.reference, {
                 'pending': true,
                 'updatedAt': FieldValue.serverTimestamp(),
               });
               markedPending = true;
-              log('Giveaway TX marked as pending ✅');
+              announcedGiveawayIds.add(id);
+              log('✅ Marked $id as pending');
             } else {
-              log('Giveaway TX skipped payout ❌');
+              log('⛔️ Skipped $id: already sent or in progress');
             }
           });
 
-          if (!markedPending) return;
+          if (!markedPending) continue;
 
+          // ✅ Send tokens
           await bank.withdrawFunds(
             wallet: wallet,
             destinationAddress: winner,
@@ -88,21 +107,24 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             wagusMint: mint,
           );
 
+          // ✅ Mark as sent
           await FirebaseFirestore.instance.runTransaction((transaction) async {
             transaction.update(doc.reference, {
               'hasSent': true,
               'pending': false,
               'status': 'completed',
               'updatedAt': FieldValue.serverTimestamp(),
+              'error': FieldValue.delete(),
             });
           });
 
-          log('✅ Giveaway reward sent and marked for $id');
+          log('🎉 Giveaway $id paid out to $winner');
 
+          // ✅ Broadcast system message
           add(HomeSendMessageEvent(
             message: Message(
               text:
-                  '[GIVEAWAY] 🎉 Giveaway for $amount \$BUCKAZOIDS has ended! Winner: ${winner.substring(0, 4)}...${winner.substring(winner.length - 4)}',
+                  '[GIVEAWAY] 🎉 $amount \$BUCKAZOIDS was rewarded! Winner: ${winner.substring(0, 4)}...${winner.substring(winner.length - 4)}',
               sender: 'System',
               tier: TierStatus.system,
               room: 'General',
@@ -110,12 +132,14 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             currentTokenAddress: mint,
           ));
         } catch (e) {
-          log('❌ Giveaway $id failed: $e');
+          log('❌ Failed to process giveaway $id: $e');
+
+          // 🚨 Reset state for retry or manual fix
           await FirebaseFirestore.instance.runTransaction((transaction) async {
             transaction.update(doc.reference, {
               'pending': false,
               'hasSent': false,
-              'status': 'ended',
+              'error': e.toString(),
               'updatedAt': FieldValue.serverTimestamp(),
             });
           });
