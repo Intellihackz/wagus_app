@@ -34,7 +34,9 @@ class App extends HookWidget {
     var yOffset = useState(46.36);
     final previousLocation = useState<String?>(null);
 
-    final homeRepository = useState(HomeRepository(useTestCollection: false));
+    final homeRepository = useMemoized(() {
+      return HomeRepository(useTestCollection: false);
+    }, [context]);
 
     return MultiRepositoryProvider(
       providers: [
@@ -42,7 +44,7 @@ class App extends HookWidget {
           create: (_) => PortalRepository(),
         ),
         RepositoryProvider<HomeRepository>(
-          create: (_) => homeRepository.value,
+          create: (_) => homeRepository,
         ),
         RepositoryProvider<LotteryRepository>(
           create: (_) => LotteryRepository(),
@@ -58,7 +60,7 @@ class App extends HookWidget {
         ),
         RepositoryProvider<QuestRepository>(
           create: (_) => QuestRepository(
-            homeRepository.value,
+            homeRepository,
           ),
         ),
         RepositoryProvider<GameRepository>(

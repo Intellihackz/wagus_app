@@ -26,79 +26,66 @@ class LoginScreen extends HookWidget {
       },
       child: Scaffold(
         backgroundColor: context.appColors.contrastDark,
-        body: Stack(
-          children: [
-            // Background image
-            Positioned.fill(
-              child: Image.asset(
-                'assets/icons/logo_text.png',
-                fit: BoxFit.cover,
-                opacity: const AlwaysStoppedAnimation(0.3),
-              ),
-            ),
-
-            // Content
-            SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 40),
-
-                      // Email or OTP input
-                      if (!isEmailSent.value) ...[
-                        Center(
-                          child: Text(
-                            '[ Enter your email to login ]',
-                            style: TextStyle(
-                              color: context.appColors.contrastLight,
-                              fontSize: 16,
-                            ),
-                          ),
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 32),
+                  Image.asset(
+                    'assets/icons/logo_text.png',
+                    height: 64,
+                    fit: BoxFit.contain,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    isEmailSent.value
+                        ? 'Enter the verification code sent to:'
+                        : 'Enter your email to login',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: context.appColors.contrastLight,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (!isEmailSent.value)
+                    TextField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      style: TextStyle(color: context.appColors.contrastLight),
+                      decoration: InputDecoration(
+                        hintText: 'Email',
+                        hintStyle:
+                            TextStyle(color: context.appColors.slightlyGrey),
+                        filled: true,
+                        fillColor: Colors.grey[900],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              BorderSide(color: context.appColors.slightlyGrey),
                         ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          style:
-                              TextStyle(color: context.appColors.contrastLight),
-                          autocorrect: false,
-                          decoration: InputDecoration(
-                            hintText: 'Email',
-                            hintStyle: TextStyle(
-                                color: context.appColors.slightlyGrey),
-                            filled: true,
-                            fillColor: context.appColors.contrastDark
-                                .withValues(alpha: 0.7),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                  color: context.appColors.slightlyGrey),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                  color: context.appColors.slightlyGrey),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                  color: context.appColors.contrastLight),
-                            ),
-                          ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                              color: context.appColors.contrastLight),
                         ),
-                      ] else ...[
+                      ),
+                    )
+                  else
+                    Column(
+                      children: [
                         Text(
-                          'Enter the verification code sent to ${emailController.text}',
+                          emailController.text,
                           style: TextStyle(
-                            color: context.appColors.contrastLight,
-                            fontSize: 16,
-                          ),
+                              fontSize: 14,
+                              color: context.appColors.contrastLight,
+                              fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
                         TextField(
                           controller: otpController,
                           keyboardType: TextInputType.number,
@@ -109,189 +96,136 @@ class LoginScreen extends HookWidget {
                             hintStyle: TextStyle(
                                 color: context.appColors.slightlyGrey),
                             filled: true,
-                            fillColor: context.appColors.contrastDark
-                                .withValues(alpha: 0.7),
+                            fillColor: Colors.grey[900],
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                  color: context.appColors.slightlyGrey),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
                                   color: context.appColors.slightlyGrey),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide(
                                   color: context.appColors.contrastLight),
                             ),
                           ),
                         ),
                       ],
+                    ),
+                  const SizedBox(height: 16),
+                  if (errorMessage.value != null)
+                    Text(
+                      errorMessage.value!,
+                      style: const TextStyle(color: Colors.redAccent),
+                      textAlign: TextAlign.center,
+                    ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: isLoading.value
+                        ? null
+                        : () async {
+                            FocusScope.of(context).unfocus();
+                            isLoading.value = true;
+                            errorMessage.value = null;
 
-                      const SizedBox(height: 8),
+                            try {
+                              if (!isEmailSent.value) {
+                                final email =
+                                    emailController.text.trim().toLowerCase();
+                                if (email.isEmpty) {
+                                  errorMessage.value =
+                                      'Please enter your email';
+                                  return;
+                                }
 
-                      // Error message
-                      if (errorMessage.value != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Text(
-                            errorMessage.value!,
-                            style: TextStyle(
-                              color: Colors.red[300],
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
+                                final domain = email.split('@').last;
+                                const blocked = [
+                                  'tempmail.com',
+                                  'mailinator.com',
+                                  'guerrillamail.com',
+                                  '10minutemail.com',
+                                  'harinv.com',
+                                  'idoidraw.com',
+                                ];
 
-                      const SizedBox(height: 24),
+                                if (blocked.contains(domain)) {
+                                  errorMessage.value =
+                                      'Temporary emails are not allowed';
+                                  return;
+                                }
 
-                      // Action button
-                      Column(
-                        spacing: 16,
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: isLoading.value
-                                  ? null
-                                  : () async {
-                                      FocusScope.of(context).unfocus();
-                                      isLoading.value = true;
-                                      errorMessage.value = null;
+                                final privy = PrivyService();
+                                await privy.initialize();
+                                privy.loginWithEmail(email);
+                                isEmailSent.value = true;
+                              } else {
+                                if (otpController.text.trim().isEmpty) {
+                                  errorMessage.value =
+                                      'Please enter the verification code';
+                                  return;
+                                }
 
-                                      try {
-                                        if (!isEmailSent.value) {
-                                          // Send email verification
-                                          if (emailController.text
-                                              .trim()
-                                              .isEmpty) {
-                                            errorMessage.value =
-                                                'Please enter your email';
-                                            isLoading.value = false;
-                                            return;
-                                          }
-
-                                          final email = emailController.text
-                                              .trim()
-                                              .toLowerCase();
-                                          final domain = email.split('@').last;
-
-                                          final blockedDomains = [
-                                            'tempmail.com',
-                                            'mailinator.com',
-                                            'guerrillamail.com',
-                                            '10minutemail.com',
-                                            'harinv.com',
-                                            'idoidraw.com',
-                                          ];
-
-                                          if (blockedDomains.contains(domain)) {
-                                            errorMessage.value =
-                                                'Temporary emails are not allowed';
-                                            isLoading.value = false;
-                                            return;
-                                          }
-
-// Proceed with Privy
-                                          final privyService = PrivyService();
-                                          await privyService.initialize();
-                                          privyService
-                                              .loginWithEmail(email.trim());
-                                          isEmailSent.value = true;
-                                        } else {
-                                          // Verify OTP
-                                          if (otpController.text
-                                              .trim()
-                                              .isEmpty) {
-                                            errorMessage.value =
-                                                'Please enter the verification code';
-                                            isLoading.value = false;
-                                            return;
-                                          }
-
-                                          final privyService = PrivyService();
-                                          await privyService.initialize();
-                                          if (context.mounted) {
-                                            await privyService.verifyOtp(
-                                              emailController.text.trim(),
-                                              otpController.text.trim(),
-                                              context,
-                                            );
-                                          }
-
-                                          if (context.mounted) {
-                                            context
-                                                .read<PortalBloc>()
-                                                .add(PortalInitialEvent());
-                                          }
-                                        }
-                                      } finally {
-                                        isLoading.value = false;
-                                      }
-                                    },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    context.appColors.contrastLight,
-                                foregroundColor: context.appColors.contrastDark,
-                                disabledBackgroundColor:
-                                    context.appColors.contrastLight,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              child: isLoading.value
-                                  ? SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 4,
-                                        color: context.appColors.contrastDark,
-                                      ),
-                                    )
-                                  : Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8.0),
-                                      child: Text(
-                                        !isEmailSent.value
-                                            ? 'Continue with Email'
-                                            : 'Verify Code',
-                                        style: const TextStyle(fontSize: 14),
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ],
+                                final privy = PrivyService();
+                                await privy.initialize();
+                                if (context.mounted) {
+                                  await privy.verifyOtp(
+                                    emailController.text.trim(),
+                                    otpController.text.trim(),
+                                    context,
+                                  );
+                                  context
+                                      .read<PortalBloc>()
+                                      .add(PortalInitialEvent());
+                                }
+                              }
+                            } catch (e) {
+                              errorMessage.value = 'Something went wrong';
+                            } finally {
+                              isLoading.value = false;
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.greenAccent,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-
-                      if (isEmailSent.value) ...[
-                        const SizedBox(height: 16),
-                        TextButton(
-                          onPressed: isLoading.value
-                              ? null
-                              : () {
-                                  isEmailSent.value = false;
-                                  otpController.clear();
-                                  errorMessage.value = null;
-                                },
-                          child: Text(
-                            'Back to Email',
-                            style: TextStyle(
-                              color: context.appColors.contrastLight,
-                              fontSize: 14,
+                    ),
+                    child: isLoading.value
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.black,
+                              strokeWidth: 2,
                             ),
+                          )
+                        : Text(
+                            isEmailSent.value
+                                ? 'Verify Code'
+                                : 'Continue with Email',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                        ),
-                      ],
-                    ],
                   ),
-                ),
+                  if (isEmailSent.value) ...[
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () {
+                        isEmailSent.value = false;
+                        otpController.clear();
+                        errorMessage.value = null;
+                      },
+                      child: Text(
+                        'Back to Email',
+                        style:
+                            TextStyle(color: context.appColors.contrastLight),
+                      ),
+                    ),
+                  ]
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

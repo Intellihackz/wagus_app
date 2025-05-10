@@ -113,8 +113,8 @@ class Wagus extends HookWidget {
                                   ],
                                 ),
                               ),
-                              IconButton(
-                                onPressed: () async {
+                              GestureDetector(
+                                onTap: () async {
                                   final result =
                                       await PrivyService().logout(context);
 
@@ -127,9 +127,20 @@ class Wagus extends HookWidget {
                                     context.go(login);
                                   }
                                 },
-                                icon: Icon(
-                                  Icons.logout,
-                                  color: context.appColors.contrastLight,
+                                child: Container(
+                                  decoration: ShapeDecoration(
+                                    shape: StadiumBorder(),
+                                    color: context.appColors.contrastLight,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16.0),
+                                  margin: const EdgeInsets.only(right: 16.0),
+                                  child: Text('logout',
+                                      style: TextStyle(
+                                        color: context.appColors.contrastDark,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      )),
                                 ),
                               ),
                             ],

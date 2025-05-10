@@ -23,110 +23,123 @@ class Portal extends HookWidget {
         child: BlocBuilder<PortalBloc, PortalState>(
           builder: (context, state) {
             return Scaffold(
-              backgroundColor: context.appColors.contrastDark,
+              backgroundColor: Colors.black,
               body: Stack(
                 children: [
-                  Image.asset(
-                    'assets/icons/logo_text.png',
-                    height: 200,
-                    fit: BoxFit.cover,
+                  Positioned.fill(
+                    child: Opacity(
+                      opacity: 0.1,
+                      child: Image.asset(
+                        'assets/icons/logo_text.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
                   Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        GestureDetector(
-                          onTap: isLoading.value
-                              ? null
-                              : () async {
-                                  try {
-                                    isLoading.value = true;
-                                    errorMessage.value = null;
-
-                                    context
-                                        .read<PortalBloc>()
-                                        .add(PortalAuthorizeEvent(context));
-
-                                    // Wait a moment to ensure state updates
-                                    await Future.delayed(
-                                        const Duration(milliseconds: 300));
-
-                                    final portalBlocState =
-                                        context.read<PortalBloc>().state;
-                                    final user = portalBlocState.user;
-                                    final hasWallets = user
-                                            ?.embeddedSolanaWallets
-                                            .isNotEmpty ??
-                                        false;
-
-                                    if (user != null && hasWallets) {
-                                      await UserService().setUserOnline(user
-                                          .embeddedSolanaWallets.first.address);
-                                      if (context.mounted) {
-                                        context.go(
-                                            home); // ✅ Navigate only if wallet exists
-                                      }
-                                    } else {
-                                      errorMessage.value =
-                                          'Please create a wallet first.';
-                                    }
-                                  } finally {
-                                    isLoading.value = false;
-                                  }
-                                },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Welcome to WAGUS',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: context.appColors.contrastLight,
                             ),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: context.appColors.contrastLight,
-                                width: 1,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: isLoading.value || state.user == null
-                                ? SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: context.appColors.contrastLight,
-                                    ),
-                                  )
-                                : Text(
-                                    state.user?.embeddedSolanaWallets
-                                                .isNotEmpty ??
-                                            false
-                                        ? '[ Enter WAGUS ]'
-                                        : '[ Create Wallet ]',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: context.appColors.contrastLight,
-                                    ),
-                                  ),
                           ),
-                        ),
-                        if (errorMessage.value != null) ...[
+                          const SizedBox(height: 24),
+                          GestureDetector(
+                            onTap: isLoading.value
+                                ? null
+                                : () async {
+                                    try {
+                                      isLoading.value = true;
+                                      errorMessage.value = null;
+
+                                      context
+                                          .read<PortalBloc>()
+                                          .add(PortalAuthorizeEvent(context));
+
+                                      await Future.delayed(
+                                          const Duration(milliseconds: 300));
+
+                                      final portalBlocState =
+                                          context.read<PortalBloc>().state;
+                                      final user = portalBlocState.user;
+                                      final hasWallets = user
+                                              ?.embeddedSolanaWallets
+                                              .isNotEmpty ??
+                                          false;
+
+                                      if (user != null && hasWallets) {
+                                        await UserService().setUserOnline(user
+                                            .embeddedSolanaWallets
+                                            .first
+                                            .address);
+                                        if (context.mounted) {
+                                          context.go(home);
+                                        }
+                                      } else {
+                                        errorMessage.value =
+                                            'Please create a wallet first.';
+                                      }
+                                    } finally {
+                                      isLoading.value = false;
+                                    }
+                                  },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 14),
+                              decoration: BoxDecoration(
+                                color: Colors.greenAccent,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: isLoading.value || state.user == null
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.black,
+                                      ),
+                                    )
+                                  : Text(
+                                      state.user?.embeddedSolanaWallets
+                                                  .isNotEmpty ??
+                                              false
+                                          ? '[ Enter WAGUS ]'
+                                          : '[ Create Wallet ]',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                          if (errorMessage.value != null) ...[
+                            const SizedBox(height: 16),
+                            Text(
+                              errorMessage.value!,
+                              style: const TextStyle(
+                                  color: Colors.redAccent, fontSize: 14),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                           const SizedBox(height: 16),
                           Text(
-                            errorMessage.value!,
+                            'Current Tier: ${state.tierStatus.name}',
                             style: TextStyle(
-                              color: Colors.red[300],
                               fontSize: 14,
+                              color: context.appColors.contrastLight,
                             ),
-                          ),
+                          )
                         ],
-                        const SizedBox(height: 16),
-                        Text(
-                          'Current Tier: ${state.tierStatus.name}',
-                          style: TextStyle(
-                            color: context.appColors.contrastLight,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ],
