@@ -11,11 +11,21 @@ refresh:
 	rm -rf ~/Library/Developer/Xcode/DerivedData
 
 wireless-android:
-	@adb tcpip 5555
-	@IP=$$(adb shell ip route | awk '{print $$9}'); \
-	if adb devices | grep -q "$$IP:5555"; then \
-		echo "Already connected to $$IP"; \
-	else \
-		adb connect $$IP && echo "Connected to $$IP"; \
+	@echo "Checking for connected USB device..."
+	@if ! adb devices | grep -w "device" | grep -v "List"; then \
+		echo "❌ No USB device found. Please connect via USB."; \
+		exit 1; \
 	fi
+	@echo "Restarting ADB in TCP mode..."
+	@adb tcpip 5555
+	@echo "Waiting for device to reappear..."
+	@sleep 2
 	@adb devices
+	@echo "Fetching device IP address..."
+	@IP=$$(adb shell ip -f inet addr show wlan0 | grep -oP 'inet \K[\d.]+' | head -n 1); \
+	if [ -z "$$IP" ]; then echo "❌ Failed to get IP. Is device on Wi-Fi?"; exit 1; fi; \
+	echo "Device IP is $$IP"; \
+	echo "Connecting wirelessly..."; \
+	adb connect $$IP:5555 && echo "✅ Connected to $$IP:5555"
+
+

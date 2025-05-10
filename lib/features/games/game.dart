@@ -5,37 +5,75 @@ import 'package:go_router/go_router.dart';
 import 'package:wagus/features/games/bloc/game_bloc.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
-import 'package:wagus/theme/app_palette.dart';
 
 class Game extends StatelessWidget {
   const Game({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final games = [
+      {
+        'icon': FontAwesomeIcons.eye,
+        'title': 'Spygus',
+        'tagline': 'Find hidden symbols in mysterious scenes.',
+        'route': spygus,
+        'status': 'live',
+      },
+      {
+        'icon': FontAwesomeIcons.skull,
+        'title': 'Zombie Apocalypse',
+        'tagline': 'Survive waves of the undead.',
+        'status': 'coming',
+      },
+      {
+        'icon': FontAwesomeIcons.robot,
+        'title': 'Battle Bots',
+        'tagline': 'Program your bot and battle others.',
+        'status': 'coming',
+      },
+      {
+        'icon': FontAwesomeIcons.puzzlePiece,
+        'title': 'Guess the Drawing',
+        'tagline': 'Draw and guess with friends.',
+        'status': 'coming',
+      },
+      {
+        'icon': FontAwesomeIcons.egg,
+        'title': 'WAGUS: The Origins',
+        'tagline': 'Uncover the origin story of WAGUS.',
+        'status': 'coming',
+      },
+    ];
+
     return BlocBuilder<GameBloc, GameState>(
       builder: (context, state) {
         return Scaffold(
-          body: SizedBox.expand(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 64.0),
-              child: Column(
-                children: [
-                  Text(
-                    'Games',
-                    style: TextStyle(
-                      color: context.appColors.contrastLight,
-                      fontSize: 18.0,
-                    ),
+          backgroundColor: Colors.black,
+          body: Padding(
+            padding: const EdgeInsets.only(top: 64.0, left: 16, right: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Games',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 32.0),
-                  Expanded(
-                    child: ListView(
-                      padding: EdgeInsets.zero,
-                      children: [
-                        GameTile(
-                          icon: FontAwesomeIcons.eye,
-                          title: 'Spygus',
-                          onTap: () {
+                ),
+                const SizedBox(height: 24),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: games.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final game = games[index];
+                      final isLive = game['status'] == 'live';
+
+                      return InkWell(
+                        onTap: () {
+                          if (isLive) {
                             final wallet = context
                                 .read<PortalBloc>()
                                 .state
@@ -43,99 +81,93 @@ class Game extends StatelessWidget {
                                 .embeddedSolanaWallets
                                 .first
                                 .address;
-                            context.push('$spygus/$wallet');
-                          },
-                        ),
-                        GameTile(
-                          icon: FontAwesomeIcons.skull,
-                          title: 'Zombie Apocalypse',
-                          onTap: () =>
-                              ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Coming soon!'),
-                              duration: const Duration(seconds: 1),
+                            context.push('${game['route']}/$wallet');
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Coming soon!'),
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey[900],
+                            border: Border.all(
+                              color:
+                                  isLive ? Colors.greenAccent : Colors.white24,
                             ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 16, horizontal: 16),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(game['icon'] as IconData,
+                                  size: 20, color: Colors.greenAccent),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          game['title'] as String,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        if (!isLive)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.orangeAccent,
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: const Text(
+                                              'Coming Soon',
+                                              style: TextStyle(
+                                                color: Colors.black,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      game['tagline'] as String,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.white60,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        GameTile(
-                          icon: FontAwesomeIcons.robot,
-                          title: 'Battle Bots',
-                          onTap: () =>
-                              ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Coming soon!'),
-                              duration: const Duration(seconds: 1),
-                            ),
-                          ),
-                        ),
-                        GameTile(
-                          icon: FontAwesomeIcons.puzzlePiece,
-                          title: 'Guess the Drawing',
-                          onTap: () =>
-                              ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Coming soon!'),
-                              duration: const Duration(seconds: 1),
-                            ),
-                          ),
-                        ),
-                        GameTile(
-                          icon: FontAwesomeIcons.egg,
-                          title: 'WAGUS: The Origins',
-                          onTap: () =>
-                              ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Coming soon!'),
-                              duration: const Duration(seconds: 1),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );
       },
-    );
-  }
-}
-
-class GameTile extends StatelessWidget {
-  const GameTile({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-    super.key,
-  });
-
-  final IconData icon;
-  final String title;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: AppPalette.contrastLight,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: context.appColors.contrastLight,
-          fontSize: 12.0,
-        ),
-      ),
-      onTap: onTap ??
-          () => ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Coming soon!'),
-                  duration: const Duration(seconds: 1),
-                ),
-              ),
     );
   }
 }

@@ -46,8 +46,8 @@ class Quest extends HookWidget {
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         builder: (bottomSheetContext) {
-          // 👈 New context
           return Scaffold(
+            backgroundColor: Colors.transparent,
             body: CustomPaint(
               painter: CryptoBackgroundPainter(),
               child: BlocConsumer<QuestBloc, QuestState>(
@@ -55,7 +55,6 @@ class Quest extends HookWidget {
                   if (state.claimSuccess) {
                     Navigator.of(bottomSheetContext).pop();
 
-                    // 💥 Force a full refetch here
                     final portalBloc = context.read<PortalBloc>();
                     final questBloc = context.read<QuestBloc>();
                     final userWallet = portalBloc
@@ -89,21 +88,28 @@ class Quest extends HookWidget {
                 },
                 builder: (context, state) {
                   return SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 32.0, left: 16),
-                            child: BackButton(
-                              color: context.appColors.contrastLight,
-                            ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 32, horizontal: 16),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              BackButton(
+                                color: Colors.white,
+                              ),
+                              const Text(
+                                'Daily Rewards',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0, vertical: 32),
-                          child: Wrap(
+                          const SizedBox(height: 24),
+                          Wrap(
                             spacing: 12,
                             runSpacing: 12,
                             children: List.generate(7, (index) {
@@ -112,212 +118,182 @@ class Quest extends HookWidget {
                               final isLoading =
                                   state.currentlyClaimingDay == day;
 
-                              return SizedBox(
+                              return Container(
                                 width:
                                     MediaQuery.of(context).size.width / 2 - 24,
-                                child: Card(
+                                decoration: BoxDecoration(
                                   color: Colors.grey[900],
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12.0),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Day $day',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          rewards[index]['sol']!,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.lightBlueAccent,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Visibility(
-                                          visible: false,
-                                          child: Text(
-                                            rewards[index]['bucks']!,
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.amber,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        ElevatedButton(
-                                          onPressed: isClaimed || isLoading
-                                              ? null
-                                              : () async {
-                                                  final questBloc =
-                                                      context.read<QuestBloc>();
-                                                  final portalBloc = context
-                                                      .read<PortalBloc>();
-                                                  final userWallet = portalBloc
-                                                      .state
-                                                      .user!
-                                                      .embeddedSolanaWallets
-                                                      .first
-                                                      .address;
-
-                                                  // Check if user can claim today
-                                                  final canClaim =
-                                                      await questBloc
-                                                          .questRepository
-                                                          .canClaimToday(
-                                                              userWallet);
-                                                  if (!canClaim) {
-                                                    showDialog(
-                                                      context:
-                                                          bottomSheetContext,
-                                                      builder: (_) =>
-                                                          AlertDialog(
-                                                        backgroundColor:
-                                                            Colors.grey[900],
-                                                        title: const Row(
-                                                          children: [
-                                                            Icon(Icons.error,
-                                                                color:
-                                                                    Colors.red),
-                                                            SizedBox(width: 8),
-                                                            Text('Hold Up',
-                                                                style: TextStyle(
-                                                                    color: Colors
-                                                                        .white)),
-                                                          ],
-                                                        ),
-                                                        content: const Text(
-                                                          'You can only claim one reward per day!',
-                                                          style: TextStyle(
-                                                              color: Colors
-                                                                  .white70),
-                                                        ),
-                                                        actions: [
-                                                          TextButton(
-                                                            onPressed: () =>
-                                                                Navigator.of(
-                                                                        bottomSheetContext)
-                                                                    .pop(),
-                                                            child: const Text(
-                                                                'OK'),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    );
-                                                    return;
-                                                  }
-
-                                                  // Fetch latest claimed days
-                                                  final latestClaimedDays =
-                                                      await questBloc
-                                                          .questRepository
-                                                          .fetchClaimedDays(
-                                                              userWallet);
-                                                  final expectedDay =
-                                                      latestClaimedDays.length +
-                                                          1;
-
-                                                  if (day != expectedDay) {
-                                                    showDialog(
-                                                      context:
-                                                          bottomSheetContext,
-                                                      builder: (_) =>
-                                                          AlertDialog(
-                                                        backgroundColor:
-                                                            Colors.grey[900],
-                                                        title: const Row(
-                                                          children: [
-                                                            Icon(Icons.error,
-                                                                color:
-                                                                    Colors.red),
-                                                            SizedBox(width: 8),
-                                                            Text('Hold Up',
-                                                                style: TextStyle(
-                                                                    color: Colors
-                                                                        .white)),
-                                                          ],
-                                                        ),
-                                                        content: Text(
-                                                          'You must claim in order! (Next up: Day $expectedDay)',
-                                                          style:
-                                                              const TextStyle(
-                                                                  color: Colors
-                                                                      .white70),
-                                                        ),
-                                                        actions: [
-                                                          TextButton(
-                                                            onPressed: () =>
-                                                                Navigator.of(
-                                                                        bottomSheetContext)
-                                                                    .pop(),
-                                                            child: const Text(
-                                                                'OK'),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    );
-                                                    return;
-                                                  }
-
-                                                  questBloc.add(
-                                                    QuestClaimDailyRewardEvent(
-                                                      day: day,
-                                                      userWalletAddress:
-                                                          userWallet,
-                                                      tier: portalBloc
-                                                          .state.tierStatus,
-                                                    ),
-                                                  );
-                                                },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: isClaimed
-                                                ? Colors.grey
-                                                : Colors.green,
-                                            minimumSize:
-                                                const Size(double.infinity, 36),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                          ),
-                                          child: isLoading
-                                              ? const SizedBox(
-                                                  width: 16,
-                                                  height: 16,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                    color: Colors.white,
-                                                  ),
-                                                )
-                                              : Text(
-                                                  isClaimed
-                                                      ? 'Claimed'
-                                                      : 'Claim',
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                        ),
-                                      ],
+                                  border: Border.all(
+                                      color: isClaimed
+                                          ? Colors.greenAccent
+                                          : Colors.white12),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Day $day',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      rewards[index]['sol']!,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.lightBlueAccent,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    ElevatedButton(
+                                      onPressed: isClaimed || isLoading
+                                          ? null
+                                          : () async {
+                                              final questBloc =
+                                                  context.read<QuestBloc>();
+                                              final portalBloc =
+                                                  context.read<PortalBloc>();
+                                              final userWallet = portalBloc
+                                                  .state
+                                                  .user!
+                                                  .embeddedSolanaWallets
+                                                  .first
+                                                  .address;
+
+                                              final canClaim = await questBloc
+                                                  .questRepository
+                                                  .canClaimToday(userWallet);
+                                              if (!canClaim) {
+                                                showDialog(
+                                                  context: bottomSheetContext,
+                                                  builder: (_) => AlertDialog(
+                                                    backgroundColor:
+                                                        Colors.grey[900],
+                                                    title: const Row(
+                                                      children: [
+                                                        Icon(Icons.error,
+                                                            color: Colors.red),
+                                                        SizedBox(width: 8),
+                                                        Text('Hold Up',
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .white)),
+                                                      ],
+                                                    ),
+                                                    content: const Text(
+                                                      'You can only claim one reward per day!',
+                                                      style: TextStyle(
+                                                          color:
+                                                              Colors.white70),
+                                                    ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                                    bottomSheetContext)
+                                                                .pop(),
+                                                        child: const Text('OK'),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                                return;
+                                              }
+
+                                              final latestClaimedDays =
+                                                  await questBloc
+                                                      .questRepository
+                                                      .fetchClaimedDays(
+                                                          userWallet);
+                                              final expectedDay =
+                                                  latestClaimedDays.length + 1;
+
+                                              if (day != expectedDay) {
+                                                showDialog(
+                                                  context: bottomSheetContext,
+                                                  builder: (_) => AlertDialog(
+                                                    backgroundColor:
+                                                        Colors.grey[900],
+                                                    title: const Row(
+                                                      children: [
+                                                        Icon(Icons.error,
+                                                            color: Colors.red),
+                                                        SizedBox(width: 8),
+                                                        Text('Hold Up',
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .white)),
+                                                      ],
+                                                    ),
+                                                    content: Text(
+                                                      'You must claim in order! (Next up: Day $expectedDay)',
+                                                      style: const TextStyle(
+                                                          color:
+                                                              Colors.white70),
+                                                    ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                                    bottomSheetContext)
+                                                                .pop(),
+                                                        child: const Text('OK'),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                                return;
+                                              }
+
+                                              questBloc.add(
+                                                QuestClaimDailyRewardEvent(
+                                                  day: day,
+                                                  userWalletAddress: userWallet,
+                                                  tier: portalBloc
+                                                      .state.tierStatus,
+                                                ),
+                                              );
+                                            },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: isClaimed
+                                            ? Colors.grey
+                                            : Colors.green,
+                                        minimumSize:
+                                            const Size(double.infinity, 36),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      child: isLoading
+                                          ? const SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : Text(
+                                              isClaimed ? 'Claimed' : 'Claim',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                    ),
+                                  ],
                                 ),
                               );
                             }),
-                          ),
-                        ),
-                      ],
+                          )
+                        ],
+                      ),
                     ),
                   );
                 },

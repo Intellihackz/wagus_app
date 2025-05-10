@@ -8,9 +8,13 @@ class UserService {
       .snapshots();
 
   static Stream<int> getLiveUserCount() {
+    final cutoff = Timestamp.fromDate(
+      DateTime.now().subtract(const Duration(minutes: 2)),
+    );
+
     return FirebaseFirestore.instance
         .collection('users')
-        .where('is_online', isEqualTo: true)
+        .where('last_active', isGreaterThan: cutoff)
         .snapshots()
         .map((snapshot) => snapshot.docs.length);
   }

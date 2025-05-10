@@ -41,6 +41,7 @@ class HomeRepository {
         'tier': message.tier.name,
         'room': message.room,
         'timestamp': FieldValue.serverTimestamp(),
+        'likes': 0,
       });
     } catch (e) {
       log('Error sending message: $e');

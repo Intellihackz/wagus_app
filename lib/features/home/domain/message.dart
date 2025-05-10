@@ -7,11 +7,15 @@ class Message {
   final String room;
   final double? solBalance;
   final int? wagBalance;
+  final int? likes;
+  final String? id;
 
   Message({
     required this.sender,
     required this.text,
     required this.room,
+    this.id,
+    this.likes,
     TierStatus? tier,
     this.solBalance,
     this.wagBalance,
@@ -24,6 +28,8 @@ class Message {
     TierStatus? tier,
     double? Function()? solBalance,
     int? Function()? wagBalance,
+    int? Function()? likes,
+    String? Function()? id,
   }) {
     return Message(
       sender: sender ?? this.sender,
@@ -32,6 +38,8 @@ class Message {
       tier: tier ?? this.tier,
       solBalance: solBalance?.call() ?? this.solBalance,
       wagBalance: wagBalance?.call() ?? this.wagBalance,
+      likes: likes?.call() ?? this.likes,
+      id: id?.call() ?? this.id,
     );
   }
 }

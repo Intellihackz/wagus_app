@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/router.dart';
+import 'package:wagus/services/user_service.dart';
 import 'package:wagus/theme/app_palette.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
@@ -59,6 +60,8 @@ class Portal extends HookWidget {
                                         false;
 
                                     if (user != null && hasWallets) {
+                                      await UserService().setUserOnline(user
+                                          .embeddedSolanaWallets.first.address);
                                       if (context.mounted) {
                                         context.go(
                                             home); // ✅ Navigate only if wallet exists

@@ -98,22 +98,39 @@ class QuestRepository {
       );
 
       if (response.statusCode == 200) {
-        await usersCollection.doc(userWallet).set({
+        final updates = {
           'claimed_days': FieldValue.arrayUnion([day]),
           'last_claimed': FieldValue.serverTimestamp(),
           'last_login': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+        };
 
-        // ✅ Send chat message
-        await _homeRepository.sendMessage(Message(
-          text:
-              '${userWallet.substring(0, 3)}..${userWallet.substring(userWallet.length - 3)} claimed their Day $day reward! 🎁',
-          sender: userWallet,
-          tier: TierStatus.system,
-          room: 'General',
-        ));
+        if (day == 7) {
+          updates['claimed_days_reset_at'] = FieldValue.serverTimestamp();
+
+          // ✅ Broadcast 7-day streak complete
+          await _homeRepository.sendMessage(Message(
+            text:
+                '${userWallet.substring(0, 3)}..${userWallet.substring(userWallet.length - 3)} completed all 7 daily rewards! 🎉',
+            sender: userWallet,
+            tier: TierStatus.system,
+            room: 'General',
+          ));
+        } else {
+          // ✅ Broadcast regular daily reward claim
+          await _homeRepository.sendMessage(Message(
+            text:
+                '${userWallet.substring(0, 3)}..${userWallet.substring(userWallet.length - 3)} claimed their Day $day reward! 🎁',
+            sender: userWallet,
+            tier: TierStatus.system,
+            room: 'General',
+          ));
+        }
+
+        await usersCollection
+            .doc(userWallet)
+            .set(updates, SetOptions(merge: true));
       } else {
-        throw Exception('Claim server returned error: ${response.data}');
+        throw Exception('Failed to claim reward: ${response.data}');
       }
     } catch (e) {
       throw Exception('Claim failed: $e');

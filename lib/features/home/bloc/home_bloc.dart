@@ -166,33 +166,34 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
       roomSub = homeRepository.getMessages(event.room).listen((data) {
         final messages = data.docs
-            .map((doc) => doc.data())
-            .toList()
-            .cast<Map<String, dynamic>>();
+            .map((doc) {
+              final msg = doc.data() as Map<String, dynamic>?;
+              if (msg == null) return null;
+
+              final sender = msg['sender'] as String?;
+              final text = msg['message'] as String?;
+              if (sender == null || text == null) return null;
+
+              return Message(
+                text: text,
+                sender: sender,
+                room: (msg['room'] as String?)?.trim().isNotEmpty == true
+                    ? msg['room']
+                    : 'General',
+                tier: TierStatus.values.firstWhere(
+                  (t) => t.name == (msg['tier'] ?? 'basic'),
+                  orElse: () => TierStatus.basic,
+                ),
+                likes: msg['likes'] ?? 0,
+                id: doc.id,
+              );
+            })
+            .whereType<Message>()
+            .toList();
 
         add(HomeInitialEvent(
-          messages: messages
-              .map((msg) {
-                final sender = msg['sender'] as String?;
-                final text = msg['message'] as String?; // 👈 fix here
-                if (sender == null || text == null) return null;
-
-                return Message(
-                  text: text,
-                  sender: sender,
-                  room: (msg['room'] as String?)?.trim().isNotEmpty == true
-                      ? msg['room']
-                      : 'General',
-                  tier: TierStatus.values.firstWhere(
-                    (t) => t.name == (msg['tier'] ?? 'basic'),
-                    orElse: () => TierStatus.basic,
-                  ),
-                );
-              })
-              .whereType<Message>()
-              .toList(),
-          room: event.room,
-        ));
+            messages: messages,
+            room: event.room)); // ✅ this is what was missing
       });
     });
 

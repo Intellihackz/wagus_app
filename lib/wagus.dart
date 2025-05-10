@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/incubator/incubator.dart';
 import 'package:wagus/features/quest/presentation/quest.dart';
 import 'package:wagus/router.dart';
+import 'package:wagus/services/user_service.dart';
 import 'package:wagus/theme/app_palette.dart';
 import 'package:wagus/services/privy_service.dart';
 
@@ -24,6 +26,23 @@ class Wagus extends HookWidget {
     final currentPage = useState<int>(0);
     final lastPage = useState<int>(0);
     final pageController = usePageController();
+
+    useEffect(() {
+      final user = mainContext.read<PortalBloc>().state.user;
+      final wallet = user?.embeddedSolanaWallets.firstOrNull?.address;
+      Timer? ping;
+
+      if (wallet != null) {
+        ping = Timer.periodic(const Duration(seconds: 30), (_) {
+          UserService().setUserOnline(wallet);
+          debugPrint('🟢 Ping: $wallet online status refreshed');
+        });
+      }
+
+      return () {
+        ping?.cancel();
+      };
+    }, []);
 
     return Stack(
       fit: StackFit.expand,
@@ -100,6 +119,11 @@ class Wagus extends HookWidget {
                                       await PrivyService().logout(context);
 
                                   if (result && context.mounted) {
+                                    await UserService().setUserOffline(state
+                                        .user!
+                                        .embeddedSolanaWallets
+                                        .first
+                                        .address);
                                     context.go(login);
                                   }
                                 },
@@ -141,8 +165,8 @@ class Wagus extends HookWidget {
                         currentPage.value = index;
                         pageController.jumpToPage(index);
                       },
-                      selectedLabelStyle: TextStyle(fontSize: 8),
-                      unselectedLabelStyle: TextStyle(fontSize: 8),
+                      selectedLabelStyle: TextStyle(fontSize: 10),
+                      unselectedLabelStyle: TextStyle(fontSize: 10),
                       landscapeLayout:
                           BottomNavigationBarLandscapeLayout.spread,
                       selectedItemColor: context.appColors.contrastLight,
@@ -151,20 +175,20 @@ class Wagus extends HookWidget {
                         BottomNavigationBarItem(
                           icon: Padding(
                             padding: EdgeInsets.only(top: 24.0, bottom: 4),
-                            child: Icon(Icons.home),
+                            child: Icon(FontAwesomeIcons.house),
                           ),
                           label: 'Home',
                         ),
                         BottomNavigationBarItem(
                           icon: Padding(
                               padding: EdgeInsets.only(top: 24.0, bottom: 4),
-                              child: Icon(Icons.rocket_launch)),
+                              child: Icon(FontAwesomeIcons.rocket)),
                           label: 'Incubator',
                         ),
                         BottomNavigationBarItem(
                           icon: Padding(
                               padding: EdgeInsets.only(top: 24.0, bottom: 4),
-                              child: Icon(Icons.gamepad)),
+                              child: Icon(FontAwesomeIcons.gamepad)),
                           label: 'Games',
                         ),
                         BottomNavigationBarItem(

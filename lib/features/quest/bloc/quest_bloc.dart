@@ -1,4 +1,5 @@
 import 'package:bloc/bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/quest/data/quest_repository.dart';
@@ -11,6 +12,17 @@ class QuestBloc extends Bloc<QuestEvent, QuestState> {
   final QuestRepository questRepository;
   QuestBloc({required this.questRepository}) : super(QuestState()) {
     on<QuestInitialEvent>((event, emit) async {
+      final shouldReset = await shouldResetClaimedDays(event.address);
+      if (shouldReset) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(event.address)
+            .set({
+          'claimed_days': [],
+          'claimed_days_reset_at': FieldValue.delete(),
+        }, SetOptions(merge: true));
+      }
+
       await emit.forEach(
         UserService.getUserStream(event.address),
         onData: (data) {
@@ -61,5 +73,26 @@ class QuestBloc extends Bloc<QuestEvent, QuestState> {
         claimedDays: event.claimedDays,
       ));
     });
+  }
+
+  Future<bool> shouldResetClaimedDays(String wallet) async {
+    final userDoc = await questRepository.getUser(wallet);
+    final data = userDoc.data();
+    final resetAt = (data?['claimed_days_reset_at'] as Timestamp?)?.toDate();
+    if (resetAt == null) return false;
+
+    // Use server time
+    await FirebaseFirestore.instance.collection('serverTime').doc('now').set(
+        {'timestamp': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+    final serverNowSnap = await FirebaseFirestore.instance
+        .collection('serverTime')
+        .doc('now')
+        .get();
+    final now = (serverNowSnap.data()?['timestamp'] as Timestamp).toDate();
+
+    final resetDate = DateTime(resetAt.year, resetAt.month, resetAt.day);
+    final today = DateTime(now.year, now.month, now.day);
+
+    return today.isAfter(resetDate);
   }
 }

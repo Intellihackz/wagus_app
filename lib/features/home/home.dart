@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -86,7 +87,7 @@ class Home extends HookWidget {
                                     child: Text(
                                       room,
                                       style: TextStyle(
-                                        fontSize: 10,
+                                        fontSize: 12,
                                         color: isSelected
                                             ? Colors.black
                                             : Colors.white,
@@ -236,7 +237,7 @@ class Home extends HookWidget {
                                                                 .lightBlueAccent
                                                             : getTierColor(
                                                                 message.tier),
-                                                        fontSize: 12,
+                                                        fontSize: 14,
                                                         fontWeight: message
                                                                     .tier ==
                                                                 TierStatus
@@ -251,10 +252,36 @@ class Home extends HookWidget {
                                                   text: message.text,
                                                   style: TextStyle(
                                                     color: Colors.white,
+                                                    fontSize: 14,
                                                   ),
                                                 ),
                                               ],
                                             ),
+                                          ),
+                                        ),
+                                        GestureDetector(
+                                          onTap: () async {
+                                            final docId = message
+                                                .id; // Ensure Message class has `id`
+                                            final docRef = FirebaseFirestore
+                                                .instance
+                                                .collection('chat')
+                                                .doc(docId);
+                                            await docRef.update({
+                                              'likes': FieldValue.increment(1)
+                                            });
+                                          },
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.thumb_up,
+                                                  size: 14,
+                                                  color: Colors.white),
+                                              SizedBox(width: 4),
+                                              Text('${message.likes}',
+                                                  style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 10)),
+                                            ],
                                           ),
                                         ),
                                       ],
