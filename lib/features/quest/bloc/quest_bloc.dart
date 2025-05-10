@@ -93,6 +93,6 @@ class QuestBloc extends Bloc<QuestEvent, QuestState> {
     final resetDate = DateTime(resetAt.year, resetAt.month, resetAt.day);
     final today = DateTime(now.year, now.month, now.day);
 
-    return today.isAfter(resetDate);
+    return today.difference(resetDate).inDays >= 7;
   }
 }
