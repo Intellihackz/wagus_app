@@ -21,6 +21,15 @@ part 'home_state.dart';
 
 StreamSubscription? giveawaySub;
 
+const List<String> allCommands = [
+  '/send',
+  '/burn',
+  '/flex',
+  '/upgrade',
+  '/giveaway',
+  '/help',
+];
+
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
   StreamSubscription? roomSub;
 
@@ -31,6 +40,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     EmbeddedSolanaWallet wallet,
     String mint,
     BankRepository bank,
+    BuildContext context,
   ) async {
     giveawaySub?.cancel();
 
@@ -131,6 +141,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             ),
             currentTokenAddress: mint,
           ));
+
+          add(HomeLaunchGiveawayConfettiEvent());
         } catch (e) {
           log('❌ Failed to process giveaway $id: $e');
 
@@ -204,17 +216,40 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       ));
     });
 
+    on<HomeLaunchGiveawayConfettiEvent>((event, emit) {
+      emit(state.copyWith(canLaunchConfetti: !state.canLaunchConfetti));
+    });
+
     on<HomeWatchOnlineUsersEvent>((event, emit) async {
       await emit.forEach(UserService.onlineUsersCollection, onData: (data) {
         final onlineUsers = data.docs
             .map((doc) => doc.data())
-            .toList()
-            .cast<Map<String, dynamic>>()
+            .where((user) => user['wallet'] != null) // skip nulls
             .map((user) => user['wallet'] as String)
             .toList();
 
         return state.copyWith(activeUsersCount: onlineUsers.length);
       });
+    });
+
+    on<HomeCommandPopupTriggered>((event, emit) {
+      final search = event.input.trim();
+      final closestMatch = allCommands.firstWhere(
+        (cmd) => cmd.startsWith(search),
+        orElse: () => '',
+      );
+
+      emit(state.copyWith(
+        commandSearch: () => closestMatch.isEmpty ? null : closestMatch,
+        recentCommand: () => state.recentCommand,
+      ));
+    });
+
+    on<HomeCommandPopupClosed>((event, emit) {
+      emit(state.copyWith(
+        commandSearch: () => null,
+        recentCommand: () => null, // ✅ make sure this is also cleared
+      ));
     });
 
     FutureOr<Message> buildCommandPreview(

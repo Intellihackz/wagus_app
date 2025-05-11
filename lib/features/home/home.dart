@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_confetti/flutter_confetti.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:wagus/features/bank/data/bank_repository.dart';
@@ -37,6 +39,7 @@ class Home extends HookWidget {
               wallet,
               portalState.currentTokenAddress,
               bankRepo,
+              context,
             );
             homeBloc.add(HomeSetRoomEvent(selectedRoom.value));
           }
@@ -48,7 +51,18 @@ class Home extends HookWidget {
 
     return BlocBuilder<PortalBloc, PortalState>(
       builder: (context, portalState) {
-        return BlocBuilder<HomeBloc, HomeState>(
+        return BlocConsumer<HomeBloc, HomeState>(
+          listener: (context, homeState) {
+            if (homeState.canLaunchConfetti) {
+              final controller = Confetti.launch(
+                context,
+                options: const ConfettiOptions(
+                    particleCount: 100, spread: 70, y: 0.7),
+              );
+
+              context.read<HomeBloc>().add(HomeLaunchGiveawayConfettiEvent());
+            }
+          },
           builder: (context, homeState) {
             return Scaffold(
               backgroundColor: Colors.black,
@@ -255,12 +269,74 @@ class Home extends HookWidget {
                         ),
                         const Divider(color: Colors.white12, thickness: 1),
                         // Input Bar
+
                         _ChatInputBar(
                             controller: inputController,
                             selectedRoom: selectedRoom.value,
                             portalState: portalState),
                       ],
                     ),
+                    if (homeState.commandSearch != null ||
+                        homeState.recentCommand != null)
+                      Positioned(
+                        bottom: 64,
+                        left: 16,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: IntrinsicWidth(
+                            // ✅ This makes the width wrap content
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[900],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.white24),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (homeState.recentCommand != null)
+                                    _CommandOption(
+                                      label: homeState.recentCommand!,
+                                      onTap: () {
+                                        inputController.text =
+                                            homeState.recentCommand!;
+                                        inputController.selection =
+                                            TextSelection.fromPosition(
+                                          TextPosition(
+                                              offset:
+                                                  inputController.text.length),
+                                        );
+                                        context.read<HomeBloc>().add(
+                                            HomeCommandPopupClosed()); // ✅ Close it
+                                      },
+                                    ),
+                                  if (homeState.commandSearch != null &&
+                                      homeState.commandSearch !=
+                                          homeState.recentCommand)
+                                    _CommandOption(
+                                      label: homeState.commandSearch!,
+                                      onTap: () {
+                                        inputController.text =
+                                            homeState.commandSearch!;
+                                        inputController.selection =
+                                            TextSelection.fromPosition(
+                                          TextPosition(
+                                              offset:
+                                                  inputController.text.length),
+                                        );
+                                        context.read<HomeBloc>().add(
+                                            HomeCommandPopupClosed()); // ✅ Close it
+                                      },
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -268,6 +344,27 @@ class Home extends HookWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _CommandOption extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _CommandOption({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Text(
+          label,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+        ),
+      ),
     );
   }
 }
@@ -296,28 +393,38 @@ class _ChatInputBar extends StatelessWidget {
         children: [
           Expanded(
             child: TextField(
-              enabled: !inputDisabled,
-              onTapOutside: (_) => FocusScope.of(context).unfocus(),
-              controller: controller,
-              style: const TextStyle(fontSize: 14, color: Colors.white),
-              cursorColor: context.appColors.contrastLight,
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.grey[900],
-                hintText: 'Type your message... /send /upgrade',
-                hintStyle: const TextStyle(fontSize: 12, color: Colors.white38),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      BorderSide(color: context.appColors.contrastLight),
+                enabled: !inputDisabled,
+                onTapOutside: (_) => FocusScope.of(context).unfocus(),
+                controller: controller,
+                style: const TextStyle(fontSize: 14, color: Colors.white),
+                cursorColor: context.appColors.contrastLight,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.grey[900],
+                  hintText: 'Type your message... /send /upgrade',
+                  hintStyle:
+                      const TextStyle(fontSize: 12, color: Colors.white38),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        BorderSide(color: context.appColors.contrastLight),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        BorderSide(color: context.appColors.contrastLight),
+                  ),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      BorderSide(color: context.appColors.contrastLight),
-                ),
-              ),
-            ),
+                onChanged: (text) {
+                  final trimmed = text.trim();
+                  if (trimmed.isEmpty || !trimmed.startsWith('/')) {
+                    context.read<HomeBloc>().add(HomeCommandPopupClosed());
+                  } else {
+                    context
+                        .read<HomeBloc>()
+                        .add(HomeCommandPopupTriggered(trimmed));
+                  }
+                }),
           ),
           const SizedBox(width: 8),
           Container(
@@ -407,7 +514,7 @@ class _ChatInputBar extends StatelessWidget {
                                   .read<BankRepository>()
                                   .withdrawFunds(
                                     wallet: wallet,
-                                    amount: 1000,
+                                    amount: 2500,
                                     destinationAddress: treasuryWallet,
                                     wagusMint: currentTokenAddress,
                                   );
@@ -431,6 +538,18 @@ class _ChatInputBar extends StatelessWidget {
                                     PortalUpdateTierEvent(
                                         TierStatus.adventurer, wallet.address),
                                   );
+
+                              await Dio().post(
+                                'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com/upgrade',
+                                data: {
+                                  'userWallet': wallet.address,
+                                  'amount': 2500,
+                                },
+                                options: Options(headers: {
+                                  'Authorization':
+                                      'Bearer ${dotenv.env['INTERNAL_API_KEY']}',
+                                }),
+                              );
 
                               print('[UpgradeDialog] Success');
 

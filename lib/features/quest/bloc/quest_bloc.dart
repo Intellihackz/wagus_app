@@ -13,14 +13,20 @@ class QuestBloc extends Bloc<QuestEvent, QuestState> {
   QuestBloc({required this.questRepository}) : super(QuestState()) {
     on<QuestInitialEvent>((event, emit) async {
       final shouldReset = await shouldResetClaimedDays(event.address);
+
       if (shouldReset) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(event.address)
-            .set({
+        final userRef =
+            FirebaseFirestore.instance.collection('users').doc(event.address);
+        await userRef.set({
           'claimed_days': [],
           'claimed_days_reset_at': FieldValue.delete(),
         }, SetOptions(merge: true));
+
+        // ✅ Emit manually before listening to stream
+        emit(state.copyWith(claimedDays: {}));
+
+        // ⏳ Slight delay to let Firestore process write
+        await Future.delayed(const Duration(milliseconds: 300));
       }
 
       await emit.forEach(
@@ -60,10 +66,11 @@ class QuestBloc extends Bloc<QuestEvent, QuestState> {
           claimSuccess: true,
         ));
       } catch (e) {
+        print('❌ Claim failed: $e');
         emit(state.copyWith(
           isLoading: false,
           currentlyClaimingDay: () => null,
-          errorMessage: () => 'Something went wrong',
+          errorMessage: () => e.toString(), // ← show real error in snackbar
         ));
       }
     });
@@ -78,21 +85,35 @@ class QuestBloc extends Bloc<QuestEvent, QuestState> {
   Future<bool> shouldResetClaimedDays(String wallet) async {
     final userDoc = await questRepository.getUser(wallet);
     final data = userDoc.data();
-    final resetAt = (data?['claimed_days_reset_at'] as Timestamp?)?.toDate();
-    if (resetAt == null) return false;
+    final claimedDays = List<int>.from(data?['claimed_days'] ?? []);
+    final lastClaimed = (data?['last_claimed'] as Timestamp?)?.toDate();
 
-    // Use server time
+    // Get server time
     await FirebaseFirestore.instance.collection('serverTime').doc('now').set(
-        {'timestamp': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+      {'timestamp': FieldValue.serverTimestamp()},
+      SetOptions(merge: true),
+    );
     final serverNowSnap = await FirebaseFirestore.instance
         .collection('serverTime')
         .doc('now')
         .get();
     final now = (serverNowSnap.data()?['timestamp'] as Timestamp).toDate();
 
-    final resetDate = DateTime(resetAt.year, resetAt.month, resetAt.day);
     final today = DateTime(now.year, now.month, now.day);
 
-    return today.difference(resetDate).inDays >= 7;
+    print(
+        '📅 Checking reset: days=$claimedDays, lastClaimed=$lastClaimed, today=$today');
+
+    // ✅ Reset if 7 days are claimed and today is after the last claimed day
+    if (claimedDays.length == 7 && lastClaimed != null) {
+      final lastClaimedDate = DateTime(
+        lastClaimed.year,
+        lastClaimed.month,
+        lastClaimed.day,
+      );
+      return today.isAfter(lastClaimedDate);
+    }
+
+    return false;
   }
 }

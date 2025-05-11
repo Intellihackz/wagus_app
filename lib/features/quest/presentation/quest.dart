@@ -119,16 +119,6 @@ class DailyRewardsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, String>> rewards = [
-      {'sol': '\$0.25 in SOL', 'bucks': '100 Buckazoids'},
-      {'sol': '\$0.25 in SOL', 'bucks': '250 Buckazoids'},
-      {'sol': '\$0.25 in SOL', 'bucks': '500 Buckazoids'},
-      {'sol': '\$0.25 in SOL', 'bucks': '1000 Buckazoids'},
-      {'sol': '\$0.25 in SOL', 'bucks': '2500 Buckazoids'},
-      {'sol': '\$0.25 in SOL', 'bucks': '5000 Buckazoids'},
-      {'sol': '\$1.00 in SOL', 'bucks': '10000 Buckazoids'},
-    ];
-
     return BlocConsumer<QuestBloc, QuestState>(
       listener: (context, state) {
         if (state.claimSuccess) {
@@ -151,6 +141,12 @@ class DailyRewardsSheet extends StatelessWidget {
       builder: (context, state) {
         final portalState = context.read<PortalBloc>().state;
         final wallet = portalState.user?.embeddedSolanaWallets.first.address;
+        final isAdventurer = portalState.tierStatus == TierStatus.adventurer;
+
+        final List<String> solAmounts = List.generate(
+          6,
+          (_) => isAdventurer ? '\$0.25 in SOL' : '\$0.05 in SOL',
+        )..add(isAdventurer ? '\$1.00 in SOL' : '\$0.50 in SOL');
 
         return SingleChildScrollView(
           child: Padding(
@@ -204,7 +200,7 @@ class DailyRewardsSheet extends StatelessWidget {
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white)),
                           const SizedBox(height: 8),
-                          Text(rewards[index]['sol']!,
+                          Text(solAmounts[index],
                               style: const TextStyle(
                                   fontSize: 14, color: Colors.lightBlueAccent)),
                           const SizedBox(height: 12),

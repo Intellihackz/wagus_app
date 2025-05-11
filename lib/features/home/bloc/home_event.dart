@@ -26,3 +26,14 @@ class HomeSetRoomEvent extends HomeEvent {
 class HomeWatchOnlineUsersEvent extends HomeEvent {
   HomeWatchOnlineUsersEvent();
 }
+
+class HomeCommandPopupTriggered extends HomeEvent {
+  final String input;
+  HomeCommandPopupTriggered(this.input);
+}
+
+class HomeCommandPopupClosed extends HomeEvent {}
+
+class HomeLaunchGiveawayConfettiEvent extends HomeEvent {
+  HomeLaunchGiveawayConfettiEvent();
+}

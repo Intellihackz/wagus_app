@@ -37,7 +37,7 @@ class _UpgradeDialogState extends State<UpgradeDialog> {
                     style: TextStyle(
                         color: Colors.white, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
-                Text("Cost: 1000 \$WAGUS",
+                Text("Cost: 2500 \$WAGUS",
                     style: TextStyle(color: Colors.white70)),
                 const SizedBox(height: 20),
                 if (failed)
