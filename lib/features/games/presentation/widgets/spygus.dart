@@ -46,35 +46,6 @@ class Spygus extends HookWidget {
       return null;
     }, [spygusData]);
 
-    // void handleTap(TapUpDetails details) {
-    //   if (constraintsRef.value == null) return;
-
-    //   final constraints = constraintsRef.value!;
-    //   final localPos = details.localPosition;
-    //   final normalizedX = localPos.dx / constraints.maxWidth;
-    //   final normalizedY = localPos.dy / constraints.maxHeight;
-
-    //   // DEBUG
-    //   print('Tapped X: ${(normalizedX * 100).toStringAsFixed(0)}%');
-    //   print('Tapped Y: ${(normalizedY * 100).toStringAsFixed(0)}%');
-
-    //   showDialog(
-    //     context: context,
-    //     builder: (_) => AlertDialog(
-    //       title: const Text('Debug Tap Location'),
-    //       content: Text(
-    //         'X: ${(normalizedX * 100).toStringAsFixed(0)}%\nY: ${(normalizedY * 100).toStringAsFixed(0)}%',
-    //       ),
-    //       actions: [
-    //         TextButton(
-    //           onPressed: () => Navigator.of(context).pop(),
-    //           child: const Text('Close'),
-    //         )
-    //       ],
-    //     ),
-    //   );
-    // }
-
     void handleTap(
       TapUpDetails details,
       BuildContext context,
@@ -100,6 +71,8 @@ class Spygus extends HookWidget {
       hasPlayed.value = true;
 
       if (success) {
+        final userTier = context.read<PortalBloc>().state.tierStatus;
+        final rewardUsd = userTier == TierStatus.adventurer ? 0.25 : 0.05;
         // Show feedback immediately
         showDialog(
           context: context,
@@ -112,7 +85,7 @@ class Spygus extends HookWidget {
               children: [
                 const CircularProgressIndicator(),
                 const SizedBox(height: 12),
-                Text('Claiming \$.10 in SOL...',
+                Text('Claiming \$$rewardUsd in SOL...',
                     style: TextStyle(color: context.appColors.contrastDark)),
               ],
             ),
@@ -134,7 +107,7 @@ class Spygus extends HookWidget {
 
             final message = Message(
               text:
-                  '[SPYGUS] walletAddress found the hidden symbol and won \$0.10 SOL 👀🎉',
+                  '[SPYGUS] ${walletAddress.substring(0, 4)}...${walletAddress.substring(walletAddress.length - 4)} found the hidden symbol and won \$$rewardUsd SOL 👀🎉',
               sender: 'System',
               tier: TierStatus.system,
               room: 'General',

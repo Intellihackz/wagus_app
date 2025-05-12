@@ -6,8 +6,13 @@ sealed class HomeEvent {}
 class HomeInitialEvent extends HomeEvent {
   final List<Message> messages;
   final String room;
+  final Map<String, DocumentSnapshot> lastDocs;
 
-  HomeInitialEvent({required this.messages, required this.room});
+  HomeInitialEvent({
+    required this.messages,
+    required this.room,
+    required this.lastDocs,
+  });
 }
 
 class HomeSendMessageEvent extends HomeEvent {
@@ -36,4 +41,11 @@ class HomeCommandPopupClosed extends HomeEvent {}
 
 class HomeLaunchGiveawayConfettiEvent extends HomeEvent {
   HomeLaunchGiveawayConfettiEvent();
+}
+
+class HomeLoadMoreMessagesEvent extends HomeEvent {
+  final String room;
+  final DocumentSnapshot lastDoc;
+
+  HomeLoadMoreMessagesEvent(this.room, this.lastDoc);
 }

@@ -13,10 +13,8 @@ import 'package:wagus/features/home/home.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/incubator/incubator.dart';
 import 'package:wagus/features/quest/presentation/quest.dart';
-import 'package:wagus/router.dart';
 import 'package:wagus/services/user_service.dart';
 import 'package:wagus/theme/app_palette.dart';
-import 'package:wagus/services/privy_service.dart';
 
 class Wagus extends HookWidget {
   const Wagus({super.key});
@@ -77,74 +75,77 @@ class Wagus extends HookWidget {
                     ),
                     Positioned.fill(
                       child: Align(
-                        alignment: Alignment.topRight,
-                        child: SizedBox(
-                          height: 50,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(left: 16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'Holders: ${state.holdersCount}',
-                                      style: TextStyle(
-                                          color:
-                                              context.appColors.contrastLight,
-                                          fontSize: 12),
-                                    ),
-                                    BlocSelector<HomeBloc, HomeState, int>(
-                                      selector: (state) {
-                                        return state.activeUsersCount;
-                                      },
-                                      builder: (context, userCount) {
-                                        return Text(
-                                          'Active Online: $userCount',
-                                          style: TextStyle(
-                                              color: context
-                                                  .appColors.contrastLight,
-                                              fontSize: 12),
-                                        );
-                                      },
-                                    )
-                                  ],
-                                ),
+                        alignment: Alignment.topCenter,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                left: 16.0,
                               ),
-                              GestureDetector(
-                                onTap: () async {
-                                  final result =
-                                      await PrivyService().logout(context);
-
-                                  if (result && context.mounted) {
-                                    await UserService().setUserOffline(state
-                                        .user!
-                                        .embeddedSolanaWallets
-                                        .first
-                                        .address);
-                                    context.go(login);
-                                  }
-                                },
-                                child: Container(
-                                  decoration: ShapeDecoration(
-                                    shape: StadiumBorder(),
-                                    color: context.appColors.contrastLight,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Holders: ${state.holdersCount}',
+                                    style: TextStyle(
+                                        color: context.appColors.contrastLight,
+                                        fontSize: 12),
                                   ),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16.0),
-                                  margin: const EdgeInsets.only(right: 16.0),
-                                  child: Text('logout',
-                                      style: TextStyle(
-                                        color: context.appColors.contrastDark,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      )),
+                                  BlocSelector<HomeBloc, HomeState, int>(
+                                    selector: (state) {
+                                      return state.activeUsersCount;
+                                    },
+                                    builder: (context, userCount) {
+                                      return Text(
+                                        'Active Online: $userCount',
+                                        style: TextStyle(
+                                            color:
+                                                context.appColors.contrastLight,
+                                            fontSize: 12),
+                                      );
+                                    },
+                                  )
+                                ],
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                final user =
+                                    context.read<PortalBloc>().state.user;
+                                final wallet = user?.embeddedSolanaWallets
+                                    .firstOrNull?.address;
+                                if (wallet != null) {
+                                  context.push('/profile/$wallet');
+                                }
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(
+                                  right: 16.0,
+                                ),
+                                padding: const EdgeInsets.all(
+                                    2.5), // border thickness
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.greenAccent,
+                                    width: 3, // thick border
+                                  ),
+                                ),
+                                child: Hero(
+                                  tag: 'profile',
+                                  child: CircleAvatar(
+                                    radius: 14, // small & modern
+                                    backgroundImage:
+                                        AssetImage('assets/icons/avatar.png'),
+                                    backgroundColor: Colors.transparent,
+                                  ),
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_confetti/flutter_confetti.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:go_router/go_router.dart';
 import 'package:wagus/features/bank/data/bank_repository.dart';
 import 'package:wagus/features/home/bloc/home_bloc.dart';
 import 'package:wagus/features/home/domain/chat_command_parser.dart';
@@ -23,6 +24,9 @@ class Home extends HookWidget {
     final inputController = useTextEditingController();
     final selectedRoom = useState('General');
     final chatRooms = ['General', 'Support', 'Games', 'Ideas', 'Tier Lounge'];
+
+    final scrollController = useScrollController();
+    final showScrollToBottom = useState(false);
 
     useEffect(() {
       final portalState = context.read<PortalBloc>().state;
@@ -46,7 +50,17 @@ class Home extends HookWidget {
         });
       }
 
-      return null;
+      void listener() {
+        final controller = scrollController;
+        if (!controller.hasClients) return;
+
+        final currentOffset = controller.offset;
+        // Show button if we're more than 150px away from bottom (which is offset 0 with reverse:true)
+        showScrollToBottom.value = currentOffset > 150;
+      }
+
+      scrollController.addListener(listener);
+      return () => scrollController.removeListener(listener);
     }, [context.read<PortalBloc>().state]);
 
     return BlocBuilder<PortalBloc, PortalState>(
@@ -54,6 +68,7 @@ class Home extends HookWidget {
         return BlocConsumer<HomeBloc, HomeState>(
           listener: (context, homeState) {
             if (homeState.canLaunchConfetti) {
+              // ignore: unused_local_variable
               final controller = Confetti.launch(
                 context,
                 options: const ConfettiOptions(
@@ -87,183 +102,272 @@ class Home extends HookWidget {
                                     (msg) => msg.room == homeState.currentRoom)
                                 .toList();
 
-                            return ListView.builder(
-                              reverse: true,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              itemCount: filteredMessages.length,
-                              itemBuilder: (context, index) {
-                                final message = filteredMessages[index];
+                            return NotificationListener<ScrollNotification>(
+                              onNotification: (scrollInfo) {
+                                if (scrollInfo.metrics.pixels ==
+                                    scrollInfo.metrics.maxScrollExtent) {
+                                  final lastMessage = filteredMessages
+                                      .lastOrNull; // requires collection package or handle manually
 
-                                String getTierPrefix(TierStatus tier) {
-                                  if (tier == TierStatus.adventurer)
-                                    return '[A]';
-                                  if (tier == TierStatus.creator) return '[C]';
-
-                                  if (tier == TierStatus.system) return '[S]';
-                                  return '[B]';
-                                }
-
-                                String getDisplaySender(Message msg) {
-                                  if (msg.tier == TierStatus.system)
-                                    return '[System]';
-                                  return '${getTierPrefix(msg.tier)}[${msg.sender.substring(0, 3)}..${msg.sender.substring(msg.sender.length - 3)}]';
-                                }
-
-                                Color getTierColor(TierStatus tier) {
-                                  switch (tier) {
-                                    case TierStatus.adventurer:
-                                      return Colors.red;
-                                    case TierStatus.creator:
-                                      return Colors.purple;
-                                    case TierStatus.system:
-                                      return Colors.cyan;
-                                    case TierStatus.elite:
-                                      return Colors.green;
-                                    case TierStatus.basic:
-                                    case TierStatus.none:
-                                      return Colors.yellow;
+                                  if (lastMessage != null) {
+                                    final lastDoc = context
+                                        .read<HomeBloc>()
+                                        .state
+                                        .lastDocs[homeState.currentRoom];
+                                    if (lastDoc != null) {
+                                      context.read<HomeBloc>().add(
+                                            HomeLoadMoreMessagesEvent(
+                                                homeState.currentRoom, lastDoc),
+                                          );
+                                    }
                                   }
                                 }
+                                return false;
+                              },
+                              child: ListView.builder(
+                                controller: scrollController,
+                                reverse: true,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
+                                itemCount: filteredMessages.length,
+                                itemBuilder: (context, index) {
+                                  final message = filteredMessages[index];
 
-                                return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 4.0),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: SelectableText.rich(
-                                            TextSpan(
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                              ),
-                                              children: [
-                                                WidgetSpan(
-                                                  alignment:
-                                                      PlaceholderAlignment
-                                                          .middle,
-                                                  child: GestureDetector(
-                                                    onTap: () {
-                                                      showDialog(
-                                                        context: context,
-                                                        builder: (_) =>
-                                                            AlertDialog(
-                                                          backgroundColor:
-                                                              Colors.black,
-                                                          title: Text(
-                                                              'Wallet Address',
-                                                              style: TextStyle(
-                                                                  color: context
-                                                                      .appColors
-                                                                      .contrastLight)),
-                                                          content:
-                                                              SelectableText(
-                                                            message.sender,
-                                                            style: TextStyle(
-                                                                color: Colors
-                                                                    .white),
-                                                          ),
-                                                          actions: [
-                                                            TextButton(
-                                                              onPressed: () {
-                                                                Clipboard.setData(
-                                                                    ClipboardData(
-                                                                        text: message
-                                                                            .sender));
-                                                                Navigator.of(
-                                                                        context)
-                                                                    .pop();
-                                                                ScaffoldMessenger.of(
-                                                                        context)
-                                                                    .showSnackBar(
-                                                                  SnackBar(
-                                                                      content: Text(
-                                                                          'Copied to clipboard')),
-                                                                );
-                                                              },
-                                                              child: Text(
-                                                                  'COPY',
-                                                                  style: TextStyle(
-                                                                      color: Colors
-                                                                          .greenAccent)),
+                                  String getTierPrefix(TierStatus tier) {
+                                    if (tier == TierStatus.adventurer)
+                                      return '[A]';
+                                    if (tier == TierStatus.creator)
+                                      return '[C]';
+
+                                    if (tier == TierStatus.system) return '[S]';
+                                    return '[B]';
+                                  }
+
+                                  String getDisplaySender(Message msg) {
+                                    if (msg.tier == TierStatus.system)
+                                      return '[System]';
+                                    return '${getTierPrefix(msg.tier)}[${msg.sender.substring(0, 3)}..${msg.sender.substring(msg.sender.length - 3)}]';
+                                  }
+
+                                  Color getTierColor(TierStatus tier) {
+                                    switch (tier) {
+                                      case TierStatus.adventurer:
+                                        return Colors.red;
+                                      case TierStatus.creator:
+                                        return Colors.purple;
+                                      case TierStatus.system:
+                                        return Colors.cyan;
+                                      case TierStatus.elite:
+                                        return Colors.green;
+                                      case TierStatus.basic:
+                                      case TierStatus.none:
+                                        return Colors.yellow;
+                                    }
+                                  }
+
+                                  return Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 4.0),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Expanded(
+                                            child: SelectableText.rich(
+                                              TextSpan(
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                ),
+                                                children: [
+                                                  WidgetSpan(
+                                                    alignment:
+                                                        PlaceholderAlignment
+                                                            .middle,
+                                                    child: GestureDetector(
+                                                      onTap: () {
+                                                        showDialog(
+                                                          context: context,
+                                                          builder: (_) =>
+                                                              AlertDialog(
+                                                            backgroundColor:
+                                                                Colors.black,
+                                                            title: Text(
+                                                                'Wallet Address',
+                                                                style: TextStyle(
+                                                                    color: context
+                                                                        .appColors
+                                                                        .contrastLight)),
+                                                            content: Row(
+                                                              children: [
+                                                                GestureDetector(
+                                                                  onTap: () =>
+                                                                      context.push(
+                                                                          '/profile/${message.sender}'),
+                                                                  child:
+                                                                      Container(
+                                                                    margin:
+                                                                        const EdgeInsets
+                                                                            .only(
+                                                                      right:
+                                                                          16.0,
+                                                                    ),
+                                                                    padding: const EdgeInsets
+                                                                        .all(
+                                                                        2.5), // border thickness
+                                                                    decoration:
+                                                                        BoxDecoration(
+                                                                      shape: BoxShape
+                                                                          .circle,
+                                                                      border:
+                                                                          Border
+                                                                              .all(
+                                                                        color: Colors
+                                                                            .greenAccent,
+                                                                        width:
+                                                                            3, // thick border
+                                                                      ),
+                                                                    ),
+                                                                    child: Hero(
+                                                                      tag:
+                                                                          'profile',
+                                                                      child:
+                                                                          CircleAvatar(
+                                                                        radius:
+                                                                            14, // small & modern
+                                                                        backgroundImage:
+                                                                            AssetImage('assets/icons/avatar.png'),
+                                                                        backgroundColor:
+                                                                            Colors.transparent,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                Flexible(
+                                                                  child:
+                                                                      SelectableText(
+                                                                    message
+                                                                        .sender,
+                                                                    style: TextStyle(
+                                                                        color: Colors
+                                                                            .white),
+                                                                  ),
+                                                                ),
+                                                              ],
                                                             ),
-                                                            TextButton(
-                                                              onPressed: () =>
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed: () {
+                                                                  Clipboard.setData(
+                                                                      ClipboardData(
+                                                                          text:
+                                                                              message.sender));
                                                                   Navigator.of(
                                                                           context)
-                                                                      .pop(),
-                                                              child: Text(
-                                                                  'CLOSE',
-                                                                  style: TextStyle(
-                                                                      color: Colors
-                                                                          .white)),
-                                                            ),
-                                                          ],
+                                                                      .pop();
+                                                                  ScaffoldMessenger.of(
+                                                                          context)
+                                                                      .showSnackBar(
+                                                                    SnackBar(
+                                                                        content:
+                                                                            Text('Copied to clipboard')),
+                                                                  );
+                                                                },
+                                                                child: Text(
+                                                                    'COPY',
+                                                                    style: TextStyle(
+                                                                        color: Colors
+                                                                            .greenAccent)),
+                                                              ),
+                                                              TextButton(
+                                                                onPressed: () =>
+                                                                    Navigator.of(
+                                                                            context)
+                                                                        .pop(),
+                                                                child: Text(
+                                                                    'CLOSE',
+                                                                    style: TextStyle(
+                                                                        color: Colors
+                                                                            .white)),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      },
+                                                      child: Text(
+                                                        getDisplaySender(
+                                                            message),
+                                                        style: TextStyle(
+                                                          color: message.tier ==
+                                                                  TierStatus
+                                                                      .system
+                                                              ? Colors
+                                                                  .lightBlueAccent
+                                                              : getTierColor(
+                                                                  message.tier),
+                                                          fontSize: 14,
+                                                          fontWeight: message
+                                                                      .tier ==
+                                                                  TierStatus
+                                                                      .system
+                                                              ? FontWeight.w600
+                                                              : FontWeight
+                                                                  .normal,
                                                         ),
-                                                      );
-                                                    },
-                                                    child: Text(
-                                                      getDisplaySender(message),
-                                                      style: TextStyle(
-                                                        color: message.tier ==
-                                                                TierStatus
-                                                                    .system
-                                                            ? Colors
-                                                                .lightBlueAccent
-                                                            : getTierColor(
-                                                                message.tier),
-                                                        fontSize: 14,
-                                                        fontWeight: message
-                                                                    .tier ==
-                                                                TierStatus
-                                                                    .system
-                                                            ? FontWeight.w600
-                                                            : FontWeight.normal,
                                                       ),
                                                     ),
                                                   ),
-                                                ),
-                                                TextSpan(
-                                                  text: message.text,
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 14,
+                                                  TextSpan(
+                                                    text: message.text,
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 14,
+                                                    ),
                                                   ),
-                                                ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          GestureDetector(
+                                            onTap: () async {
+                                              final docId = message
+                                                  .id; // Ensure Message class has `id`
+                                              final docRef = FirebaseFirestore
+                                                  .instance
+                                                  .collection('chat')
+                                                  .doc(docId);
+                                              await docRef.update({
+                                                'likes': FieldValue.increment(1)
+                                              });
+                                            },
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.thumb_up,
+                                                    size: 14,
+                                                    color: message.likes !=
+                                                                null &&
+                                                            message.likes! > 0
+                                                        ? Colors.greenAccent
+                                                        : Colors.white),
+                                                SizedBox(width: 4),
+                                                if (message.likes != null &&
+                                                    message.likes! > 0) ...[
+                                                  Text('${message.likes}',
+                                                      style: TextStyle(
+                                                          color: Colors
+                                                              .greenAccent,
+                                                          fontSize: 10)),
+                                                ] else ...[
+                                                  SizedBox(
+                                                    width: 5,
+                                                  ),
+                                                ]
                                               ],
                                             ),
                                           ),
-                                        ),
-                                        GestureDetector(
-                                          onTap: () async {
-                                            final docId = message
-                                                .id; // Ensure Message class has `id`
-                                            final docRef = FirebaseFirestore
-                                                .instance
-                                                .collection('chat')
-                                                .doc(docId);
-                                            await docRef.update({
-                                              'likes': FieldValue.increment(1)
-                                            });
-                                          },
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.thumb_up,
-                                                  size: 14,
-                                                  color: Colors.white),
-                                              SizedBox(width: 4),
-                                              Text('${message.likes}',
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 10)),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ));
-                              },
+                                        ],
+                                      ));
+                                },
+                              ),
                             );
                           }),
                         ),
@@ -276,6 +380,49 @@ class Home extends HookWidget {
                             portalState: portalState),
                       ],
                     ),
+                    if (showScrollToBottom.value)
+                      if (showScrollToBottom.value)
+                        Positioned(
+                          bottom:
+                              100, // Adjust to sit just above your input bar
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: AnimatedOpacity(
+                              opacity: showScrollToBottom.value ? 1.0 : 0.0,
+                              duration: Duration(milliseconds: 300),
+                              child: GestureDetector(
+                                onTap: () {
+                                  scrollController.animateTo(
+                                    0.0,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeOut,
+                                  );
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: const [
+                                      Icon(Icons.arrow_downward,
+                                          color: Colors.black, size: 16),
+                                      SizedBox(width: 4),
+                                      Text('Scroll to Bottom',
+                                          style: TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 12)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                     if (homeState.commandSearch != null ||
                         homeState.recentCommand != null)
                       Positioned(
@@ -417,13 +564,23 @@ class _ChatInputBar extends StatelessWidget {
                 ),
                 onChanged: (text) {
                   final trimmed = text.trim();
+
+                  // 🔒 If it's empty or doesn't start with '/', close popup
                   if (trimmed.isEmpty || !trimmed.startsWith('/')) {
                     context.read<HomeBloc>().add(HomeCommandPopupClosed());
-                  } else {
-                    context
-                        .read<HomeBloc>()
-                        .add(HomeCommandPopupTriggered(trimmed));
+                    return;
                   }
+
+                  // ✅ If the user just typed a full command (e.g. "/send ") and added a space or arg, hide the popup
+                  if (text.endsWith(' ') && allCommands.contains(trimmed)) {
+                    context.read<HomeBloc>().add(HomeCommandPopupClosed());
+                    return;
+                  }
+
+                  // 🔍 Otherwise, still actively searching
+                  context
+                      .read<HomeBloc>()
+                      .add(HomeCommandPopupTriggered(trimmed));
                 }),
           ),
           const SizedBox(width: 8),

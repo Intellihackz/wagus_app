@@ -18,6 +18,24 @@ class HomeRepository {
         .snapshots();
   }
 
+  Future<QuerySnapshot> getInitialMessages(String room, int limit) {
+    return chatCollection
+        .where('room', isEqualTo: room)
+        .orderBy('timestamp', descending: true)
+        .limit(limit)
+        .get();
+  }
+
+  Future<QuerySnapshot> getMoreMessages(
+      String room, int limit, DocumentSnapshot lastDoc) {
+    return chatCollection
+        .where('room', isEqualTo: room)
+        .orderBy('timestamp', descending: true)
+        .startAfterDocument(lastDoc)
+        .limit(limit)
+        .get();
+  }
+
   Stream<DocumentSnapshot> listenToGiveaway(String giveawayId) {
     return FirebaseFirestore.instance
         .collection('giveaways')

@@ -203,9 +203,18 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             .whereType<Message>()
             .toList();
 
+        // ✅ Save lastDoc for pagination
+        final updatedLastDocs =
+            Map<String, DocumentSnapshot>.from(state.lastDocs);
+        if (data.docs.isNotEmpty) {
+          updatedLastDocs[event.room] = data.docs.last;
+        }
+
         add(HomeInitialEvent(
-            messages: messages,
-            room: event.room)); // ✅ this is what was missing
+          messages: messages,
+          room: event.room,
+          lastDocs: updatedLastDocs, // ✅ pass the updated map
+        ));
       });
     });
 
@@ -440,6 +449,41 @@ Type any command to try it out.''',
           }
         }
       }
+    });
+
+    on<HomeLoadMoreMessagesEvent>((event, emit) async {
+      final more = await homeRepository.getMoreMessages(
+        event.room,
+        50,
+        event.lastDoc,
+      );
+
+      final newMessages = more.docs.map((doc) {
+        final msg = doc.data() as Map<String, dynamic>;
+        return Message(
+          id: doc.id,
+          text: msg['message'],
+          sender: msg['sender'],
+          room: msg['room'],
+          tier: TierStatus.values.firstWhere(
+            (t) => t.name == (msg['tier'] ?? 'basic'),
+            orElse: () => TierStatus.basic,
+          ),
+          likes: msg['likes'] ?? 0,
+        );
+      }).toList();
+
+      // ✅ Update lastDoc to the new end of the list
+      final updatedLastDocs =
+          Map<String, DocumentSnapshot>.from(state.lastDocs);
+      if (more.docs.isNotEmpty) {
+        updatedLastDocs[event.room] = more.docs.last;
+      }
+
+      emit(state.copyWith(
+        messages: [...state.messages, ...newMessages],
+        lastDocs: updatedLastDocs,
+      ));
     });
   }
 

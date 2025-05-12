@@ -146,7 +146,7 @@ class DailyRewardsSheet extends StatelessWidget {
         final List<String> solAmounts = List.generate(
           6,
           (_) => isAdventurer ? '\$0.25 in SOL' : '\$0.05 in SOL',
-        )..add(isAdventurer ? '\$1.00 in SOL' : '\$0.50 in SOL');
+        )..add(isAdventurer ? '\$1.00 in SOL' : '\$0.15 in SOL');
 
         return SingleChildScrollView(
           child: Padding(

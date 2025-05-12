@@ -67,11 +67,14 @@ class Incubator extends HookWidget {
                             color: Colors.white),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.add, color: Colors.greenAccent),
-                      onPressed: () {
-                        context.push(projectInterface);
-                      },
+                    Visibility(
+                      visible: false,
+                      child: IconButton(
+                        icon: const Icon(Icons.add, color: Colors.greenAccent),
+                        onPressed: () {
+                          context.push(projectInterface);
+                        },
+                      ),
                     )
                   ],
                 ),

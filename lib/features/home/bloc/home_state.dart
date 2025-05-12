@@ -7,6 +7,7 @@ class HomeState {
   final String? commandSearch;
   final String? recentCommand;
   final bool canLaunchConfetti;
+  final Map<String, DocumentSnapshot> lastDocs;
 
   const HomeState({
     required this.messages,
@@ -15,6 +16,7 @@ class HomeState {
     this.commandSearch,
     this.recentCommand,
     this.canLaunchConfetti = false,
+    this.lastDocs = const {},
   });
 
   HomeState copyWith({
@@ -24,6 +26,7 @@ class HomeState {
     String? Function()? commandSearch,
     String? Function()? recentCommand,
     bool? canLaunchConfetti,
+    Map<String, DocumentSnapshot>? lastDocs,
   }) {
     return HomeState(
       messages: messages ?? this.messages,
@@ -34,6 +37,7 @@ class HomeState {
       recentCommand:
           recentCommand != null ? recentCommand() : this.recentCommand,
       canLaunchConfetti: canLaunchConfetti ?? this.canLaunchConfetti,
+      lastDocs: lastDocs ?? this.lastDocs,
     );
   }
 }

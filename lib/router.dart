@@ -9,6 +9,7 @@ import 'package:wagus/features/auth/login_screen.dart';
 import 'package:wagus/features/games/presentation/widgets/spygus.dart';
 import 'package:wagus/features/incubator/project_interface.dart';
 import 'package:wagus/features/portal/portal.dart';
+import 'package:wagus/features/profile/presentation/profile.dart';
 import 'package:wagus/splash_screen.dart';
 import 'package:wagus/wagus.dart';
 
@@ -22,6 +23,7 @@ const String aiWhitePaperGeneration = '/ai-whitepaper';
 const String aiTokenomicsGeneration = '/ai-tokenomics';
 const String aiRoadmapGeneration = '/ai-roadmap';
 const String projectInterface = '/project-interface';
+const String profile = '/profile';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -88,6 +90,13 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: projectInterface,
       builder: (context, state) => const ProjectInterface(),
+    ),
+    GoRoute(
+      path: '/profile/:address',
+      builder: (context, state) {
+        final address = state.pathParameters['address']!;
+        return ProfileScreen(address: address);
+      },
     ),
   ],
 );

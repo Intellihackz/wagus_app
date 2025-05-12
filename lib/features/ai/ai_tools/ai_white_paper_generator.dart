@@ -21,260 +21,177 @@ class AiWhitePaperGenerator extends HookWidget {
 
     final formKey = useMemoized(() => GlobalKey<FormState>());
 
+    void handleGenerate(BuildContext context) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => BlocBuilder<AiBloc, AiState>(
+          builder: (context, state) {
+            return AlertDialog(
+              backgroundColor: Colors.black,
+              title: const Text(
+                'Generated White Paper',
+                style: TextStyle(color: Colors.white),
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                height: 400,
+                child: _buildDialogContent(state, context),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    context.read<AiBloc>().add(AIResetStateEvent());
+                  },
+                  child: const Text('Close',
+                      style: TextStyle(color: Colors.white)),
+                ),
+                if (state.whitePaperFormState == AIWhitePaperFormState.success)
+                  TextButton(
+                    onPressed: () async {
+                      await _saveAndSharePDF(context, state.whitePaper!);
+                    },
+                    child: const Text('Save as PDF',
+                        style: TextStyle(color: Colors.greenAccent)),
+                  ),
+              ],
+            );
+          },
+        ),
+      );
+
+      context.read<AiBloc>().add(AISubmitWhitePaperFormEvent(
+            projectName: projectNameController.text,
+            projectDescription: projectDescriptionController.text,
+            projectPurpose: projectPurposeController.text,
+            projectType: projectTypeController.text,
+            projectContributors: projectContributorsController.text,
+          ));
+
+      projectNameController.clear();
+      projectDescriptionController.clear();
+      projectPurposeController.clear();
+      projectTypeController.clear();
+      projectContributorsController.clear();
+    }
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
         child: Form(
           key: formKey,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 32.0),
-                      child: BackButton(
-                        color: context.appColors.contrastLight,
-                      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  BackButton(color: Colors.white),
+                  SizedBox(width: 8),
+                  Text(
+                    'AI White Paper Generator',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 100.0),
-                  child: Column(
-                    spacing: 16.0,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'AI White Paper Generator',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                      TextFormField(
-                        controller: projectNameController,
-                        onTapOutside: (_) {
-                          FocusScope.of(context).unfocus();
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Project Name',
-                          labelStyle:
-                              TextStyle(color: context.appColors.contrastLight),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a project name';
-                          }
-                          return null;
-                        },
-                      ),
-                      TextFormField(
-                        controller: projectDescriptionController,
-                        onTapOutside: (_) {
-                          FocusScope.of(context).unfocus();
-                        },
-                        decoration: const InputDecoration(
-                          labelText: 'Project Description',
-                          labelStyle:
-                              TextStyle(color: AppPalette.contrastLight),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a project description';
-                          }
-                          return null;
-                        },
-                      ),
-                      TextFormField(
-                        controller: projectPurposeController,
-                        onTapOutside: (_) {
-                          FocusScope.of(context).unfocus();
-                        },
-                        decoration: const InputDecoration(
-                          labelText: 'Project Purpose',
-                          labelStyle:
-                              TextStyle(color: AppPalette.contrastLight),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a project purpose';
-                          }
-                          return null;
-                        },
-                      ),
-                      TextFormField(
-                        controller: projectTypeController,
-                        onTapOutside: (_) {
-                          FocusScope.of(context).unfocus();
-                        },
-                        decoration: const InputDecoration(
-                          labelText: 'Project Type',
-                          labelStyle:
-                              TextStyle(color: AppPalette.contrastLight),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a project type';
-                          }
-                          return null;
-                        },
-                      ),
-                      TextFormField(
-                        controller: projectContributorsController,
-                        onTapOutside: (_) {
-                          FocusScope.of(context).unfocus();
-                        },
-                        decoration: const InputDecoration(
-                          labelText: 'Project Contributors',
-                          labelStyle:
-                              TextStyle(color: AppPalette.contrastLight),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter the project contributors';
-                          }
-                          return null;
-                        },
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          FocusScope.of(context).unfocus();
-                          if (formKey.currentState!.validate()) {
-                            // Open the dialog immediately and handle loading inside it
-                            showDialog(
-                              context: context,
-                              builder: (dialogContext) {
-                                return BlocBuilder<AiBloc, AiState>(
-                                  builder: (context, state) {
-                                    return AlertDialog(
-                                      title: Text(
-                                        'Generated White Paper',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                            color:
-                                                context.appColors.contrastDark),
-                                      ),
-                                      content: SizedBox(
-                                        width: double.maxFinite,
-                                        height: 400,
-                                        child:
-                                            _buildDialogContent(state, context),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.of(dialogContext).pop();
-                                            // Reset the state when closing the dialog
-                                            context
-                                                .read<AiBloc>()
-                                                .add(AIResetStateEvent());
-                                          },
-                                          child: Text('Close'),
-                                        ),
-                                        if (state.whitePaperFormState ==
-                                            AIWhitePaperFormState.success)
-                                          TextButton(
-                                            onPressed: () async {
-                                              try {
-                                                // Generate the PDF document
-                                                final pdf = pw.Document();
-                                                pdf.addPage(
-                                                  pw.Page(
-                                                    build:
-                                                        (pw.Context context) {
-                                                      return pw.Text(
-                                                        state.whitePaper!,
-                                                        style: pw.TextStyle(
-                                                          fontSize: 12,
-                                                          lineSpacing: 1.5,
-                                                        ),
-                                                      );
-                                                    },
-                                                  ),
-                                                );
-
-                                                // Get the documents directory to save the file
-                                                final dir =
-                                                    await getApplicationDocumentsDirectory();
-                                                final filePath =
-                                                    '${dir.path}/whitepaper_${DateTime.now().millisecondsSinceEpoch}.pdf';
-                                                final file = File(filePath);
-
-                                                // Save the PDF to the file
-                                                final pdfBytes =
-                                                    await pdf.save();
-                                                await file
-                                                    .writeAsBytes(pdfBytes);
-
-                                                // Share the PDF using share_plus
-                                                await Share.shareXFiles(
-                                                  [XFile(filePath)],
-                                                );
-
-                                                if (context.mounted) {
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                    SnackBar(
-                                                      content: Text(
-                                                          'White paper saved and shared'),
-                                                    ),
-                                                  );
-                                                }
-                                              } catch (e) {
-                                                if (context.mounted) {
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                    SnackBar(
-                                                      content: Text(
-                                                          'Error saving white paper as PDF: $e'),
-                                                    ),
-                                                  );
-                                                }
-                                              }
-                                            },
-                                            child: Text('Save as PDF'),
-                                          ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                            );
-
-                            // Dispatch the event to generate the white paper
-                            context
-                                .read<AiBloc>()
-                                .add(AISubmitWhitePaperFormEvent(
-                                  projectName: projectNameController.text,
-                                  projectDescription:
-                                      projectDescriptionController.text,
-                                  projectPurpose: projectPurposeController.text,
-                                  projectType: projectTypeController.text,
-                                  projectContributors:
-                                      projectContributorsController.text,
-                                ));
-
-                            projectContributorsController.clear();
-                            projectDescriptionController.clear();
-                            projectPurposeController.clear();
-                            projectTypeController.clear();
-                            projectNameController.clear();
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text('Generate White Paper'),
-                      ),
-                    ],
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildInputField(
+                label: 'Project Name',
+                controller: projectNameController,
+                validator: (val) => val == null || val.isEmpty
+                    ? 'Please enter a project name'
+                    : null,
+                context: context,
+              ),
+              _buildInputField(
+                label: 'Project Description',
+                controller: projectDescriptionController,
+                validator: (val) => val == null || val.isEmpty
+                    ? 'Please enter a project description'
+                    : null,
+                context: context,
+              ),
+              _buildInputField(
+                label: 'Project Purpose',
+                controller: projectPurposeController,
+                validator: (val) => val == null || val.isEmpty
+                    ? 'Please enter a project purpose'
+                    : null,
+                context: context,
+              ),
+              _buildInputField(
+                label: 'Project Type',
+                controller: projectTypeController,
+                validator: (val) => val == null || val.isEmpty
+                    ? 'Please enter a project type'
+                    : null,
+                context: context,
+              ),
+              _buildInputField(
+                label: 'Project Contributors',
+                controller: projectContributorsController,
+                validator: (val) => val == null || val.isEmpty
+                    ? 'Please enter the project contributors'
+                    : null,
+                context: context,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.greenAccent,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
+                  onPressed: () {
+                    FocusScope.of(context).unfocus();
+                    if (formKey.currentState!.validate()) {
+                      handleGenerate(context);
+                    }
+                  },
+                  child: const Text('Generate White Paper'),
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputField({
+    required String label,
+    required TextEditingController controller,
+    required String? Function(String?) validator,
+    required BuildContext context,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
+        controller: controller,
+        validator: validator,
+        style: const TextStyle(color: Colors.white),
+        onTapOutside: (_) => FocusScope.of(context).unfocus(),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.white70),
+          filled: true,
+          fillColor: Colors.grey[850],
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.greenAccent),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.green),
           ),
         ),
       ),
@@ -283,7 +200,10 @@ class AiWhitePaperGenerator extends HookWidget {
 
   Widget _buildDialogContent(AiState state, BuildContext context) {
     if (state.whitePaperFormState == AIWhitePaperFormState.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+          child: CircularProgressIndicator(
+        color: Colors.greenAccent,
+      ));
     } else if (state.whitePaperFormState == AIWhitePaperFormState.failure) {
       return Center(
         child: Text(
@@ -296,7 +216,7 @@ class AiWhitePaperGenerator extends HookWidget {
         child: Text(
           state.whitePaper!,
           style: TextStyle(
-            color: context.appColors.contrastDark,
+            color: context.appColors.contrastLight,
             fontSize: 14,
             height: 1.5,
           ),
@@ -304,6 +224,44 @@ class AiWhitePaperGenerator extends HookWidget {
       );
     } else {
       return const Center(child: Text('Generating white paper...'));
+    }
+  }
+
+  Future<void> _saveAndSharePDF(BuildContext context, String content) async {
+    try {
+      final pdf = pw.Document();
+      pdf.addPage(
+        pw.Page(
+          build: (pw.Context context) {
+            return pw.Text(
+              content,
+              style: const pw.TextStyle(fontSize: 12, lineSpacing: 1.5),
+            );
+          },
+        ),
+      );
+
+      final dir = await getApplicationDocumentsDirectory();
+      final filePath =
+          '${dir.path}/whitepaper_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final file = File(filePath);
+
+      final pdfBytes = await pdf.save();
+      await file.writeAsBytes(pdfBytes);
+
+      await Share.shareXFiles([XFile(filePath)]);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('White paper saved and shared')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving PDF: $e')),
+        );
+      }
     }
   }
 }

@@ -21,184 +21,192 @@ class AiRoadmapGenerator extends HookWidget {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
         child: Form(
           key: formKey,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Stack(
-              children: [
-                const Positioned(
-                  top: 32.0,
-                  left: 0,
-                  child: BackButton(color: AppPalette.contrastLight),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 100.0),
-                  child: Column(
-                    spacing: 16.0,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'AI Roadmap Generator',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                      TextFormField(
-                        onTapOutside: (_) {
-                          FocusScope.of(context).unfocus();
-                        },
-                        controller: nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Project Name',
-                          labelStyle:
-                              TextStyle(color: AppPalette.contrastLight),
-                        ),
-                        validator: (value) => value == null || value.isEmpty
-                            ? 'Please enter a project name'
-                            : null,
-                      ),
-                      TextFormField(
-                        onTapOutside: (_) {
-                          FocusScope.of(context).unfocus();
-                        },
-                        controller: milestonesController,
-                        decoration: const InputDecoration(
-                          labelText: 'Key Milestones',
-                          labelStyle:
-                              TextStyle(color: AppPalette.contrastLight),
-                        ),
-                        validator: (value) => value == null || value.isEmpty
-                            ? 'Please enter key milestones'
-                            : null,
-                      ),
-                      TextFormField(
-                        onTapOutside: (_) {
-                          FocusScope.of(context).unfocus();
-                        },
-                        controller: durationController,
-                        decoration: const InputDecoration(
-                          labelText: 'Expected Duration (e.g. 6 months)',
-                          labelStyle:
-                              TextStyle(color: AppPalette.contrastLight),
-                        ),
-                        validator: (value) => value == null || value.isEmpty
-                            ? 'Please enter a time duration'
-                            : null,
-                      ),
-                      const SizedBox(height: 16.0),
-                      ElevatedButton(
-                        onPressed: () {
-                          FocusScope.of(context).unfocus();
-                          if (formKey.currentState!.validate()) {
-                            showDialog(
-                              context: context,
-                              builder: (dialogContext) {
-                                return BlocBuilder<AiBloc, AiState>(
-                                  builder: (context, state) {
-                                    return AlertDialog(
-                                      title: Text(
-                                        'Generated Roadmap',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: context.appColors.contrastDark,
-                                        ),
-                                      ),
-                                      content: SizedBox(
-                                        width: double.maxFinite,
-                                        height: 400,
-                                        child:
-                                            _buildDialogContent(state, context),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.of(dialogContext).pop();
-                                            context
-                                                .read<AiBloc>()
-                                                .add(AIResetStateEvent());
-                                          },
-                                          child: const Text('Close'),
-                                        ),
-                                        if (state.roadmapFormState ==
-                                            AIRoadmapFormState.success)
-                                          TextButton(
-                                            onPressed: () async {
-                                              try {
-                                                final pdf = pw.Document();
-                                                pdf.addPage(
-                                                  pw.Page(
-                                                    build: (context) => pw.Text(
-                                                      state.roadmap!,
-                                                      style: pw.TextStyle(
-                                                        fontSize: 12,
-                                                        lineSpacing: 1.5,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                );
-                                                final dir =
-                                                    await getApplicationDocumentsDirectory();
-                                                final filePath =
-                                                    '${dir.path}/roadmap_${DateTime.now().millisecondsSinceEpoch}.pdf';
-                                                final file = File(filePath);
-                                                await file.writeAsBytes(
-                                                    await pdf.save());
-                                                await Share.shareXFiles(
-                                                    [XFile(filePath)]);
-                                              } catch (e) {
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                        'Error saving roadmap: $e'),
-                                                  ),
-                                                );
-                                              }
-                                            },
-                                            child: const Text('Save as PDF'),
-                                          ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                            );
-
-                            context.read<AiBloc>().add(
-                                  AISubmitRoadmapFormEvent(
-                                    projectName: nameController.text,
-                                    milestones: milestonesController.text,
-                                    duration: durationController.text,
-                                  ),
-                                );
-
-                            nameController.clear();
-                            milestonesController.clear();
-                            durationController.clear();
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text('Generate Roadmap'),
-                      ),
-                    ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  BackButton(color: Colors.white),
+                  SizedBox(width: 8),
+                  Text(
+                    'AI Roadmap Generator',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildInputField(
+                label: 'Project Name',
+                controller: nameController,
+                validator: (val) => val == null || val.isEmpty
+                    ? 'Please enter a project name'
+                    : null,
+                context: context,
+              ),
+              _buildInputField(
+                label: 'Key Milestones',
+                controller: milestonesController,
+                validator: (val) => val == null || val.isEmpty
+                    ? 'Please enter key milestones'
+                    : null,
+                context: context,
+              ),
+              _buildInputField(
+                label: 'Expected Duration (e.g. 6 months)',
+                controller: durationController,
+                validator: (val) => val == null || val.isEmpty
+                    ? 'Please enter a time duration'
+                    : null,
+                context: context,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.greenAccent,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {
+                    FocusScope.of(context).unfocus();
+                    if (formKey.currentState!.validate()) {
+                      _handleGenerate(context, nameController,
+                          milestonesController, durationController);
+                    }
+                  },
+                  child: const Text('Generate Roadmap'),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
+  Widget _buildInputField({
+    required String label,
+    required TextEditingController controller,
+    required String? Function(String?) validator,
+    required BuildContext context,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
+        controller: controller,
+        validator: validator,
+        style: const TextStyle(color: Colors.white),
+        onTapOutside: (_) => FocusScope.of(context).unfocus(),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.white70),
+          filled: true,
+          fillColor: Colors.grey[850],
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.greenAccent),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.green),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _handleGenerate(
+    BuildContext context,
+    TextEditingController nameController,
+    TextEditingController milestonesController,
+    TextEditingController durationController,
+  ) {
+    context.read<AiBloc>().add(
+          AISubmitRoadmapFormEvent(
+            projectName: nameController.text,
+            milestones: milestonesController.text,
+            duration: durationController.text,
+          ),
+        );
+
+    nameController.clear();
+    milestonesController.clear();
+    durationController.clear();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return BlocBuilder<AiBloc, AiState>(
+          builder: (context, state) {
+            return AlertDialog(
+              backgroundColor: Colors.black,
+              title: const Text(
+                'Generated Roadmap',
+                style: TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                height: 400,
+                child: _buildDialogContent(state, context),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    context.read<AiBloc>().add(AIResetStateEvent());
+                  },
+                  child: const Text('Close',
+                      style: TextStyle(color: Colors.white)),
+                ),
+                if (state.roadmapFormState == AIRoadmapFormState.success)
+                  TextButton(
+                    onPressed: () async {
+                      final pdf = pw.Document();
+                      pdf.addPage(
+                        pw.Page(
+                          build: (context) => pw.Text(
+                            state.roadmap!,
+                            style: const pw.TextStyle(
+                                fontSize: 12, lineSpacing: 1.5),
+                          ),
+                        ),
+                      );
+                      final dir = await getApplicationDocumentsDirectory();
+                      final filePath =
+                          '${dir.path}/roadmap_${DateTime.now().millisecondsSinceEpoch}.pdf';
+                      final file = File(filePath);
+                      await file.writeAsBytes(await pdf.save());
+                      await Share.shareXFiles([XFile(filePath)]);
+                    },
+                    child: const Text('Save as PDF',
+                        style: TextStyle(color: Colors.greenAccent)),
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildDialogContent(AiState state, BuildContext context) {
     if (state.roadmapFormState == AIRoadmapFormState.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+          child: CircularProgressIndicator(
+        color: Colors.greenAccent,
+      ));
     } else if (state.roadmapFormState == AIRoadmapFormState.failure) {
       return Center(
         child: Text(
@@ -211,7 +219,7 @@ class AiRoadmapGenerator extends HookWidget {
         child: Text(
           state.roadmap!,
           style: TextStyle(
-            color: context.appColors.contrastDark,
+            color: context.appColors.contrastLight,
             fontSize: 14,
             height: 1.5,
           ),

@@ -39,74 +39,81 @@ class AIImageGeneration extends HookWidget {
           },
           child: Scaffold(
             resizeToAvoidBottomInset: true,
-            body: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.only(
-                    left: 16.0, right: 16.0, bottom: 64.0),
-                child: Column(
-                  spacing: 16.0,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 32.0),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: BackButton(
-                          color: context.appColors.contrastLight,
+            body: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      BackButton(color: Colors.white),
+                      SizedBox(width: 8),
+                      Text(
+                        'AI Image Generation',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
                         ),
                       ),
-                    ),
-                    const Text(
-                      'AI Image Generation',
-                      textAlign: TextAlign.center,
-                      style:
-                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(
-                      height: 300,
-                      child: BlocBuilder<AiBloc, AiState>(
-                        builder: (context, state) {
-                          return _buildImageContent(
-                              state, context, isFocused.value);
-                        },
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[900],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.greenAccent),
                       ),
+                      padding: const EdgeInsets.all(16),
+                      child:
+                          _buildImageContent(state, context, isFocused.value),
                     ),
-                    TextField(
-                      focusNode: promptFocusNode,
-                      controller: promptController,
-                      maxLines: 5,
-                      decoration: InputDecoration(
-                        labelText: 'Enter your prompt here',
-                        labelStyle:
-                            TextStyle(color: context.appColors.contrastLight),
-                        border: OutlineInputBorder(),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: promptController,
+                    focusNode: promptFocusNode,
+                    maxLines: 4,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Enter your prompt here',
+                      labelStyle: TextStyle(color: Colors.white60),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.greenAccent),
                       ),
-                      onTapOutside: (_) {
-                        FocusScope.of(context).unfocus();
-                      },
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.green),
+                      ),
+                      fillColor: Colors.grey[850],
+                      filled: true,
                     ),
-                    if (context.read<AiBloc>().state.errorMessage != null &&
-                        context.read<AiBloc>().state.imageGenerationState !=
-                            AIImageGenerationState.loading)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          context.read<AiBloc>().state.errorMessage!,
-                          style: TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.greenAccent,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                    ElevatedButton(
-                      onPressed: context
-                                  .read<AiBloc>()
-                                  .state
-                                  .imageGenerationState ==
+                      onPressed: state.imageGenerationState ==
                               AIImageGenerationState.loading
                           ? null
                           : () {
                               final prompt = promptController.text.trim();
                               if (prompt.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
+                                  const SnackBar(
                                       content: Text('Please enter a prompt')),
                                 );
                                 return;
@@ -114,16 +121,15 @@ class AIImageGeneration extends HookWidget {
                               context
                                   .read<AiBloc>()
                                   .add(AIGenerateImageEvent(prompt));
-
                               promptController.clear();
                             },
                       child: state.imageGenerationState ==
                               AIImageGenerationState.loading
-                          ? CircularProgressIndicator()
-                          : Text('Generate Image'),
+                          ? const CircularProgressIndicator(color: Colors.black)
+                          : const Text('Generate Image'),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
