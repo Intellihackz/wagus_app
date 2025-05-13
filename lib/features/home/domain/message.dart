@@ -9,6 +9,7 @@ class Message {
   final int? wagBalance;
   final int? likes;
   final String? id;
+  final String? gifUrl;
 
   Message({
     required this.sender,
@@ -19,6 +20,7 @@ class Message {
     TierStatus? tier,
     this.solBalance,
     this.wagBalance,
+    this.gifUrl,
   }) : tier = tier ?? TierStatus.basic;
 
   Message copyWith({
@@ -30,6 +32,7 @@ class Message {
     int? Function()? wagBalance,
     int? Function()? likes,
     String? Function()? id,
+    String? Function()? gifUrl,
   }) {
     return Message(
       sender: sender ?? this.sender,
@@ -40,6 +43,7 @@ class Message {
       wagBalance: wagBalance?.call() ?? this.wagBalance,
       likes: likes?.call() ?? this.likes,
       id: id?.call() ?? this.id,
+      gifUrl: gifUrl?.call() ?? this.gifUrl,
     );
   }
 }

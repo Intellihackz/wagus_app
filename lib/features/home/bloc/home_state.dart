@@ -8,16 +8,23 @@ class HomeState {
   final String? recentCommand;
   final bool canLaunchConfetti;
   final Map<String, DocumentSnapshot> lastDocs;
+  final List<String> rooms;
 
-  const HomeState({
-    required this.messages,
-    this.currentRoom = 'General',
-    this.activeUsersCount = 0,
-    this.commandSearch,
-    this.recentCommand,
-    this.canLaunchConfetti = false,
-    this.lastDocs = const {},
-  });
+  HomeState(
+      {required this.messages,
+      this.currentRoom = 'General',
+      this.activeUsersCount = 0,
+      this.commandSearch,
+      this.recentCommand,
+      this.canLaunchConfetti = false,
+      this.lastDocs = const {},
+      this.rooms = const [
+        'General',
+        'Support',
+        'Games',
+        'Ideas',
+        'Tier Lounge'
+      ]});
 
   HomeState copyWith({
     List<Message>? messages,
@@ -27,6 +34,7 @@ class HomeState {
     String? Function()? recentCommand,
     bool? canLaunchConfetti,
     Map<String, DocumentSnapshot>? lastDocs,
+    List<String>? rooms,
   }) {
     return HomeState(
       messages: messages ?? this.messages,
@@ -38,6 +46,7 @@ class HomeState {
           recentCommand != null ? recentCommand() : this.recentCommand,
       canLaunchConfetti: canLaunchConfetti ?? this.canLaunchConfetti,
       lastDocs: lastDocs ?? this.lastDocs,
+      rooms: rooms ?? this.rooms,
     );
   }
 }

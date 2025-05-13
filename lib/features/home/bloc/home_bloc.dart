@@ -27,6 +27,7 @@ const List<String> allCommands = [
   '/flex',
   '/upgrade',
   '/giveaway',
+  '/create',
   '/help',
 ];
 
@@ -170,14 +171,68 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final BankRepository bankRepository;
   HomeBloc({required this.homeRepository, required this.bankRepository})
       : super(HomeState(messages: [])) {
+    on<HomeInitialEvent>((event, emit) {
+      emit(state.copyWith(
+        messages: event.messages,
+        currentRoom: event.room,
+        lastDocs: event.lastDocs, // <-- THIS IS WHAT YOU MISSED
+      ));
+    });
     on<HomeSetRoomEvent>((event, emit) async {
       log('Setting room to ${event.room}');
-      if (roomSub != null && event.room == state.currentRoom) return;
+      roomSub?.cancel(); // Always reset
 
-      roomSub?.cancel();
+      emit(state.copyWith(
+        messages: [],
+        currentRoom: event.room,
+      ));
 
-      roomSub = homeRepository.getMessages(event.room).listen((data) {
-        final messages = data.docs
+      // 1. 🔒 Initial static fetch
+      final snapshot = await homeRepository.getInitialMessages(event.room, 50);
+      final initialMessages = snapshot.docs
+          .map((doc) {
+            final msg = doc.data() as Map<String, dynamic>?;
+            if (msg == null) return null;
+
+            final sender = msg['sender'] as String?;
+            final text = msg['message'] as String?;
+            if (sender == null || text == null) return null;
+
+            return Message(
+              text: text,
+              sender: sender,
+              room: (msg['room'] as String?)?.trim().isNotEmpty == true
+                  ? msg['room']
+                  : 'General',
+              tier: TierStatus.values.firstWhere(
+                (t) => t.name == (msg['tier'] ?? 'basic'),
+                orElse: () => TierStatus.basic,
+              ),
+              likes: msg['likes'] ?? 0,
+              id: doc.id,
+              gifUrl: msg['gif_url'],
+            );
+          })
+          .whereType<Message>()
+          .toList();
+
+      final updatedLastDocs =
+          Map<String, DocumentSnapshot>.from(state.lastDocs);
+      if (snapshot.docs.isNotEmpty) {
+        updatedLastDocs[event.room] = snapshot.docs.last;
+      }
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      add(HomeInitialEvent(
+        messages: initialMessages,
+        room: event.room,
+        lastDocs: updatedLastDocs,
+      ));
+
+      // 2. ✅ Now subscribe to new changes
+      roomSub = homeRepository.getMessages(event.room).listen((liveSnap) {
+        final newMessages = liveSnap.docs
             .map((doc) {
               final msg = doc.data() as Map<String, dynamic>?;
               if (msg == null) return null;
@@ -198,30 +253,58 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
                 ),
                 likes: msg['likes'] ?? 0,
                 id: doc.id,
+                gifUrl: msg['gif_url'],
               );
             })
             .whereType<Message>()
             .toList();
 
-        // ✅ Save lastDoc for pagination
-        final updatedLastDocs =
-            Map<String, DocumentSnapshot>.from(state.lastDocs);
-        if (data.docs.isNotEmpty) {
-          updatedLastDocs[event.room] = data.docs.last;
-        }
+        final existingIds = state.messages.map((m) => m.id).toSet();
+        final newMessagesDiff =
+            newMessages.where((m) => !existingIds.contains(m.id)).toList();
 
-        add(HomeInitialEvent(
-          messages: messages,
-          room: event.room,
-          lastDocs: updatedLastDocs, // ✅ pass the updated map
+        add(HomeLiveUpdateEvent(
+          liveSnap.docs.cast<QueryDocumentSnapshot<Map<String, dynamic>>>(),
         ));
       });
     });
 
-    on<HomeInitialEvent>((event, emit) {
+    on<HomeLiveUpdateEvent>((event, emit) {
+      final newMessages = event.docs
+          .map((doc) {
+            final msg = doc.data() as Map<String, dynamic>?;
+            if (msg == null) return null;
+
+            final sender = msg['sender'] as String?;
+            final text = msg['message'] as String?;
+            if (sender == null || text == null) return null;
+
+            return Message(
+              text: text,
+              sender: sender,
+              room: (msg['room'] as String?)?.trim().isNotEmpty == true
+                  ? msg['room']
+                  : 'General',
+              tier: TierStatus.values.firstWhere(
+                (t) => t.name == (msg['tier'] ?? 'basic'),
+                orElse: () => TierStatus.basic,
+              ),
+              likes: msg['likes'] ?? 0,
+              id: doc.id,
+              gifUrl: msg['gif_url'],
+            );
+          })
+          .whereType<Message>()
+          .toList();
+
+      final existingIds = state.messages.map((m) => m.id).toSet();
+      final newMessagesDiff =
+          newMessages.where((m) => !existingIds.contains(m.id)).toList();
+
+      if (newMessagesDiff.isEmpty) return;
+
       emit(state.copyWith(
-        messages: event.messages,
-        currentRoom: event.room,
+        messages: [...newMessagesDiff, ...state.messages],
       ));
     });
 
@@ -238,6 +321,30 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             .toList();
 
         return state.copyWith(activeUsersCount: onlineUsers.length);
+      });
+    });
+
+    on<HomeListenToRoomsEvent>((event, emit) async {
+      await emit.forEach(homeRepository.listenToRooms(), onData: (snapshot) {
+        final dynamicRooms = snapshot.docs
+            .map((doc) => doc['name']?.toString().trim())
+            .whereType<String>()
+            .where((name) => name.isNotEmpty)
+            .toList();
+
+        final allRooms = [
+          'General',
+          'Support',
+          'Games',
+          'Ideas',
+          'Tier Lounge',
+          ...dynamicRooms.where(
+            (name) => !['General', 'Support', 'Games', 'Ideas', 'Tier Lounge']
+                .contains(name),
+          ),
+        ];
+
+        return state.copyWith(rooms: allRooms);
       });
     });
 
@@ -360,6 +467,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             'status': 'started',
             'winner': null,
             'hasSent': false,
+            'room': original.room,
             'pending': false, // ✅
           });
 
@@ -367,7 +475,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
           return original.copyWith(
             text:
-                '[GIVEAWAY] ${original.sender} is giving away $amount \$BUCKAZOIDS\nType "$keyword" to enter. Ends in $duration seconds ⏳',
+                '[GIVEAWAY] 🎁 A giveaway has started in **${original.room}**!\n\nPrize: $amount \$BUCKAZOIDS\nKeyword: "$keyword"\nEnds in $duration seconds ⏳',
             sender: 'System',
             tier: TierStatus.system,
           );
@@ -415,6 +523,32 @@ Type any command to try it out.''',
       final parsed = ChatCommandParser.parse(event.message.text);
 
       if (parsed != null && event.message.text.trim().startsWith('/')) {
+        if (parsed.action == '/create' && parsed.args.isNotEmpty) {
+          final newRoom = parsed.args[0].trim();
+
+          // Prevent duplicates or blank
+          if (newRoom.isEmpty || state.rooms.contains(newRoom)) return;
+
+          // Save to Firestore
+          await FirebaseFirestore.instance
+              .collection('rooms')
+              .doc(newRoom)
+              .set({
+            'name': newRoom,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+
+          final confirmation = event.message.copyWith(
+            text: '[CREATE] Created new room: $newRoom',
+            sender: 'System',
+            tier: TierStatus.system,
+            room: 'General',
+          );
+
+          await homeRepository.sendMessage(confirmation);
+          return;
+        }
+
         // Message is a command – transform and send only the preview
         final displayMessage = await buildCommandPreview(
             parsed, event.message, event.currentTokenAddress);
@@ -439,12 +573,28 @@ Type any command to try it out.''',
           final text = event.message.text.trim().toLowerCase();
           final sender = event.message.sender;
 
+          final giveawayRoom = doc['room']?.toString() ?? 'General';
+          final messageRoom =
+              (event.message.room.isNotEmpty) ? event.message.room : 'General';
+
           if (text == keyword) {
-            final participants = List<String>.from(doc['participants'] ?? []);
-            if (!participants.contains(sender)) {
-              participants.add(sender);
-              await doc.reference.update({'participants': participants});
-              log('[Giveaway] $sender entered with keyword "$keyword"');
+            if (messageRoom == giveawayRoom) {
+              final participants = List<String>.from(doc['participants'] ?? []);
+              if (!participants.contains(sender)) {
+                participants.add(sender);
+                await doc.reference.update({'participants': participants});
+                log('[Giveaway] ✅ $sender entered in $messageRoom');
+              }
+            } else if (event.message.room.isEmpty) {
+              // TEMP: legacy support
+              final participants = List<String>.from(doc['participants'] ?? []);
+              if (!participants.contains(sender)) {
+                participants.add(sender);
+                await doc.reference.update({'participants': participants});
+                log('[Giveaway] ⚠️ Legacy user $sender entered without room data');
+              }
+            } else {
+              log('[Giveaway] ❌ $sender tried to enter from $messageRoom, but giveaway is in $giveawayRoom');
             }
           }
         }
@@ -452,33 +602,53 @@ Type any command to try it out.''',
     });
 
     on<HomeLoadMoreMessagesEvent>((event, emit) async {
+      final lastDoc = state.lastDocs[event.room];
+      if (lastDoc == null) {
+        log('[Pagination] ❌ No lastDoc for room: ${event.room}');
+        return;
+      }
+
+      log('[Pagination] 🔽 Fetching more messages for room: ${event.room}');
+      log('[Pagination] 🧾 Last doc ID: ${lastDoc.id}');
+
       final more = await homeRepository.getMoreMessages(
         event.room,
         50,
-        event.lastDoc,
+        lastDoc,
       );
 
-      final newMessages = more.docs.map((doc) {
-        final msg = doc.data() as Map<String, dynamic>;
-        return Message(
-          id: doc.id,
-          text: msg['message'],
-          sender: msg['sender'],
-          room: msg['room'],
-          tier: TierStatus.values.firstWhere(
-            (t) => t.name == (msg['tier'] ?? 'basic'),
-            orElse: () => TierStatus.basic,
-          ),
-          likes: msg['likes'] ?? 0,
-        );
-      }).toList();
+      log('[Pagination] 📥 Fetched ${more.docs.length} messages');
+      log('[Pagination] Doc IDs: ${more.docs.map((d) => d.id).join(', ')}');
 
-      // ✅ Update lastDoc to the new end of the list
-      final updatedLastDocs =
-          Map<String, DocumentSnapshot>.from(state.lastDocs);
-      if (more.docs.isNotEmpty) {
-        updatedLastDocs[event.room] = more.docs.last;
+      final existingIds = state.messages.map((m) => m.id).toSet();
+      final newMessages = more.docs
+          .map((doc) {
+            final msg = doc.data();
+            return Message(
+              id: doc.id,
+              text: msg['message'],
+              sender: msg['sender'],
+              room: msg['room'],
+              tier: TierStatus.values.firstWhere(
+                (t) => t.name == (msg['tier'] ?? 'basic'),
+                orElse: () => TierStatus.basic,
+              ),
+              likes: msg['likes'] ?? 0,
+              gifUrl: msg['gif_url'],
+            );
+          })
+          .where((m) => !existingIds.contains(m.id))
+          .toList();
+
+      log('[Pagination] 🧹 Filtered ${newMessages.length} new messages (removed duplicates)');
+
+      if (more.docs.isEmpty) {
+        log('[Pagination] 🛑 No more docs to paginate.');
+        return;
       }
+
+      final updatedLastDocs = Map<String, DocumentSnapshot>.from(state.lastDocs)
+        ..[event.room] = more.docs.last;
 
       emit(state.copyWith(
         messages: [...state.messages, ...newMessages],

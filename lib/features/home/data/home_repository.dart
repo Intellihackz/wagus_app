@@ -8,13 +8,22 @@ class HomeRepository {
 
   HomeRepository({this.useTestCollection = false});
 
-  CollectionReference get chatCollection => FirebaseFirestore.instance
-      .collection(useTestCollection ? 'chat_test' : 'chat');
+  CollectionReference<Map<String, dynamic>> get chatCollection =>
+      FirebaseFirestore.instance
+          .collection(useTestCollection ? 'chat_test' : 'chat')
+          .withConverter<Map<String, dynamic>>(
+            fromFirestore: (snapshot, _) => snapshot.data()!,
+            toFirestore: (data, _) => data,
+          );
 
-  Stream<QuerySnapshot> getMessages(String room) {
+  CollectionReference get roomCollection =>
+      FirebaseFirestore.instance.collection('rooms');
+
+  Stream<QuerySnapshot> getMessages(String room, {int limit = 50}) {
     return chatCollection
         .where('room', isEqualTo: room)
         .orderBy('timestamp', descending: true)
+        .limit(limit)
         .snapshots();
   }
 
@@ -26,8 +35,8 @@ class HomeRepository {
         .get();
   }
 
-  Future<QuerySnapshot> getMoreMessages(
-      String room, int limit, DocumentSnapshot lastDoc) {
+  Future<QuerySnapshot<Map<String, dynamic>>> getMoreMessages(
+      String room, int limit, DocumentSnapshot lastDoc) async {
     return chatCollection
         .where('room', isEqualTo: room)
         .orderBy('timestamp', descending: true)
@@ -51,6 +60,10 @@ class HomeRepository {
         .snapshots();
   }
 
+  Stream<QuerySnapshot> listenToRooms() {
+    return roomCollection.orderBy('createdAt').snapshots();
+  }
+
   Future<void> sendMessage(Message message) async {
     try {
       await chatCollection.add({
@@ -60,6 +73,7 @@ class HomeRepository {
         'room': message.room,
         'timestamp': FieldValue.serverTimestamp(),
         'likes': 0,
+        if (message.gifUrl != null) 'gif_url': message.gifUrl,
       });
     } catch (e) {
       log('Error sending message: $e');

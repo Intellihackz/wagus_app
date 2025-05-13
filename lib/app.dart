@@ -14,8 +14,6 @@ import 'package:wagus/features/home/bloc/home_bloc.dart';
 import 'package:wagus/features/home/data/home_repository.dart';
 import 'package:wagus/features/incubator/bloc/incubator_bloc.dart';
 import 'package:wagus/features/incubator/data/incubator_repository.dart';
-import 'package:wagus/features/lottery/bloc/lottery_bloc.dart';
-import 'package:wagus/features/lottery/data/lottery_repository.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/features/quest/bloc/quest_bloc.dart';
@@ -34,9 +32,7 @@ class App extends HookWidget {
     var yOffset = useState(46.36);
     final previousLocation = useState<String?>(null);
 
-    final homeRepository = useMemoized(() {
-      return HomeRepository(useTestCollection: false);
-    }, [context]);
+    final homeRepository = useState<HomeRepository>(HomeRepository());
 
     return MultiRepositoryProvider(
       providers: [
@@ -44,10 +40,7 @@ class App extends HookWidget {
           create: (_) => PortalRepository(),
         ),
         RepositoryProvider<HomeRepository>(
-          create: (_) => homeRepository,
-        ),
-        RepositoryProvider<LotteryRepository>(
-          create: (_) => LotteryRepository(),
+          create: (_) => homeRepository.value,
         ),
         RepositoryProvider<AIRepository>(
           create: (_) => AIRepository(),
@@ -60,7 +53,7 @@ class App extends HookWidget {
         ),
         RepositoryProvider<QuestRepository>(
           create: (_) => QuestRepository(
-            homeRepository,
+            homeRepository.value,
           ),
         ),
         RepositoryProvider<GameRepository>(
@@ -77,17 +70,13 @@ class App extends HookWidget {
                   bankRepository: context.read<BankRepository>(),
                 )
                   ..add(HomeSetRoomEvent('General'))
-                  ..add(HomeWatchOnlineUsersEvent()),
+                  ..add(HomeWatchOnlineUsersEvent())
+                  ..add(HomeListenToRoomsEvent()),
               ),
               BlocProvider<PortalBloc>(
                   create: (_) => PortalBloc(
                         portalRepository: context.read<PortalRepository>(),
                       )..add(PortalInitialEvent())),
-              BlocProvider<LotteryBloc>(
-                create: (_) => LotteryBloc(
-                  lotteryRepository: context.read<LotteryRepository>(),
-                )..add(LotteryInitialEvent()),
-              ),
               BlocProvider<AiBloc>(
                 create: (_) => AiBloc(
                   repository: context.read<AIRepository>(),
@@ -147,7 +136,10 @@ class App extends HookWidget {
                             builder: (context, snapshot) {
                               if (snapshot.hasData &&
                                   snapshot.data != '/bank') {
-                                previousLocation.value = snapshot.data;
+                                WidgetsBinding.instance
+                                    .addPostFrameCallback((_) {
+                                  previousLocation.value = snapshot.data;
+                                });
                               }
 
                               return Stack(

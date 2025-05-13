@@ -6,13 +6,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_confetti/flutter_confetti.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:gif_view/gif_view.dart';
+import 'package:giphy_picker/giphy_picker.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:wagus/features/bank/data/bank_repository.dart';
 import 'package:wagus/features/home/bloc/home_bloc.dart';
 import 'package:wagus/features/home/domain/chat_command_parser.dart';
 import 'package:wagus/features/home/domain/message.dart';
 import 'package:wagus/features/home/widgets/upgrade_dialog.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
+import 'package:wagus/router.dart';
 import 'package:wagus/theme/app_palette.dart';
 import 'package:wagus/utils.dart';
 
@@ -22,50 +26,82 @@ class Home extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final inputController = useTextEditingController();
-    final selectedRoom = useState('General');
-    final chatRooms = ['General', 'Support', 'Games', 'Ideas', 'Tier Lounge'];
 
     final scrollController = useScrollController();
     final showScrollToBottom = useState(false);
 
-    useEffect(() {
-      final portalState = context.read<PortalBloc>().state;
+    final animatedListKey = useMemoized(() => GlobalKey<AnimatedListState>());
+    final displayedMessages = useState<List<Message>>([]);
+    final prevIds = useRef<Set<String>>({});
 
-      if (portalState.user != null &&
-          portalState.currentTokenAddress.isNotEmpty) {
-        final homeBloc = context.read<HomeBloc>();
-        final bankRepo = context.read<BankRepository>();
+    final didInitialLoad = useState(false);
+    final lastRoom = useRef<String?>(null);
 
-        getActiveWallet().then((wallet) {
-          if (wallet != null) {
-            homeBloc.watchGiveaways(
-              wallet.address,
-              wallet,
-              portalState.currentTokenAddress,
-              bankRepo,
-              context,
-            );
-            homeBloc.add(HomeSetRoomEvent(selectedRoom.value));
+    useAsyncEffect(
+        effect: () {
+          displayedMessages.value = [];
+          prevIds.value.clear();
+          didInitialLoad.value = false;
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            if (scrollController.hasClients) {
+              await Future.delayed(const Duration(milliseconds: 100));
+              scrollController.jumpTo(0);
+            }
+          });
+
+          return null; // No cleanup
+        },
+        keys: [context.read<HomeBloc>().state.currentRoom]);
+
+    useAsyncEffect(
+        effect: () async {
+          final portalState = context.read<PortalBloc>().state;
+
+          if (portalState.user != null &&
+              portalState.currentTokenAddress.isNotEmpty) {
+            final homeBloc = context.read<HomeBloc>();
+            final bankRepo = context.read<BankRepository>();
+
+            getActiveWallet().then((wallet) async {
+              if (wallet != null) {
+                await homeBloc.watchGiveaways(
+                  wallet.address,
+                  wallet,
+                  portalState.currentTokenAddress,
+                  bankRepo,
+                  context,
+                );
+                homeBloc.add(HomeSetRoomEvent(homeBloc.state.currentRoom));
+              }
+            });
+
+            if (lastRoom.value != homeBloc.state.currentRoom) {
+              lastRoom.value = homeBloc.state.currentRoom;
+
+              displayedMessages.value = [];
+              prevIds.value.clear();
+              didInitialLoad.value = false;
+            }
           }
-        });
-      }
 
-      void listener() {
-        final controller = scrollController;
-        if (!controller.hasClients) return;
+          void listener() {
+            final controller = scrollController;
+            if (!controller.hasClients) return;
 
-        final currentOffset = controller.offset;
-        // Show button if we're more than 150px away from bottom (which is offset 0 with reverse:true)
-        showScrollToBottom.value = currentOffset > 150;
-      }
+            final currentOffset = controller.offset;
+            // Show button if we're more than 150px away from bottom (which is offset 0 with reverse:true)
+            showScrollToBottom.value = currentOffset > 150;
+          }
 
-      scrollController.addListener(listener);
-      return () => scrollController.removeListener(listener);
-    }, [context.read<PortalBloc>().state]);
+          scrollController.addListener(listener);
+          return () => scrollController.removeListener(listener);
+        },
+        keys: [context.read<PortalBloc>().state]);
 
     return BlocBuilder<PortalBloc, PortalState>(
       builder: (context, portalState) {
         return BlocConsumer<HomeBloc, HomeState>(
+          listenWhen: (prev, curr) => prev.messages != curr.messages,
           listener: (context, homeState) {
             if (homeState.canLaunchConfetti) {
               // ignore: unused_local_variable
@@ -77,6 +113,23 @@ class Home extends HookWidget {
 
               context.read<HomeBloc>().add(HomeLaunchGiveawayConfettiEvent());
             }
+
+            final filteredMessages = homeState.messages
+                .where((msg) => msg.room == homeState.currentRoom)
+                .toList();
+
+            final newMessages = filteredMessages
+                .where((msg) => !prevIds.value.contains(msg.id))
+                .toList();
+
+            for (final msg in newMessages) {
+              final index = displayedMessages.value.length;
+              displayedMessages.value = [...displayedMessages.value, msg];
+              animatedListKey.currentState?.insertItem(index);
+            }
+
+            prevIds.value =
+                filteredMessages.map((m) => m.id!).whereType<String>().toSet();
           },
           builder: (context, homeState) {
             return Scaffold(
@@ -89,7 +142,8 @@ class Home extends HookWidget {
                       children: [
                         // Chat Room Tabs
                         _ChatRoomTabs(
-                            chatRooms: chatRooms, selectedRoom: selectedRoom),
+                            chatRooms: homeState.rooms,
+                            selectedRoom: homeState.currentRoom),
 
                         const Divider(color: Colors.white12, thickness: 1),
                         // Messages Display
@@ -102,36 +156,126 @@ class Home extends HookWidget {
                                     (msg) => msg.room == homeState.currentRoom)
                                 .toList();
 
-                            return NotificationListener<ScrollNotification>(
-                              onNotification: (scrollInfo) {
-                                if (scrollInfo.metrics.pixels ==
-                                    scrollInfo.metrics.maxScrollExtent) {
-                                  final lastMessage = filteredMessages
-                                      .lastOrNull; // requires collection package or handle manually
+                            print(
+                                '🔍 Filtered messages for room "${homeState.currentRoom}": ${filteredMessages.length}');
+// Fresh room? Clear the previous messages and re-render
+                            // if (!didInitialLoad.value &&
+                            //     filteredMessages.isNotEmpty) {
+                            //   WidgetsBinding.instance.addPostFrameCallback((_) {
+                            //     displayedMessages.value = filteredMessages;
+                            //     prevIds.value = displayedMessages.value
+                            //         .map((m) => m.id)
+                            //         .whereType<String>()
+                            //         .toSet();
+                            //     didInitialLoad.value =
+                            //         true; // ✅ prevent this from ever running again
+                            //   });
+                            // }
 
-                                  if (lastMessage != null) {
-                                    final lastDoc = context
-                                        .read<HomeBloc>()
-                                        .state
-                                        .lastDocs[homeState.currentRoom];
-                                    if (lastDoc != null) {
-                                      context.read<HomeBloc>().add(
-                                            HomeLoadMoreMessagesEvent(
-                                                homeState.currentRoom, lastDoc),
-                                          );
-                                    }
+                            final newMessages = filteredMessages
+                                .where((msg) => !prevIds.value.contains(msg.id))
+                                .toList();
+
+                            final userWallet = context
+                                .read<PortalBloc>()
+                                .state
+                                .user
+                                ?.embeddedSolanaWallets
+                                .first
+                                .address;
+
+                            if (prevIds.value.isEmpty &&
+                                filteredMessages.isNotEmpty) {
+                              final reversed =
+                                  filteredMessages.reversed.toList();
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                displayedMessages.value =
+                                    reversed; // ✅ No animation
+                                prevIds.value = reversed
+                                    .map((m) => m.id)
+                                    .whereType<String>()
+                                    .toSet();
+                              });
+                            }
+
+                            for (final msg in newMessages) {
+                              displayedMessages.value = [
+                                msg,
+                                ...displayedMessages.value
+                              ];
+                              animatedListKey.currentState?.insertItem(0);
+                            }
+
+                            prevIds.value = filteredMessages
+                                .map((m) => m.id)
+                                .whereType<String>()
+                                .toSet();
+
+                            if (!didInitialLoad.value &&
+                                filteredMessages.isNotEmpty) {
+                              Future.microtask(() {
+                                displayedMessages.value = filteredMessages;
+
+                                prevIds.value = displayedMessages.value
+                                    .map((m) => m.id!)
+                                    .toSet();
+                                didInitialLoad.value = true;
+                              });
+                            }
+
+                            return NotificationListener<ScrollNotification>(
+                              onNotification: (ScrollNotification scrollInfo) {
+                                final threshold = 100.0;
+                                final offset = scrollInfo.metrics.pixels;
+                                final maxExtent =
+                                    scrollInfo.metrics.maxScrollExtent;
+
+                                print(
+                                    '[ScrollCheck] offset: $offset / maxExtent: $maxExtent');
+
+                                final isNearTopInReverse =
+                                    offset >= maxExtent - threshold;
+
+                                bool isFetchingMore = false;
+
+                                if (isNearTopInReverse && !isFetchingMore) {
+                                  isFetchingMore = true;
+                                  print(
+                                      '[PaginationTrigger] Near top (in reverse scroll). Checking for more messages...');
+
+                                  final lastDoc = context
+                                      .read<HomeBloc>()
+                                      .state
+                                      .lastDocs[homeState.currentRoom];
+                                  if (lastDoc != null) {
+                                    print(
+                                        '[PaginationTrigger] Last doc found. Dispatching HomeLoadMoreMessagesEvent');
+                                    context.read<HomeBloc>().add(
+                                          HomeLoadMoreMessagesEvent(
+                                              homeState.currentRoom, lastDoc),
+                                        );
+                                  } else {
+                                    print(
+                                        '[PaginationTrigger] No lastDoc available. Skipping pagination.');
                                   }
                                 }
+
                                 return false;
                               },
-                              child: ListView.builder(
-                                controller: scrollController,
+                              child: AnimatedList(
+                                key: animatedListKey,
                                 reverse: true,
+                                controller: scrollController,
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 8),
-                                itemCount: filteredMessages.length,
-                                itemBuilder: (context, index) {
-                                  final message = filteredMessages[index];
+                                initialItemCount:
+                                    displayedMessages.value.length,
+                                itemBuilder: (context, index, animation) {
+                                  if (index >= displayedMessages.value.length) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  final message =
+                                      displayedMessages.value[index];
 
                                   String getTierPrefix(TierStatus tier) {
                                     if (tier == TierStatus.adventurer)
@@ -165,207 +309,151 @@ class Home extends HookWidget {
                                     }
                                   }
 
-                                  return Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 4.0),
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Expanded(
-                                            child: SelectableText.rich(
-                                              TextSpan(
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                ),
+                                  return SizeTransition(
+                                    sizeFactor: animation,
+                                    axis: Axis.vertical,
+                                    child: SlideTransition(
+                                        position: Tween<Offset>(
+                                          begin:
+                                              const Offset(1, 0), // from right
+                                          end: Offset.zero,
+                                        ).animate(animation),
+                                        child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 4.0),
+                                            child: Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
-                                                  WidgetSpan(
-                                                    alignment:
-                                                        PlaceholderAlignment
-                                                            .middle,
-                                                    child: GestureDetector(
-                                                      onTap: () {
-                                                        showDialog(
-                                                          context: context,
-                                                          builder: (_) =>
-                                                              AlertDialog(
-                                                            backgroundColor:
-                                                                Colors.black,
-                                                            title: Text(
-                                                                'Wallet Address',
-                                                                style: TextStyle(
-                                                                    color: context
-                                                                        .appColors
-                                                                        .contrastLight)),
-                                                            content: Row(
+                                                  Expanded(
+                                                      child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                        if (message.gifUrl ==
+                                                                null ||
+                                                            message.gifUrl!
+                                                                .isEmpty)
+                                                          RichText(
+                                                            text: TextSpan(
                                                               children: [
-                                                                GestureDetector(
-                                                                  onTap: () =>
-                                                                      context.push(
-                                                                          '/profile/${message.sender}'),
-                                                                  child:
-                                                                      Container(
-                                                                    margin:
-                                                                        const EdgeInsets
-                                                                            .only(
-                                                                      right:
-                                                                          16.0,
-                                                                    ),
-                                                                    padding: const EdgeInsets
-                                                                        .all(
-                                                                        2.5), // border thickness
-                                                                    decoration:
-                                                                        BoxDecoration(
-                                                                      shape: BoxShape
-                                                                          .circle,
-                                                                      border:
-                                                                          Border
-                                                                              .all(
-                                                                        color: Colors
-                                                                            .greenAccent,
-                                                                        width:
-                                                                            3, // thick border
-                                                                      ),
-                                                                    ),
-                                                                    child: Hero(
-                                                                      tag:
-                                                                          'profile',
-                                                                      child:
-                                                                          CircleAvatar(
-                                                                        radius:
-                                                                            14, // small & modern
-                                                                        backgroundImage:
-                                                                            AssetImage('assets/icons/avatar.png'),
-                                                                        backgroundColor:
-                                                                            Colors.transparent,
-                                                                      ),
-                                                                    ),
+                                                                TextSpan(
+                                                                  text:
+                                                                      '${getDisplaySender(message)} ',
+                                                                  style: GoogleFonts
+                                                                      .anonymousPro(
+                                                                    color: message.tier ==
+                                                                            TierStatus
+                                                                                .system
+                                                                        ? Colors
+                                                                            .lightBlueAccent
+                                                                        : getTierColor(
+                                                                            message.tier),
+                                                                    fontSize:
+                                                                        14,
+                                                                    fontWeight: message.tier ==
+                                                                            TierStatus
+                                                                                .system
+                                                                        ? FontWeight
+                                                                            .w600
+                                                                        : FontWeight
+                                                                            .normal,
                                                                   ),
                                                                 ),
-                                                                Flexible(
-                                                                  child:
-                                                                      SelectableText(
-                                                                    message
-                                                                        .sender,
-                                                                    style: TextStyle(
-                                                                        color: Colors
-                                                                            .white),
+                                                                TextSpan(
+                                                                  text: message
+                                                                      .text,
+                                                                  style: GoogleFonts.anonymousPro(
+                                                                      color: Colors
+                                                                          .white,
+                                                                      fontSize:
+                                                                          14),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          )
+                                                        else ...[
+                                                          Text(
+                                                            getDisplaySender(
+                                                                message),
+                                                            style: GoogleFonts
+                                                                .anonymousPro(
+                                                              color: message
+                                                                          .tier ==
+                                                                      TierStatus
+                                                                          .system
+                                                                  ? Colors
+                                                                      .lightBlueAccent
+                                                                  : getTierColor(
+                                                                      message
+                                                                          .tier),
+                                                              fontSize: 14,
+                                                              fontWeight: message
+                                                                          .tier ==
+                                                                      TierStatus
+                                                                          .system
+                                                                  ? FontWeight
+                                                                      .w600
+                                                                  : FontWeight
+                                                                      .normal,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                              height: 4),
+                                                          SizedBox(
+                                                            height: 200,
+                                                            width: 200,
+                                                            child: Stack(
+                                                              alignment:
+                                                                  Alignment
+                                                                      .center,
+                                                              children: [
+                                                                // Loader while image loads
+                                                                const CircularProgressIndicator(
+                                                                  strokeWidth:
+                                                                      2,
+                                                                  color: Colors
+                                                                      .white24,
+                                                                ),
+                                                                // GIF with fade-in once loaded
+                                                                GifView.network(
+                                                                  message
+                                                                      .gifUrl!,
+                                                                  height: 200,
+                                                                  width: 200,
+                                                                  fit: BoxFit
+                                                                      .cover,
+                                                                  // frameBuilder:
+                                                                  //     (context, child, frame, wasSynced) {
+                                                                  //   if (frame == null) {
+                                                                  //     return const SizedBox
+                                                                  //         .shrink(); // hide until loaded
+                                                                  //   }
+                                                                  //   return child;
+                                                                  // },
+                                                                  errorBuilder: (context,
+                                                                          error,
+                                                                          stackTrace) =>
+                                                                      const Icon(
+                                                                    Icons
+                                                                        .broken_image,
+                                                                    color: Colors
+                                                                        .redAccent,
                                                                   ),
                                                                 ),
                                                               ],
                                                             ),
-                                                            actions: [
-                                                              TextButton(
-                                                                onPressed: () {
-                                                                  Clipboard.setData(
-                                                                      ClipboardData(
-                                                                          text:
-                                                                              message.sender));
-                                                                  Navigator.of(
-                                                                          context)
-                                                                      .pop();
-                                                                  ScaffoldMessenger.of(
-                                                                          context)
-                                                                      .showSnackBar(
-                                                                    SnackBar(
-                                                                        content:
-                                                                            Text('Copied to clipboard')),
-                                                                  );
-                                                                },
-                                                                child: Text(
-                                                                    'COPY',
-                                                                    style: TextStyle(
-                                                                        color: Colors
-                                                                            .greenAccent)),
-                                                              ),
-                                                              TextButton(
-                                                                onPressed: () =>
-                                                                    Navigator.of(
-                                                                            context)
-                                                                        .pop(),
-                                                                child: Text(
-                                                                    'CLOSE',
-                                                                    style: TextStyle(
-                                                                        color: Colors
-                                                                            .white)),
-                                                              ),
-                                                            ],
                                                           ),
-                                                        );
-                                                      },
-                                                      child: Text(
-                                                        getDisplaySender(
-                                                            message),
-                                                        style: TextStyle(
-                                                          color: message.tier ==
-                                                                  TierStatus
-                                                                      .system
-                                                              ? Colors
-                                                                  .lightBlueAccent
-                                                              : getTierColor(
-                                                                  message.tier),
-                                                          fontSize: 14,
-                                                          fontWeight: message
-                                                                      .tier ==
-                                                                  TierStatus
-                                                                      .system
-                                                              ? FontWeight.w600
-                                                              : FontWeight
-                                                                  .normal,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  TextSpan(
-                                                    text: message.text,
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 14,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                          GestureDetector(
-                                            onTap: () async {
-                                              final docId = message
-                                                  .id; // Ensure Message class has `id`
-                                              final docRef = FirebaseFirestore
-                                                  .instance
-                                                  .collection('chat')
-                                                  .doc(docId);
-                                              await docRef.update({
-                                                'likes': FieldValue.increment(1)
-                                              });
-                                            },
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.thumb_up,
-                                                    size: 14,
-                                                    color: message.likes !=
-                                                                null &&
-                                                            message.likes! > 0
-                                                        ? Colors.greenAccent
-                                                        : Colors.white),
-                                                SizedBox(width: 4),
-                                                if (message.likes != null &&
-                                                    message.likes! > 0) ...[
-                                                  Text('${message.likes}',
-                                                      style: TextStyle(
-                                                          color: Colors
-                                                              .greenAccent,
-                                                          fontSize: 10)),
-                                                ] else ...[
-                                                  SizedBox(
-                                                    width: 5,
-                                                  ),
-                                                ]
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ));
+                                                          if (message.text !=
+                                                              '[GIF]') // Only show caption if it's meaningful
+                                                            Text(
+                                                              message.text,
+                                                            )
+                                                        ]
+                                                      ]))
+                                                ]))),
+                                  );
                                 },
                               ),
                             );
@@ -376,7 +464,7 @@ class Home extends HookWidget {
 
                         _ChatInputBar(
                             controller: inputController,
-                            selectedRoom: selectedRoom.value,
+                            selectedRoom: homeState.currentRoom,
                             portalState: portalState),
                       ],
                     ),
@@ -582,6 +670,73 @@ class _ChatInputBar extends StatelessWidget {
                       .read<HomeBloc>()
                       .add(HomeCommandPopupTriggered(trimmed));
                 }),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.white, width: 0.5),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.black,
+            ),
+            child: IconButton(
+              icon: Icon(Icons.gif, color: Colors.white),
+              onPressed: () async {
+                final gif = await GiphyPicker.pickGif(
+                  context: context,
+                  apiKey: dotenv.env['GIPHY_API_KEY']!,
+                  fullScreenDialog: false,
+                  title: Text('Select a GIF'),
+                  previewType: GiphyPreviewType.previewGif,
+                  showPreviewPage: false,
+                );
+                if (gif != null) {
+                  final wallet = context
+                      .read<PortalBloc>()
+                      .state
+                      .user
+                      ?.embeddedSolanaWallets
+                      .first;
+                  if (wallet == null) return;
+
+                  final gifUrl = gif.images.original?.url;
+
+                  if (gifUrl == null || gifUrl.isEmpty) {
+                    return;
+                  }
+
+                  final caption = controller.text.trim();
+
+                  final message = Message(
+                    text: caption.isNotEmpty ? caption : '[GIF]',
+                    sender: wallet.address,
+                    tier: portalState.tierStatus,
+                    room: selectedRoom,
+                    gifUrl: gifUrl, // <- add this field to your Message model
+                    solBalance:
+                        context.read<PortalBloc>().state.holder?.solanaAmount,
+                    wagBalance: context
+                        .read<PortalBloc>()
+                        .state
+                        .holder
+                        ?.tokenAmount
+                        .toInt(),
+                  );
+
+                  context.read<HomeBloc>().add(
+                        HomeSendMessageEvent(
+                          message: message,
+                          currentTokenAddress: context
+                              .read<PortalBloc>()
+                              .state
+                              .currentTokenAddress,
+                        ),
+                      );
+
+                  controller.clear();
+                  FocusScope.of(context).unfocus();
+                }
+              },
+            ),
           ),
           const SizedBox(width: 8),
           Container(
@@ -809,7 +964,7 @@ class _ChatRoomTabs extends StatelessWidget {
   });
 
   final List<String> chatRooms;
-  final ValueNotifier<String> selectedRoom;
+  final String selectedRoom;
 
   @override
   Widget build(BuildContext context) {
@@ -819,12 +974,11 @@ class _ChatRoomTabs extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: chatRooms.map((room) {
-            final isSelected = selectedRoom.value == room;
+            final isSelected = selectedRoom == room;
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: GestureDetector(
                 onTap: () {
-                  selectedRoom.value = room;
                   context.read<HomeBloc>().add(HomeSetRoomEvent(room));
                 },
                 child: Container(
