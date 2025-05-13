@@ -50,11 +50,11 @@ class HomeLoadMoreMessagesEvent extends HomeEvent {
   HomeLoadMoreMessagesEvent(this.room, this.lastDoc);
 }
 
-class HomeListenToRoomsEvent extends HomeEvent {
-  HomeListenToRoomsEvent();
-}
-
 class HomeLiveUpdateEvent extends HomeEvent {
   final List<QueryDocumentSnapshot<Map<String, dynamic>>> docs;
   HomeLiveUpdateEvent(this.docs);
+}
+
+class HomeListenToRoomsEvent extends HomeEvent {
+  HomeListenToRoomsEvent();
 }

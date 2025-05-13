@@ -1,5 +1,8 @@
+import 'dart:developer';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -30,29 +33,6 @@ class Home extends HookWidget {
     final scrollController = useScrollController();
     final showScrollToBottom = useState(false);
 
-    final animatedListKey = useMemoized(() => GlobalKey<AnimatedListState>());
-    final displayedMessages = useState<List<Message>>([]);
-    final prevIds = useRef<Set<String>>({});
-
-    final didInitialLoad = useState(false);
-    final lastRoom = useRef<String?>(null);
-
-    useAsyncEffect(
-        effect: () {
-          displayedMessages.value = [];
-          prevIds.value.clear();
-          didInitialLoad.value = false;
-          WidgetsBinding.instance.addPostFrameCallback((_) async {
-            if (scrollController.hasClients) {
-              await Future.delayed(const Duration(milliseconds: 100));
-              scrollController.jumpTo(0);
-            }
-          });
-
-          return null; // No cleanup
-        },
-        keys: [context.read<HomeBloc>().state.currentRoom]);
-
     useAsyncEffect(
         effect: () async {
           final portalState = context.read<PortalBloc>().state;
@@ -64,6 +44,7 @@ class Home extends HookWidget {
 
             getActiveWallet().then((wallet) async {
               if (wallet != null) {
+                homeBloc.add(HomeListenToRoomsEvent());
                 await homeBloc.watchGiveaways(
                   wallet.address,
                   wallet,
@@ -74,14 +55,6 @@ class Home extends HookWidget {
                 homeBloc.add(HomeSetRoomEvent(homeBloc.state.currentRoom));
               }
             });
-
-            if (lastRoom.value != homeBloc.state.currentRoom) {
-              lastRoom.value = homeBloc.state.currentRoom;
-
-              displayedMessages.value = [];
-              prevIds.value.clear();
-              didInitialLoad.value = false;
-            }
           }
 
           void listener() {
@@ -113,23 +86,6 @@ class Home extends HookWidget {
 
               context.read<HomeBloc>().add(HomeLaunchGiveawayConfettiEvent());
             }
-
-            final filteredMessages = homeState.messages
-                .where((msg) => msg.room == homeState.currentRoom)
-                .toList();
-
-            final newMessages = filteredMessages
-                .where((msg) => !prevIds.value.contains(msg.id))
-                .toList();
-
-            for (final msg in newMessages) {
-              final index = displayedMessages.value.length;
-              displayedMessages.value = [...displayedMessages.value, msg];
-              animatedListKey.currentState?.insertItem(index);
-            }
-
-            prevIds.value =
-                filteredMessages.map((m) => m.id!).whereType<String>().toSet();
           },
           builder: (context, homeState) {
             return Scaffold(
@@ -158,70 +114,6 @@ class Home extends HookWidget {
 
                             print(
                                 '🔍 Filtered messages for room "${homeState.currentRoom}": ${filteredMessages.length}');
-// Fresh room? Clear the previous messages and re-render
-                            // if (!didInitialLoad.value &&
-                            //     filteredMessages.isNotEmpty) {
-                            //   WidgetsBinding.instance.addPostFrameCallback((_) {
-                            //     displayedMessages.value = filteredMessages;
-                            //     prevIds.value = displayedMessages.value
-                            //         .map((m) => m.id)
-                            //         .whereType<String>()
-                            //         .toSet();
-                            //     didInitialLoad.value =
-                            //         true; // ✅ prevent this from ever running again
-                            //   });
-                            // }
-
-                            final newMessages = filteredMessages
-                                .where((msg) => !prevIds.value.contains(msg.id))
-                                .toList();
-
-                            final userWallet = context
-                                .read<PortalBloc>()
-                                .state
-                                .user
-                                ?.embeddedSolanaWallets
-                                .first
-                                .address;
-
-                            if (prevIds.value.isEmpty &&
-                                filteredMessages.isNotEmpty) {
-                              final reversed =
-                                  filteredMessages.reversed.toList();
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                displayedMessages.value =
-                                    reversed; // ✅ No animation
-                                prevIds.value = reversed
-                                    .map((m) => m.id)
-                                    .whereType<String>()
-                                    .toSet();
-                              });
-                            }
-
-                            for (final msg in newMessages) {
-                              displayedMessages.value = [
-                                msg,
-                                ...displayedMessages.value
-                              ];
-                              animatedListKey.currentState?.insertItem(0);
-                            }
-
-                            prevIds.value = filteredMessages
-                                .map((m) => m.id)
-                                .whereType<String>()
-                                .toSet();
-
-                            if (!didInitialLoad.value &&
-                                filteredMessages.isNotEmpty) {
-                              Future.microtask(() {
-                                displayedMessages.value = filteredMessages;
-
-                                prevIds.value = displayedMessages.value
-                                    .map((m) => m.id!)
-                                    .toSet();
-                                didInitialLoad.value = true;
-                              });
-                            }
 
                             return NotificationListener<ScrollNotification>(
                               onNotification: (ScrollNotification scrollInfo) {
@@ -262,20 +154,17 @@ class Home extends HookWidget {
 
                                 return false;
                               },
-                              child: AnimatedList(
-                                key: animatedListKey,
+                              child: ListView.builder(
                                 reverse: true,
                                 controller: scrollController,
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 8),
-                                initialItemCount:
-                                    displayedMessages.value.length,
-                                itemBuilder: (context, index, animation) {
-                                  if (index >= displayedMessages.value.length) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  final message =
-                                      displayedMessages.value[index];
+                                itemCount: filteredMessages.length,
+                                itemBuilder: (context, index) {
+                                  final message = filteredMessages[index];
+
+                                  print(
+                                      'last message: ${filteredMessages.first.text}');
 
                                   String getTierPrefix(TierStatus tier) {
                                     if (tier == TierStatus.adventurer)
@@ -309,74 +198,100 @@ class Home extends HookWidget {
                                     }
                                   }
 
-                                  return SizeTransition(
-                                    sizeFactor: animation,
-                                    axis: Axis.vertical,
-                                    child: SlideTransition(
-                                        position: Tween<Offset>(
-                                          begin:
-                                              const Offset(1, 0), // from right
-                                          end: Offset.zero,
-                                        ).animate(animation),
-                                        child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 4.0),
-                                            child: Row(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Expanded(
-                                                      child: Column(
-                                                          crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .start,
-                                                          children: [
-                                                        if (message.gifUrl ==
-                                                                null ||
-                                                            message.gifUrl!
-                                                                .isEmpty)
-                                                          RichText(
-                                                            text: TextSpan(
-                                                              children: [
-                                                                TextSpan(
-                                                                  text:
-                                                                      '${getDisplaySender(message)} ',
-                                                                  style: GoogleFonts
-                                                                      .anonymousPro(
-                                                                    color: message.tier ==
-                                                                            TierStatus
-                                                                                .system
-                                                                        ? Colors
-                                                                            .lightBlueAccent
-                                                                        : getTierColor(
-                                                                            message.tier),
-                                                                    fontSize:
-                                                                        14,
-                                                                    fontWeight: message.tier ==
-                                                                            TierStatus
-                                                                                .system
-                                                                        ? FontWeight
-                                                                            .w600
-                                                                        : FontWeight
-                                                                            .normal,
-                                                                  ),
-                                                                ),
-                                                                TextSpan(
-                                                                  text: message
-                                                                      .text,
-                                                                  style: GoogleFonts.anonymousPro(
-                                                                      color: Colors
-                                                                          .white,
-                                                                      fontSize:
-                                                                          14),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          )
-                                                        else ...[
-                                                          Text(
-                                                            getDisplaySender(
-                                                                message),
+                                  return Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 4.0),
+                                      child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Expanded(
+                                                child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                  if (message.gifUrl == null ||
+                                                      message.gifUrl!.isEmpty)
+                                                    RichText(
+                                                      text: TextSpan(
+                                                        children: [
+                                                          TextSpan(
+                                                            recognizer:
+                                                                TapGestureRecognizer()
+                                                                  ..onTap = () {
+                                                                    showDialog(
+                                                                      context:
+                                                                          context,
+                                                                      builder:
+                                                                          (_) =>
+                                                                              AlertDialog(
+                                                                        backgroundColor:
+                                                                            Colors.black,
+                                                                        title: Text(
+                                                                            'Wallet Address',
+                                                                            style:
+                                                                                TextStyle(color: context.appColors.contrastLight)),
+                                                                        content:
+                                                                            Row(
+                                                                          children: [
+                                                                            GestureDetector(
+                                                                              onTap: () => context.push('/profile/${message.sender}'),
+                                                                              child: Container(
+                                                                                margin: const EdgeInsets.only(
+                                                                                  right: 16.0,
+                                                                                ),
+                                                                                padding: const EdgeInsets.all(2.5), // border thickness
+                                                                                decoration: BoxDecoration(
+                                                                                  shape: BoxShape.circle,
+                                                                                  border: Border.all(
+                                                                                    color: Colors.greenAccent,
+                                                                                    width: 3, // thick border
+                                                                                  ),
+                                                                                ),
+                                                                                child: Hero(
+                                                                                  tag: 'profile',
+                                                                                  child: CircleAvatar(
+                                                                                    radius: 14, // small & modern
+                                                                                    backgroundImage: AssetImage('assets/icons/avatar.png'),
+                                                                                    backgroundColor: Colors.transparent,
+                                                                                  ),
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                            Flexible(
+                                                                              child: SelectableText(
+                                                                                message.sender,
+                                                                                style: TextStyle(color: Colors.white),
+                                                                              ),
+                                                                            ),
+                                                                          ],
+                                                                        ),
+                                                                        actions: [
+                                                                          TextButton(
+                                                                            onPressed:
+                                                                                () {
+                                                                              Clipboard.setData(ClipboardData(text: message.sender));
+                                                                              Navigator.of(context).pop();
+                                                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                                                SnackBar(content: Text('Copied to clipboard')),
+                                                                              );
+                                                                            },
+                                                                            child:
+                                                                                Text('COPY', style: TextStyle(color: Colors.greenAccent)),
+                                                                          ),
+                                                                          TextButton(
+                                                                            onPressed: () =>
+                                                                                Navigator.of(context).pop(),
+                                                                            child:
+                                                                                Text('CLOSE', style: TextStyle(color: Colors.white)),
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                    );
+                                                                  },
+                                                            text:
+                                                                '${getDisplaySender(message)} ',
                                                             style: GoogleFonts
                                                                 .anonymousPro(
                                                               color: message
@@ -399,61 +314,193 @@ class Home extends HookWidget {
                                                                       .normal,
                                                             ),
                                                           ),
-                                                          const SizedBox(
-                                                              height: 4),
-                                                          SizedBox(
-                                                            height: 200,
-                                                            width: 200,
-                                                            child: Stack(
-                                                              alignment:
-                                                                  Alignment
-                                                                      .center,
-                                                              children: [
-                                                                // Loader while image loads
-                                                                const CircularProgressIndicator(
-                                                                  strokeWidth:
-                                                                      2,
-                                                                  color: Colors
-                                                                      .white24,
-                                                                ),
-                                                                // GIF with fade-in once loaded
-                                                                GifView.network(
-                                                                  message
-                                                                      .gifUrl!,
-                                                                  height: 200,
-                                                                  width: 200,
-                                                                  fit: BoxFit
-                                                                      .cover,
-                                                                  // frameBuilder:
-                                                                  //     (context, child, frame, wasSynced) {
-                                                                  //   if (frame == null) {
-                                                                  //     return const SizedBox
-                                                                  //         .shrink(); // hide until loaded
-                                                                  //   }
-                                                                  //   return child;
-                                                                  // },
-                                                                  errorBuilder: (context,
-                                                                          error,
-                                                                          stackTrace) =>
-                                                                      const Icon(
-                                                                    Icons
-                                                                        .broken_image,
+                                                          TextSpan(
+                                                            text: message.text,
+                                                            style: GoogleFonts
+                                                                .anonymousPro(
                                                                     color: Colors
-                                                                        .redAccent,
+                                                                        .white,
+                                                                    fontSize:
+                                                                        14),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    )
+                                                  else ...[
+                                                    GestureDetector(
+                                                      onTap: () {
+                                                        showDialog(
+                                                          context: context,
+                                                          builder: (_) =>
+                                                              AlertDialog(
+                                                            backgroundColor:
+                                                                Colors.black,
+                                                            title: Text(
+                                                                'Wallet Address',
+                                                                style: TextStyle(
+                                                                    color: context
+                                                                        .appColors
+                                                                        .contrastLight)),
+                                                            content: Row(
+                                                              children: [
+                                                                GestureDetector(
+                                                                  onTap: () =>
+                                                                      context.push(
+                                                                          '/profile/${message.sender}'),
+                                                                  child:
+                                                                      Container(
+                                                                    margin:
+                                                                        const EdgeInsets
+                                                                            .only(
+                                                                      right:
+                                                                          16.0,
+                                                                    ),
+                                                                    padding: const EdgeInsets
+                                                                        .all(
+                                                                        2.5), // border thickness
+                                                                    decoration:
+                                                                        BoxDecoration(
+                                                                      shape: BoxShape
+                                                                          .circle,
+                                                                      border:
+                                                                          Border
+                                                                              .all(
+                                                                        color: Colors
+                                                                            .greenAccent,
+                                                                        width:
+                                                                            3, // thick border
+                                                                      ),
+                                                                    ),
+                                                                    child: Hero(
+                                                                      tag:
+                                                                          'profile',
+                                                                      child:
+                                                                          CircleAvatar(
+                                                                        radius:
+                                                                            14, // small & modern
+                                                                        backgroundImage:
+                                                                            AssetImage('assets/icons/avatar.png'),
+                                                                        backgroundColor:
+                                                                            Colors.transparent,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                Flexible(
+                                                                  child:
+                                                                      SelectableText(
+                                                                    message
+                                                                        .sender,
+                                                                    style: TextStyle(
+                                                                        color: Colors
+                                                                            .white),
                                                                   ),
                                                                 ),
                                                               ],
                                                             ),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed: () {
+                                                                  Clipboard.setData(
+                                                                      ClipboardData(
+                                                                          text:
+                                                                              message.sender));
+                                                                  Navigator.of(
+                                                                          context)
+                                                                      .pop();
+                                                                  ScaffoldMessenger.of(
+                                                                          context)
+                                                                      .showSnackBar(
+                                                                    SnackBar(
+                                                                        content:
+                                                                            Text('Copied to clipboard')),
+                                                                  );
+                                                                },
+                                                                child: Text(
+                                                                    'COPY',
+                                                                    style: TextStyle(
+                                                                        color: Colors
+                                                                            .greenAccent)),
+                                                              ),
+                                                              TextButton(
+                                                                onPressed: () =>
+                                                                    Navigator.of(
+                                                                            context)
+                                                                        .pop(),
+                                                                child: Text(
+                                                                    'CLOSE',
+                                                                    style: TextStyle(
+                                                                        color: Colors
+                                                                            .white)),
+                                                              ),
+                                                            ],
                                                           ),
-                                                          if (message.text !=
-                                                              '[GIF]') // Only show caption if it's meaningful
-                                                            Text(
-                                                              message.text,
-                                                            )
-                                                        ]
-                                                      ]))
-                                                ]))),
-                                  );
+                                                        );
+                                                      },
+                                                      child: Text(
+                                                        getDisplaySender(
+                                                            message),
+                                                        style: GoogleFonts
+                                                            .anonymousPro(
+                                                          color: message.tier ==
+                                                                  TierStatus
+                                                                      .system
+                                                              ? Colors
+                                                                  .lightBlueAccent
+                                                              : getTierColor(
+                                                                  message.tier),
+                                                          fontSize: 14,
+                                                          fontWeight: message
+                                                                      .tier ==
+                                                                  TierStatus
+                                                                      .system
+                                                              ? FontWeight.w600
+                                                              : FontWeight
+                                                                  .normal,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    SizedBox(
+                                                      height: 200,
+                                                      width: 200,
+                                                      child: Stack(
+                                                        alignment:
+                                                            Alignment.center,
+                                                        children: [
+                                                          // Loader while image loads
+                                                          const CircularProgressIndicator(
+                                                            strokeWidth: 2,
+                                                            color:
+                                                                Colors.white24,
+                                                          ),
+                                                          // GIF with fade-in once loaded
+                                                          GifView.network(
+                                                            message.gifUrl!,
+                                                            height: 200,
+                                                            width: 200,
+                                                            fit: BoxFit.cover,
+                                                            errorBuilder: (context,
+                                                                    error,
+                                                                    stackTrace) =>
+                                                                const Icon(
+                                                              Icons
+                                                                  .broken_image,
+                                                              color: Colors
+                                                                  .redAccent,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    if (message.text !=
+                                                        '[GIF]') // Only show caption if it's meaningful
+                                                      Text(
+                                                        message.text,
+                                                      )
+                                                  ]
+                                                ]))
+                                          ]));
                                 },
                               ),
                             );
@@ -463,9 +510,10 @@ class Home extends HookWidget {
                         // Input Bar
 
                         _ChatInputBar(
-                            controller: inputController,
-                            selectedRoom: homeState.currentRoom,
-                            portalState: portalState),
+                          controller: inputController,
+                          selectedRoom: homeState.currentRoom,
+                          portalState: portalState,
+                        ),
                       ],
                     ),
                     if (showScrollToBottom.value)

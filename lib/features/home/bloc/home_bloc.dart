@@ -171,203 +171,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final BankRepository bankRepository;
   HomeBloc({required this.homeRepository, required this.bankRepository})
       : super(HomeState(messages: [])) {
-    on<HomeInitialEvent>((event, emit) {
-      emit(state.copyWith(
-        messages: event.messages,
-        currentRoom: event.room,
-        lastDocs: event.lastDocs, // <-- THIS IS WHAT YOU MISSED
-      ));
-    });
-    on<HomeSetRoomEvent>((event, emit) async {
-      log('Setting room to ${event.room}');
-      roomSub?.cancel(); // Always reset
-
-      emit(state.copyWith(
-        messages: [],
-        currentRoom: event.room,
-      ));
-
-      // 1. 🔒 Initial static fetch
-      final snapshot = await homeRepository.getInitialMessages(event.room, 50);
-      final initialMessages = snapshot.docs
-          .map((doc) {
-            final msg = doc.data() as Map<String, dynamic>?;
-            if (msg == null) return null;
-
-            final sender = msg['sender'] as String?;
-            final text = msg['message'] as String?;
-            if (sender == null || text == null) return null;
-
-            return Message(
-              text: text,
-              sender: sender,
-              room: (msg['room'] as String?)?.trim().isNotEmpty == true
-                  ? msg['room']
-                  : 'General',
-              tier: TierStatus.values.firstWhere(
-                (t) => t.name == (msg['tier'] ?? 'basic'),
-                orElse: () => TierStatus.basic,
-              ),
-              likes: msg['likes'] ?? 0,
-              id: doc.id,
-              gifUrl: msg['gif_url'],
-            );
-          })
-          .whereType<Message>()
-          .toList();
-
-      final updatedLastDocs =
-          Map<String, DocumentSnapshot>.from(state.lastDocs);
-      if (snapshot.docs.isNotEmpty) {
-        updatedLastDocs[event.room] = snapshot.docs.last;
-      }
-
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      add(HomeInitialEvent(
-        messages: initialMessages,
-        room: event.room,
-        lastDocs: updatedLastDocs,
-      ));
-
-      // 2. ✅ Now subscribe to new changes
-      roomSub = homeRepository.getMessages(event.room).listen((liveSnap) {
-        final newMessages = liveSnap.docs
-            .map((doc) {
-              final msg = doc.data() as Map<String, dynamic>?;
-              if (msg == null) return null;
-
-              final sender = msg['sender'] as String?;
-              final text = msg['message'] as String?;
-              if (sender == null || text == null) return null;
-
-              return Message(
-                text: text,
-                sender: sender,
-                room: (msg['room'] as String?)?.trim().isNotEmpty == true
-                    ? msg['room']
-                    : 'General',
-                tier: TierStatus.values.firstWhere(
-                  (t) => t.name == (msg['tier'] ?? 'basic'),
-                  orElse: () => TierStatus.basic,
-                ),
-                likes: msg['likes'] ?? 0,
-                id: doc.id,
-                gifUrl: msg['gif_url'],
-              );
-            })
-            .whereType<Message>()
-            .toList();
-
-        final existingIds = state.messages.map((m) => m.id).toSet();
-        final newMessagesDiff =
-            newMessages.where((m) => !existingIds.contains(m.id)).toList();
-
-        add(HomeLiveUpdateEvent(
-          liveSnap.docs.cast<QueryDocumentSnapshot<Map<String, dynamic>>>(),
-        ));
-      });
-    });
-
-    on<HomeLiveUpdateEvent>((event, emit) {
-      final newMessages = event.docs
-          .map((doc) {
-            final msg = doc.data() as Map<String, dynamic>?;
-            if (msg == null) return null;
-
-            final sender = msg['sender'] as String?;
-            final text = msg['message'] as String?;
-            if (sender == null || text == null) return null;
-
-            return Message(
-              text: text,
-              sender: sender,
-              room: (msg['room'] as String?)?.trim().isNotEmpty == true
-                  ? msg['room']
-                  : 'General',
-              tier: TierStatus.values.firstWhere(
-                (t) => t.name == (msg['tier'] ?? 'basic'),
-                orElse: () => TierStatus.basic,
-              ),
-              likes: msg['likes'] ?? 0,
-              id: doc.id,
-              gifUrl: msg['gif_url'],
-            );
-          })
-          .whereType<Message>()
-          .toList();
-
-      final existingIds = state.messages.map((m) => m.id).toSet();
-      final newMessagesDiff =
-          newMessages.where((m) => !existingIds.contains(m.id)).toList();
-
-      if (newMessagesDiff.isEmpty) return;
-
-      emit(state.copyWith(
-        messages: [...newMessagesDiff, ...state.messages],
-      ));
-    });
-
-    on<HomeLaunchGiveawayConfettiEvent>((event, emit) {
-      emit(state.copyWith(canLaunchConfetti: !state.canLaunchConfetti));
-    });
-
-    on<HomeWatchOnlineUsersEvent>((event, emit) async {
-      await emit.forEach(UserService.onlineUsersCollection, onData: (data) {
-        final onlineUsers = data.docs
-            .map((doc) => doc.data())
-            .where((user) => user['wallet'] != null) // skip nulls
-            .map((user) => user['wallet'] as String)
-            .toList();
-
-        return state.copyWith(activeUsersCount: onlineUsers.length);
-      });
-    });
-
-    on<HomeListenToRoomsEvent>((event, emit) async {
-      await emit.forEach(homeRepository.listenToRooms(), onData: (snapshot) {
-        final dynamicRooms = snapshot.docs
-            .map((doc) => doc['name']?.toString().trim())
-            .whereType<String>()
-            .where((name) => name.isNotEmpty)
-            .toList();
-
-        final allRooms = [
-          'General',
-          'Support',
-          'Games',
-          'Ideas',
-          'Tier Lounge',
-          ...dynamicRooms.where(
-            (name) => !['General', 'Support', 'Games', 'Ideas', 'Tier Lounge']
-                .contains(name),
-          ),
-        ];
-
-        return state.copyWith(rooms: allRooms);
-      });
-    });
-
-    on<HomeCommandPopupTriggered>((event, emit) {
-      final search = event.input.trim();
-      final closestMatch = allCommands.firstWhere(
-        (cmd) => cmd.startsWith(search),
-        orElse: () => '',
-      );
-
-      emit(state.copyWith(
-        commandSearch: () => closestMatch.isEmpty ? null : closestMatch,
-        recentCommand: () => state.recentCommand,
-      ));
-    });
-
-    on<HomeCommandPopupClosed>((event, emit) {
-      emit(state.copyWith(
-        commandSearch: () => null,
-        recentCommand: () => null, // ✅ make sure this is also cleared
-      ));
-    });
-
     FutureOr<Message> buildCommandPreview(
         ChatCommand cmd, Message original, String currentTokenAddress) async {
       switch (cmd.action.toLowerCase()) {
@@ -517,6 +320,211 @@ Type any command to try it out.''',
       }
     }
 
+    on<HomeInitialEvent>((event, emit) {
+      emit(state.copyWith(
+        messages: event.messages,
+        currentRoom: event.room,
+        lastDocs: event.lastDocs, // <-- This is what you missed
+      ));
+    });
+
+    on<HomeListenToRoomsEvent>((event, emit) async {
+      await emit.forEach(homeRepository.listenToRooms(), onData: (snapshot) {
+        final dynamicRooms = snapshot.docs
+            .map((doc) => doc['name']?.toString().trim())
+            .whereType<String>()
+            .where((name) => name.isNotEmpty)
+            .toList();
+
+        final allRooms = [
+          'General',
+          'Support',
+          'Games',
+          'Ideas',
+          'Tier Lounge',
+          ...dynamicRooms.where(
+            (name) => !['General', 'Support', 'Games', 'Ideas', 'Tier Lounge']
+                .contains(name),
+          ),
+        ];
+
+        return state.copyWith(rooms: allRooms);
+      });
+    });
+
+    on<HomeSetRoomEvent>((event, emit) async {
+      log('Setting room to ${event.room}');
+      roomSub?.cancel(); // Always reset
+
+      emit(state.copyWith(
+        messages: [],
+        currentRoom: event.room,
+      ));
+
+      // 1. 🔒 Initial static fetch
+      final snapshot = await homeRepository.getInitialMessages(event.room, 50);
+      final initialMessages = snapshot.docs
+          .map((doc) {
+            final msg = doc.data() as Map<String, dynamic>?;
+            if (msg == null) return null;
+
+            final sender = msg['sender'] as String?;
+            final text = msg['message'] as String?;
+            if (sender == null || text == null) return null;
+
+            return Message(
+              text: text,
+              sender: sender,
+              room: (msg['room'] as String?)?.trim().isNotEmpty == true
+                  ? msg['room']
+                  : 'General',
+              tier: TierStatus.values.firstWhere(
+                (t) => t.name == (msg['tier'] ?? 'basic'),
+                orElse: () => TierStatus.basic,
+              ),
+              likes: msg['likes'] ?? 0,
+              id: doc.id,
+              gifUrl: msg['gif_url'],
+            );
+          })
+          .whereType<Message>()
+          .toList();
+
+      final updatedLastDocs =
+          Map<String, DocumentSnapshot>.from(state.lastDocs);
+      if (snapshot.docs.isNotEmpty) {
+        updatedLastDocs[event.room] = snapshot.docs.last;
+      }
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      add(HomeInitialEvent(
+        messages: initialMessages,
+        room: event.room,
+        lastDocs: updatedLastDocs,
+      ));
+
+      // 2. ✅ Now subscribe to new changes
+      roomSub = homeRepository.getMessages(event.room).listen((data) {
+        final messages = data.docs
+            .map((doc) {
+              final msg = doc.data() as Map<String, dynamic>?;
+              if (msg == null) return null;
+
+              final sender = msg['sender'] as String?;
+              final text = msg['message'] as String?;
+              if (sender == null || text == null) return null;
+
+              return Message(
+                text: text,
+                sender: sender,
+                room: (msg['room'] as String?)?.trim().isNotEmpty == true
+                    ? msg['room']
+                    : 'General',
+                tier: TierStatus.values.firstWhere(
+                  (t) => t.name == (msg['tier'] ?? 'basic'),
+                  orElse: () => TierStatus.basic,
+                ),
+                likes: msg['likes'] ?? 0,
+                id: doc.id,
+                gifUrl: msg['gif_url'],
+              );
+            })
+            .whereType<Message>()
+            .toList();
+
+        final updatedLastDocs =
+            Map<String, DocumentSnapshot>.from(state.lastDocs);
+
+        if (data.docs.isNotEmpty) {
+          updatedLastDocs[event.room] = data.docs.last;
+        }
+
+        add(HomeInitialEvent(
+          messages: messages,
+          room: event.room,
+          lastDocs: updatedLastDocs,
+        ));
+      });
+    });
+
+    on<HomeLiveUpdateEvent>((event, emit) {
+      final newMessages = event.docs
+          .map((doc) {
+            final msg = doc.data() as Map<String, dynamic>?;
+            if (msg == null) return null;
+
+            final sender = msg['sender'] as String?;
+            final text = msg['message'] as String?;
+            if (sender == null || text == null) return null;
+
+            return Message(
+              text: text,
+              sender: sender,
+              room: (msg['room'] as String?)?.trim().isNotEmpty == true
+                  ? msg['room']
+                  : 'General',
+              tier: TierStatus.values.firstWhere(
+                (t) => t.name == (msg['tier'] ?? 'basic'),
+                orElse: () => TierStatus.basic,
+              ),
+              likes: msg['likes'] ?? 0,
+              id: doc.id,
+              gifUrl: msg['gif_url'],
+            );
+          })
+          .whereType<Message>()
+          .toList();
+
+      final existingIds = state.messages.map((m) => m.id).toSet();
+      final newMessagesDiff =
+          newMessages.where((m) => !existingIds.contains(m.id)).toList();
+
+      if (newMessagesDiff.isEmpty) return;
+
+      emit(state.copyWith(
+        messages: [...state.messages, ...newMessagesDiff],
+      ));
+
+      log('[LiveUpdate] Received ${event.docs.length} docs');
+    });
+
+    on<HomeLaunchGiveawayConfettiEvent>((event, emit) {
+      emit(state.copyWith(canLaunchConfetti: !state.canLaunchConfetti));
+    });
+
+    on<HomeWatchOnlineUsersEvent>((event, emit) async {
+      await emit.forEach(UserService.onlineUsersCollection, onData: (data) {
+        final onlineUsers = data.docs
+            .map((doc) => doc.data())
+            .where((user) => user['wallet'] != null) // skip nulls
+            .map((user) => user['wallet'] as String)
+            .toList();
+
+        return state.copyWith(activeUsersCount: onlineUsers.length);
+      });
+    });
+
+    on<HomeCommandPopupTriggered>((event, emit) {
+      final search = event.input.trim();
+      final closestMatch = allCommands.firstWhere(
+        (cmd) => cmd.startsWith(search),
+        orElse: () => '',
+      );
+
+      emit(state.copyWith(
+        commandSearch: () => closestMatch.isEmpty ? null : closestMatch,
+        recentCommand: () => state.recentCommand,
+      ));
+    });
+
+    on<HomeCommandPopupClosed>((event, emit) {
+      emit(state.copyWith(
+        commandSearch: () => null,
+        recentCommand: () => null, // ✅ make sure this is also cleared
+      ));
+    });
+
     on<HomeSendMessageEvent>((event, emit) async {
       log('[BLOC] HomeSendMessageEvent received: ${event.message.text}');
 
@@ -548,6 +556,9 @@ Type any command to try it out.''',
           await homeRepository.sendMessage(confirmation);
           return;
         }
+
+        // Debug log to confirm the state update after sending a message
+        log('[BLOC] Sending regular message: ${event.message.text}');
 
         // Message is a command – transform and send only the preview
         final displayMessage = await buildCommandPreview(

@@ -32,7 +32,8 @@ class App extends HookWidget {
     var yOffset = useState(46.36);
     final previousLocation = useState<String?>(null);
 
-    final homeRepository = useState<HomeRepository>(HomeRepository());
+    final homeRepository =
+        useState<HomeRepository>(HomeRepository(useTestCollection: false));
 
     return MultiRepositoryProvider(
       providers: [
@@ -65,14 +66,12 @@ class App extends HookWidget {
           return MultiBlocProvider(
             providers: [
               BlocProvider<HomeBloc>(
-                create: (_) => HomeBloc(
-                  homeRepository: context.read<HomeRepository>(),
-                  bankRepository: context.read<BankRepository>(),
-                )
-                  ..add(HomeSetRoomEvent('General'))
-                  ..add(HomeWatchOnlineUsersEvent())
-                  ..add(HomeListenToRoomsEvent()),
-              ),
+                  create: (_) => HomeBloc(
+                        homeRepository: context.read<HomeRepository>(),
+                        bankRepository: context.read<BankRepository>(),
+                      )
+                        ..add(HomeSetRoomEvent('General'))
+                        ..add(HomeWatchOnlineUsersEvent())),
               BlocProvider<PortalBloc>(
                   create: (_) => PortalBloc(
                         portalRepository: context.read<PortalRepository>(),
