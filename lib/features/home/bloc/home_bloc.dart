@@ -553,6 +553,17 @@ Type any command to try it out.''',
 
       if (parsed != null && event.message.text.trim().startsWith('/')) {
         if (parsed.action == '/create' && parsed.args.isNotEmpty) {
+          if (event.message.tier != TierStatus.adventurer) {
+            final deniedMsg = event.message.copyWith(
+              text: '[CREATE] Only Adventurer tier can create rooms.',
+              sender: 'System',
+              tier: TierStatus.system,
+              room: event.message.room,
+            );
+            await homeRepository.sendMessage(deniedMsg);
+            return;
+          }
+
           final newRoom = parsed.args[0].trim();
 
           // Prevent duplicates or blank
