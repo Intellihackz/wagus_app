@@ -9,6 +9,7 @@ class HomeState {
   final bool canLaunchConfetti;
   final Map<String, DocumentSnapshot> lastDocs;
   final List<String> rooms;
+  final Message? replyingTo;
 
   HomeState(
       {required this.messages,
@@ -24,7 +25,8 @@ class HomeState {
         'Games',
         'Ideas',
         'Tier Lounge'
-      ]});
+      ],
+      this.replyingTo});
 
   HomeState copyWith({
     List<Message>? messages,
@@ -35,6 +37,7 @@ class HomeState {
     bool? canLaunchConfetti,
     Map<String, DocumentSnapshot>? lastDocs,
     List<String>? rooms,
+    Message? Function()? replyingTo,
   }) {
     return HomeState(
       messages: messages ?? this.messages,
@@ -47,6 +50,7 @@ class HomeState {
       canLaunchConfetti: canLaunchConfetti ?? this.canLaunchConfetti,
       lastDocs: lastDocs ?? this.lastDocs,
       rooms: rooms ?? this.rooms,
+      replyingTo: replyingTo != null ? replyingTo() : this.replyingTo,
     );
   }
 }

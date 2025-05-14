@@ -189,16 +189,12 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
         // Update the project in state
         final updatedProjects = state.projects.map((p) {
           if (p.id == event.projectId) {
-            final currentTotal = p.totalFunded ?? 0;
-            final max = IncubatorRepository.totalTokenAllocation;
-            if (currentTotal + event.amount > max) {
-              throw Exception('Contribution exceeds max allocation');
-            }
+            final maxCap = p.maxAllocation;
             final newTotal = (p.totalFunded ?? 0) + event.amount;
+
             return p.copyWith(
               totalFunded: () => newTotal,
-              fundingProgress:
-                  newTotal / IncubatorRepository.totalTokenAllocation,
+              fundingProgress: newTotal / maxCap,
             );
           }
           return p;

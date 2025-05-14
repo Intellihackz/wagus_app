@@ -10,6 +10,8 @@ class Message {
   final int? likes;
   final String? id;
   final String? gifUrl;
+  final String? replyToMessageId;
+  final String? replyToText;
 
   Message({
     required this.sender,
@@ -21,6 +23,8 @@ class Message {
     this.solBalance,
     this.wagBalance,
     this.gifUrl,
+    this.replyToMessageId,
+    this.replyToText,
   }) : tier = tier ?? TierStatus.basic;
 
   Message copyWith({

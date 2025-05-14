@@ -58,3 +58,8 @@ class HomeLiveUpdateEvent extends HomeEvent {
 class HomeListenToRoomsEvent extends HomeEvent {
   HomeListenToRoomsEvent();
 }
+
+class HomeSetReplyMessageEvent extends HomeEvent {
+  final Message? message;
+  HomeSetReplyMessageEvent(this.message);
+}

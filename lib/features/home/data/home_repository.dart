@@ -74,6 +74,9 @@ class HomeRepository {
         'timestamp': FieldValue.serverTimestamp(),
         'likes': 0,
         if (message.gifUrl != null) 'gif_url': message.gifUrl,
+        if (message.replyToMessageId != null)
+          'reply_to_id': message.replyToMessageId,
+        if (message.replyToText != null) 'reply_to_text': message.replyToText,
       });
     } catch (e) {
       log('Error sending message: $e');

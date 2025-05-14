@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'package:flutter/foundation.dart'; // for debugPrint
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:pointycastle/api.dart';
@@ -35,6 +36,33 @@ class BankRepository {
     _dio.options.headers['Content-Type'] = 'application/json';
     _dio.options.headers['Authorization'] =
         'Basic ${base64Encode(utf8.encode("$_privyAppId:$_privySecretId"))}';
+
+    _dio.interceptors.add(
+      RetryInterceptor(
+        dio: _dio,
+        retries: 3,
+        retryDelays: const [
+          Duration(seconds: 1),
+          Duration(seconds: 2),
+          Duration(seconds: 3),
+        ],
+        retryEvaluator: (e, attempt) {
+          final uri = e.requestOptions.uri.toString();
+          final shouldRetry = uri.contains("helius") || uri.contains("privy");
+
+          if (!shouldRetry) return false;
+
+          if (e.type == DioExceptionType.connectionTimeout ||
+              e.type == DioExceptionType.receiveTimeout ||
+              e.type == DioExceptionType.sendTimeout) {
+            return true;
+          }
+
+          final status = e.response?.statusCode;
+          return [429, 500, 502, 503, 504].contains(status);
+        },
+      ),
+    );
   }
 
   Future<void> withdrawFunds({

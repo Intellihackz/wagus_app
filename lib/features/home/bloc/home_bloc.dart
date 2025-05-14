@@ -385,6 +385,8 @@ Type any command to try it out.''',
               likes: msg['likes'] ?? 0,
               id: doc.id,
               gifUrl: msg['gif_url'],
+              replyToMessageId: msg['reply_to_id'],
+              replyToText: msg['reply_to_text'],
             );
           })
           .whereType<Message>()
@@ -428,6 +430,8 @@ Type any command to try it out.''',
                 likes: msg['likes'] ?? 0,
                 id: doc.id,
                 gifUrl: msg['gif_url'],
+                replyToMessageId: msg['reply_to_id'],
+                replyToText: msg['reply_to_text'],
               );
             })
             .whereType<Message>()
@@ -440,12 +444,27 @@ Type any command to try it out.''',
           updatedLastDocs[event.room] = data.docs.last;
         }
 
-        add(HomeInitialEvent(
-          messages: messages,
-          room: event.room,
-          lastDocs: updatedLastDocs,
-        ));
+        if (event.room == state.currentRoom) {
+          add(HomeInitialEvent(
+            messages: messages,
+            room: event.room,
+            lastDocs: updatedLastDocs,
+          ));
+        } else {
+          // Just update messages and lastDocs silently for background room
+          emit(state.copyWith(
+            messages: [
+              ...state.messages,
+              ...messages.where((m) => m.room == state.currentRoom)
+            ],
+            lastDocs: updatedLastDocs,
+          ));
+        }
       });
+    });
+
+    on<HomeSetReplyMessageEvent>((event, emit) {
+      emit(state.copyWith(replyingTo: () => event.message));
     });
 
     on<HomeLiveUpdateEvent>((event, emit) {
@@ -471,6 +490,8 @@ Type any command to try it out.''',
               likes: msg['likes'] ?? 0,
               id: doc.id,
               gifUrl: msg['gif_url'],
+              replyToMessageId: msg['reply_to_id'],
+              replyToText: msg['reply_to_text'],
             );
           })
           .whereType<Message>()
@@ -646,6 +667,8 @@ Type any command to try it out.''',
               ),
               likes: msg['likes'] ?? 0,
               gifUrl: msg['gif_url'],
+              replyToMessageId: msg['reply_to_id'],
+              replyToText: msg['reply_to_text'],
             );
           })
           .where((m) => !existingIds.contains(m.id))

@@ -49,6 +49,8 @@ dependencies:
   flutter_confetti: ^0.5.1
   giphy_picker: ^3.0.2
   gif_view: ^1.0.2
+  dio_cache_interceptor: ^4.0.3
+  dio_smart_retry: ^7.0.1
 
 dev_dependencies:
   flutter_test:

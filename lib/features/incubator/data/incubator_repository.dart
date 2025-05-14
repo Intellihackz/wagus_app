@@ -164,7 +164,7 @@ class IncubatorRepository {
   // Retrieve projects as a stream, ordered by timestamp
   Stream<QuerySnapshot> getProjects() {
     return projectsCollection
-        .orderBy('timestamp', descending: true)
+        .orderBy('likesCount', descending: true)
         .snapshots();
   }
 
@@ -431,8 +431,8 @@ class IncubatorRepository {
         final projectData = projectSnapshot.data() as Map<String, dynamic>;
         final currentTotal =
             (projectData['totalFunded'] as num?)?.toDouble() ?? 0.0;
-        if ((currentTotal + amount) >
-            IncubatorRepository.totalTokenAllocation) {
+        final maxCap = projectData['max_allocation'] ?? 20000;
+        if ((currentTotal + amount) > maxCap) {
           throw Exception('Contribution would exceed project funding cap.');
         }
 

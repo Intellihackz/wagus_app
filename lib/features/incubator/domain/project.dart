@@ -16,6 +16,7 @@ class Project {
   final String telegramLink;
   final double? totalFunded;
   final List<String> addressesFunded;
+  final int maxAllocation;
 
   Project({
     required this.id,
@@ -34,6 +35,7 @@ class Project {
     required this.telegramLink,
     this.totalFunded,
     required this.addressesFunded,
+    this.maxAllocation = 20000,
   });
 
   factory Project.fromJson(Map<String, dynamic> json) {
@@ -54,6 +56,7 @@ class Project {
       telegramLink: json['telegramLink'],
       totalFunded: json['totalFunded'],
       addressesFunded: List<String>.from(json['addressesFunded']),
+      maxAllocation: json['max_allocation'] ?? 20000,
     );
   }
 
