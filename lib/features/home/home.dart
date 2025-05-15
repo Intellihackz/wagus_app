@@ -35,7 +35,7 @@ class Home extends HookWidget {
           final portalState = context.read<PortalBloc>().state;
 
           if (portalState.user != null &&
-              portalState.currentTokenAddress.isNotEmpty) {
+              portalState.selectedToken.address.isNotEmpty) {
             final homeBloc = context.read<HomeBloc>();
             final bankRepo = context.read<BankRepository>();
 
@@ -43,12 +43,12 @@ class Home extends HookWidget {
               if (wallet != null) {
                 homeBloc.add(HomeListenToRoomsEvent());
                 await homeBloc.watchGiveaways(
-                  wallet.address,
-                  wallet,
-                  portalState.currentTokenAddress,
-                  bankRepo,
-                  context,
-                );
+                    wallet.address,
+                    wallet,
+                    portalState.selectedToken.address,
+                    bankRepo,
+                    context,
+                    portalState.selectedToken.ticker);
                 homeBloc.add(HomeSetRoomEvent(homeBloc.state.currentRoom));
               }
             });
@@ -183,7 +183,7 @@ class Home extends HookWidget {
                                   Color getTierColor(TierStatus tier) {
                                     switch (tier) {
                                       case TierStatus.adventurer:
-                                        return Colors.red;
+                                        return TierStatus.adventurer.color;
                                       case TierStatus.creator:
                                         return Colors.purple;
                                       case TierStatus.system:
@@ -192,7 +192,7 @@ class Home extends HookWidget {
                                         return Colors.green;
                                       case TierStatus.basic:
                                       case TierStatus.none:
-                                        return Colors.yellow;
+                                        return TierStatus.basic.color;
                                     }
                                   }
 
@@ -277,7 +277,7 @@ class Home extends HookWidget {
                                                                                       decoration: BoxDecoration(
                                                                                         shape: BoxShape.circle,
                                                                                         border: Border.all(
-                                                                                          color: Colors.greenAccent,
+                                                                                          color: portalState.tierStatus == TierStatus.adventurer ? TierStatus.adventurer.color : TierStatus.basic.color,
                                                                                           width: 3, // thick border
                                                                                         ),
                                                                                       ),
@@ -308,7 +308,7 @@ class Home extends HookWidget {
                                                                                       SnackBar(content: Text('Copied to clipboard')),
                                                                                     );
                                                                                   },
-                                                                                  child: Text('COPY', style: TextStyle(color: Colors.greenAccent)),
+                                                                                  child: Text('COPY', style: TextStyle(color: portalState.tierStatus == TierStatus.adventurer ? Colors.red : Colors.white)),
                                                                                 ),
                                                                                 TextButton(
                                                                                   onPressed: () => Navigator.of(context).pop(),
@@ -376,7 +376,11 @@ class Home extends HookWidget {
                                                                           child: Icon(
                                                                               Icons.thumb_up_alt_outlined,
                                                                               size: 14,
-                                                                              color: message.likes != null && message.likes! > 0 ? Colors.greenAccent : Colors.white),
+                                                                              color: message.likes != null && message.likes! > 0
+                                                                                  ? portalState.tierStatus == TierStatus.adventurer
+                                                                                      ? TierStatus.adventurer.color
+                                                                                      : TierStatus.basic.color
+                                                                                  : Colors.white),
                                                                         ),
                                                                         const SizedBox(
                                                                             width:
@@ -388,7 +392,7 @@ class Home extends HookWidget {
                                                                               Text(
                                                                             message.likes.toString(),
                                                                             style:
-                                                                                const TextStyle(color: Colors.greenAccent, fontSize: 12),
+                                                                                TextStyle(color: portalState.tierStatus == TierStatus.adventurer ? TierStatus.adventurer.color : TierStatus.basic.color, fontSize: 12),
                                                                           ),
                                                                         ),
                                                                       ],
@@ -436,7 +440,7 @@ class Home extends HookWidget {
                                                                                 BoxShape.circle,
                                                                             border:
                                                                                 Border.all(
-                                                                              color: Colors.greenAccent,
+                                                                              color: portalState.tierStatus == TierStatus.adventurer ? TierStatus.adventurer.color : TierStatus.basic.color,
                                                                               width: 3, // thick border
                                                                             ),
                                                                           ),
@@ -482,7 +486,7 @@ class Home extends HookWidget {
                                                                       child: Text(
                                                                           'COPY',
                                                                           style:
-                                                                              TextStyle(color: Colors.greenAccent)),
+                                                                              TextStyle(color: portalState.tierStatus == TierStatus.adventurer ? Colors.red : Colors.white)),
                                                                     ),
                                                                     TextButton(
                                                                       onPressed:
@@ -894,9 +898,15 @@ class _ChatInputBar extends StatelessWidget {
                         wagBalance: context
                             .read<PortalBloc>()
                             .state
-                            .holder
+                            .holdersMap?[context
+                                    .read<PortalBloc>()
+                                    .state
+                                    .selectedToken
+                                    .ticker ??
+                                'WAGUS']
                             ?.tokenAmount
                             .toInt(),
+
                         replyToMessageId: homeState.replyingTo?.id,
                         replyToText: homeState.replyingTo?.text,
                       );
@@ -905,9 +915,20 @@ class _ChatInputBar extends StatelessWidget {
                             HomeSendMessageEvent(
                               message: message,
                               currentTokenAddress: context
-                                  .read<PortalBloc>()
-                                  .state
-                                  .currentTokenAddress,
+                                      .read<PortalBloc>()
+                                      .state
+                                      .selectedToken
+                                      .address ??
+                                  context
+                                      .read<PortalBloc>()
+                                      .state
+                                      .currentTokenAddress,
+                              ticker: context
+                                      .read<PortalBloc>()
+                                      .state
+                                      .selectedToken
+                                      .ticker ??
+                                  'WAGUS',
                             ),
                           );
 
@@ -969,9 +990,22 @@ class _ChatInputBar extends StatelessWidget {
                         controller.clear();
                         FocusScope.of(context).unfocus();
 
+                        final portalState = context.read<PortalBloc>().state;
+
+                        final bankRepo = context.read<BankRepository>();
+
+                        final double usdTarget = 3.5;
+                        final double usdPerToken =
+                            portalState.selectedToken.usdPerToken.toDouble();
+
+                        final amount = (usdTarget / usdPerToken).ceil();
+
                         showDialog(
                           context: context,
+                          barrierDismissible: false,
                           builder: (_) => UpgradeDialog(
+                              tokenAmount: amount,
+                              tierStatus: tier,
                               wallet: wallet,
                               mint: context
                                   .read<PortalBloc>()
@@ -992,7 +1026,8 @@ class _ChatInputBar extends StatelessWidget {
                                   final currentTokenAddress = context
                                       .read<PortalBloc>()
                                       .state
-                                      .currentTokenAddress;
+                                      .selectedToken
+                                      .address;
                                   final wallet = context
                                       .read<PortalBloc>()
                                       .state
@@ -1006,14 +1041,12 @@ class _ChatInputBar extends StatelessWidget {
                                     return false;
                                   }
 
-                                  await context
-                                      .read<BankRepository>()
-                                      .withdrawFunds(
-                                        wallet: wallet,
-                                        amount: 2500,
-                                        destinationAddress: treasuryWallet,
-                                        wagusMint: currentTokenAddress,
-                                      );
+                                  await bankRepo.withdrawFunds(
+                                    wallet: wallet,
+                                    amount: amount,
+                                    destinationAddress: treasuryWallet,
+                                    wagusMint: currentTokenAddress,
+                                  );
 
                                   final systemMsg = Message(
                                     text:
@@ -1026,8 +1059,21 @@ class _ChatInputBar extends StatelessWidget {
                                   context.read<HomeBloc>().add(
                                         HomeSendMessageEvent(
                                           message: systemMsg,
-                                          currentTokenAddress:
-                                              currentTokenAddress,
+                                          currentTokenAddress: context
+                                                  .read<PortalBloc>()
+                                                  .state
+                                                  .selectedToken
+                                                  .address ??
+                                              context
+                                                  .read<PortalBloc>()
+                                                  .state
+                                                  .currentTokenAddress,
+                                          ticker: context
+                                                  .read<PortalBloc>()
+                                                  .state
+                                                  .selectedToken
+                                                  .ticker ??
+                                              'WAGUS',
                                         ),
                                       );
 
@@ -1041,7 +1087,7 @@ class _ChatInputBar extends StatelessWidget {
                                     'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com/upgrade',
                                     data: {
                                       'userWallet': wallet.address,
-                                      'amount': 2500,
+                                      'amount': amount,
                                     },
                                     options: Options(headers: {
                                       'Authorization':
@@ -1078,16 +1124,36 @@ class _ChatInputBar extends StatelessWidget {
                               .state
                               .currentTokenAddress;
 
+                          final ticker = context
+                              .read<PortalBloc>()
+                              .state
+                              .selectedToken
+                              .ticker;
+
                           context.read<HomeBloc>().add(
                                 HomeSendMessageEvent(
                                   message: Message(
                                     text:
-                                        '[SEND] ${wallet.address} has sent $amount \$WAGUS to $recipient 📨',
+                                        '[SEND] ${wallet.address} has sent $amount \$$ticker to $recipient 📨',
                                     sender: 'System',
                                     tier: TierStatus.system,
                                     room: selectedRoom,
                                   ),
-                                  currentTokenAddress: mint,
+                                  currentTokenAddress: context
+                                          .read<PortalBloc>()
+                                          .state
+                                          .selectedToken
+                                          .address ??
+                                      context
+                                          .read<PortalBloc>()
+                                          .state
+                                          .currentTokenAddress,
+                                  ticker: context
+                                          .read<PortalBloc>()
+                                          .state
+                                          .selectedToken
+                                          .ticker ??
+                                      'WAGUS',
                                 ),
                               );
 
@@ -1120,18 +1186,36 @@ class _ChatInputBar extends StatelessWidget {
                                 wagBalance: context
                                     .read<PortalBloc>()
                                     .state
-                                    .holder
+                                    .holdersMap?[context
+                                            .read<PortalBloc>()
+                                            .state
+                                            .selectedToken
+                                            .ticker ??
+                                        'WAGUS']
                                     ?.tokenAmount
                                     .toInt(),
                                 replyToMessageId: homeState.replyingTo?.id,
                                 replyToText: homeState.replyingTo?.text,
                               ),
                               currentTokenAddress: context
-                                  .read<PortalBloc>()
-                                  .state
-                                  .currentTokenAddress,
+                                      .read<PortalBloc>()
+                                      .state
+                                      .selectedToken
+                                      .address ??
+                                  context
+                                      .read<PortalBloc>()
+                                      .state
+                                      .currentTokenAddress,
+                              ticker: context
+                                      .read<PortalBloc>()
+                                      .state
+                                      .selectedToken
+                                      .ticker ??
+                                  'WAGUS',
                             ),
                           );
+
+                      context.read<HomeBloc>().add(HomeCommandPopupClosed());
 
                       context
                           .read<HomeBloc>()

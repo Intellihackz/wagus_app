@@ -75,7 +75,10 @@ class App extends HookWidget {
               BlocProvider<PortalBloc>(
                   create: (_) => PortalBloc(
                         portalRepository: context.read<PortalRepository>(),
-                      )..add(PortalInitialEvent())),
+                      )
+                        ..add(PortalInitialEvent())
+                        ..add(PortalListenTokenAddressEvent())
+                        ..add(PortalListenSupportedTokensEvent())),
               BlocProvider<AiBloc>(
                 create: (_) => AiBloc(
                   repository: context.read<AIRepository>(),

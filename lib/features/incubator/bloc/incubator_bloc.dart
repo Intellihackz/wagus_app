@@ -103,6 +103,8 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
                 telegramLink: p.telegramLink,
                 addressesFunded: p.addressesFunded,
                 totalFunded: p.totalFunded,
+                preferredTokenAddress: p.preferredTokenAddress,
+                preferredTokenTicker: p.preferredTokenTicker,
               );
             }
             return p;
@@ -151,6 +153,8 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
                 telegramLink: p.telegramLink,
                 addressesFunded: p.addressesFunded,
                 totalFunded: p.totalFunded,
+                preferredTokenAddress: p.preferredTokenAddress,
+                preferredTokenTicker: p.preferredTokenTicker,
               );
             }
             return p;
@@ -183,7 +187,7 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
           amount: event.amount,
           projectId: event.projectId,
           userId: event.userId,
-          wagusMint: event.wagusMint,
+          tokenAddress: event.tokenAddress,
         );
 
         // Update the project in state
@@ -210,7 +214,7 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
 
         final message = Message(
           text:
-              '[FUND] ${event.wallet.address} funded ${event.amount} \$WAGUS to project "${project.name}" 🚀',
+              '[FUND] ${event.wallet.address} funded ${event.amount} \$${event.tokenTicker} to project "${project.name}" 🚀',
           sender: 'System',
           tier: TierStatus.system,
           room: 'General',

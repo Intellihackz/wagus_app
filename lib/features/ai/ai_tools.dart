@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
 
 class AITools extends StatelessWidget {
@@ -65,45 +67,68 @@ class AITools extends StatelessWidget {
                   return InkWell(
                     onTap: () => context.push(tool['route'] as String),
                     borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[900],
-                        border: Border.all(color: Colors.greenAccent),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 16, horizontal: 16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(tool['icon'] as IconData,
-                              size: 20, color: Colors.greenAccent),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  tool['title'] as String,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  tool['tagline'] as String,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.white60,
-                                  ),
-                                ),
-                              ],
+                    child: BlocSelector<PortalBloc, PortalState, TierStatus>(
+                      selector: (state) {
+                        return state.tierStatus;
+                      },
+                      builder: (context, state) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey[900],
+                            border: Border.all(
+                              color: state == TierStatus.adventurer
+                                  ? TierStatus.adventurer.color
+                                  : TierStatus.basic.color,
                             ),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ],
-                      ),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 16, horizontal: 16),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              BlocSelector<PortalBloc, PortalState, TierStatus>(
+                                selector: (state) {
+                                  return state.tierStatus;
+                                },
+                                builder: (context, state) {
+                                  return Icon(
+                                    tool['icon'] as IconData,
+                                    size: 20,
+                                    color: state == TierStatus.adventurer
+                                        ? TierStatus.adventurer.color
+                                        : TierStatus.basic.color,
+                                  );
+                                },
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tool['title'] as String,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      tool['tagline'] as String,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.white60,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   );
                 },

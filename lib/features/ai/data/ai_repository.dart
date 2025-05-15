@@ -297,7 +297,7 @@ Generate tokenomics for:
   }
 
   Future<double?> getMemeCoinPrice(String mintAddress) async {
-    final url = 'https://price.jup.ag/v4/price?ids=$mintAddress';
+    final url = 'https://api.jup.ag/price?ids=$mintAddress';
 
     try {
       final response = await _dio.get(url);

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:wagus/features/ai/bloc/ai_bloc.dart';
+import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/theme/app_palette.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
@@ -19,93 +20,109 @@ class AiTokenomicsGenerator extends HookWidget {
     final tokenDistributionController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
-        child: Form(
-          key: formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(
+    return BlocSelector<PortalBloc, PortalState, TierStatus>(
+      selector: (state) {
+        return state.tierStatus;
+      },
+      builder: (context, tierStatus) {
+        return Scaffold(
+          resizeToAvoidBottomInset: true,
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
+            child: Form(
+              key: formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  BackButton(color: Colors.white),
-                  SizedBox(width: 8),
-                  Text(
-                    'AI Tokenomics Generator',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                  const Row(
+                    children: [
+                      BackButton(color: Colors.white),
+                      SizedBox(width: 8),
+                      Text(
+                        'AI Tokenomics Generator',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  _buildInputField(
+                    label: 'Project Name',
+                    controller: projectNameController,
+                    validator: (val) => val == null || val.isEmpty
+                        ? 'Enter project name'
+                        : null,
+                    context: context,
+                    tierStatus: tierStatus,
+                  ),
+                  _buildInputField(
+                    label: 'Total Token Supply',
+                    controller: tokenSupplyController,
+                    validator: (val) => val == null || val.isEmpty
+                        ? 'Enter token supply'
+                        : null,
+                    context: context,
+                    tierStatus: tierStatus,
+                  ),
+                  _buildInputField(
+                    label: 'Token Utility',
+                    controller: tokenUtilityController,
+                    validator: (val) => val == null || val.isEmpty
+                        ? 'Enter token utility'
+                        : null,
+                    context: context,
+                    tierStatus: tierStatus,
+                  ),
+                  _buildInputField(
+                    label: 'Token Distribution',
+                    controller: tokenDistributionController,
+                    validator: (val) => val == null || val.isEmpty
+                        ? 'Enter token distribution'
+                        : null,
+                    context: context,
+                    maxLines: 2,
+                    hintText:
+                        'Example: 30% Public Sale, 25% Ecosystem, 20% Team, 15% Treasury, 10% Advisors',
+                    tierStatus: tierStatus,
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: tierStatus == TierStatus.adventurer
+                            ? TierStatus.adventurer.color
+                            : TierStatus.basic.color,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        FocusScope.of(context).unfocus();
+                        if (formKey.currentState!.validate()) {
+                          _handleGenerate(
+                            context,
+                            projectNameController,
+                            tokenSupplyController,
+                            tokenUtilityController,
+                            tokenDistributionController,
+                          );
+                        }
+                      },
+                      child: const Text('Generate Tokenomics'),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              _buildInputField(
-                label: 'Project Name',
-                controller: projectNameController,
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Enter project name' : null,
-                context: context,
-              ),
-              _buildInputField(
-                label: 'Total Token Supply',
-                controller: tokenSupplyController,
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Enter token supply' : null,
-                context: context,
-              ),
-              _buildInputField(
-                label: 'Token Utility',
-                controller: tokenUtilityController,
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Enter token utility' : null,
-                context: context,
-              ),
-              _buildInputField(
-                label: 'Token Distribution',
-                controller: tokenDistributionController,
-                validator: (val) => val == null || val.isEmpty
-                    ? 'Enter token distribution'
-                    : null,
-                context: context,
-                maxLines: 2,
-                hintText:
-                    'Example: 30% Public Sale, 25% Ecosystem, 20% Team, 15% Treasury, 10% Advisors',
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.greenAccent,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {
-                    FocusScope.of(context).unfocus();
-                    if (formKey.currentState!.validate()) {
-                      _handleGenerate(
-                        context,
-                        projectNameController,
-                        tokenSupplyController,
-                        tokenUtilityController,
-                        tokenDistributionController,
-                      );
-                    }
-                  },
-                  child: const Text('Generate Tokenomics'),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -116,6 +133,7 @@ class AiTokenomicsGenerator extends HookWidget {
     required BuildContext context,
     int maxLines = 1,
     String? hintText,
+    required TierStatus tierStatus,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -134,11 +152,18 @@ class AiTokenomicsGenerator extends HookWidget {
           fillColor: Colors.grey[850],
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.greenAccent),
+            borderSide: BorderSide(
+              color: tierStatus == TierStatus.adventurer
+                  ? TierStatus.adventurer.color
+                  : TierStatus.basic.color,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.green),
+            borderSide: BorderSide(
+                color: tierStatus == TierStatus.adventurer
+                    ? TierStatus.adventurer.color
+                    : TierStatus.basic.color),
           ),
         ),
       ),
@@ -212,8 +237,19 @@ class AiTokenomicsGenerator extends HookWidget {
                       await file.writeAsBytes(await pdf.save());
                       await Share.shareXFiles([XFile(filePath)]);
                     },
-                    child: const Text('Save as PDF',
-                        style: TextStyle(color: Colors.greenAccent)),
+                    child: BlocSelector<PortalBloc, PortalState, TierStatus>(
+                      selector: (state) {
+                        return state.tierStatus;
+                      },
+                      builder: (context, state) {
+                        return Text('Save as PDF',
+                            style: TextStyle(
+                              color: state == TierStatus.adventurer
+                                  ? TierStatus.adventurer.color
+                                  : TierStatus.basic.color,
+                            ));
+                      },
+                    ),
                   ),
               ],
             );
@@ -238,7 +274,7 @@ class AiTokenomicsGenerator extends HookWidget {
         child: Text(
           state.tokenomics!,
           style: TextStyle(
-            color: context.appColors.contrastDark,
+            color: context.appColors.contrastLight,
             fontSize: 14,
             height: 1.5,
           ),

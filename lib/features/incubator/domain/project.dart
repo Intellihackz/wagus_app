@@ -17,6 +17,8 @@ class Project {
   final double? totalFunded;
   final List<String> addressesFunded;
   final int maxAllocation;
+  final String preferredTokenAddress;
+  final String preferredTokenTicker;
 
   Project({
     required this.id,
@@ -35,6 +37,8 @@ class Project {
     required this.telegramLink,
     this.totalFunded,
     required this.addressesFunded,
+    required this.preferredTokenAddress,
+    required this.preferredTokenTicker,
     this.maxAllocation = 20000,
   });
 
@@ -57,6 +61,8 @@ class Project {
       totalFunded: json['totalFunded'],
       addressesFunded: List<String>.from(json['addressesFunded']),
       maxAllocation: json['max_allocation'] ?? 20000,
+      preferredTokenAddress: json['preferred_token_address'] ?? '',
+      preferredTokenTicker: json['preferred_token_ticker'] ?? '',
     );
   }
 
@@ -78,6 +84,9 @@ class Project {
       telegramLink: telegramLink,
       totalFunded: totalFunded,
       addressesFunded: addressesFunded,
+      maxAllocation: maxAllocation,
+      preferredTokenAddress: preferredTokenAddress,
+      preferredTokenTicker: preferredTokenTicker,
     );
   }
 
@@ -99,6 +108,9 @@ class Project {
     String? telegramLink,
     double? Function()? totalFunded,
     List<String>? addressesFunded,
+    int? maxAllocation,
+    String? preferredTokenAddress,
+    String? preferredTokenTicker,
   }) {
     return Project(
       id: id ?? this.id,
@@ -117,6 +129,10 @@ class Project {
       telegramLink: telegramLink ?? this.telegramLink,
       totalFunded: totalFunded != null ? totalFunded() : this.totalFunded,
       addressesFunded: addressesFunded ?? this.addressesFunded,
+      maxAllocation: maxAllocation ?? this.maxAllocation,
+      preferredTokenAddress:
+          preferredTokenAddress ?? this.preferredTokenAddress,
+      preferredTokenTicker: preferredTokenTicker ?? this.preferredTokenTicker,
     );
   }
 }

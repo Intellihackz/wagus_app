@@ -7,7 +7,7 @@ import 'package:wagus/features/bank/bloc/bank_bloc.dart';
 
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
-import 'package:wagus/shared/holder/holder.dart';
+import 'package:wagus/shared/token/token.dart';
 import 'package:wagus/theme/app_palette.dart';
 import 'package:wagus/utils.dart';
 import 'package:wagus/wagus.dart';
@@ -28,6 +28,11 @@ class Bank extends HookWidget {
     final amountController = useTextEditingController();
     final destinationController = useTextEditingController();
 
+    useEffect(() {
+      context.read<PortalBloc>().add(PortalRefreshEvent());
+      return null;
+    }, []);
+
     return PopScope(
       onPopInvokedWithResult: (hasPopped, result) async {
         if (previousLocation != null) {
@@ -36,7 +41,7 @@ class Bank extends HookWidget {
           locationControler.add(home);
         }
       },
-      child: BlocListener<PortalBloc, PortalState>(
+      child: BlocConsumer<PortalBloc, PortalState>(
         listenWhen: (previous, current) =>
             previous.holder != null && current.holder == null,
         listener: (context, portalState) {
@@ -47,8 +52,9 @@ class Bank extends HookWidget {
             ),
           );
         },
-        child: BlocConsumer<BankBloc, BankState>(
-          listener: (context, state) async {
+        builder: (context, portalState) {
+          return BlocConsumer<BankBloc, BankState>(
+              listener: (context, state) async {
             if (state.status == BankStatus.failure &&
                 state.dialogStatus == DialogStatus.input) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -58,356 +64,447 @@ class Bank extends HookWidget {
                 ),
               );
             }
-          },
-          builder: (context, state) {
+          }, builder: (context, state) {
             print('Bank State: ${state.status}');
 
             return Scaffold(
-              resizeToAvoidBottomInset: false,
-              body: CustomPaint(
-                painter: CryptoBackgroundPainter(),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Positioned.fill(
-                      child: Align(
-                        alignment: Alignment.topLeft,
-                        child: IconButton(
-                          padding: const EdgeInsets.only(left: 16.0, top: 32.0),
-                          icon: const Icon(
-                            Icons.arrow_back,
-                            color: AppPalette.contrastLight,
+                resizeToAvoidBottomInset: false,
+                body: BlocSelector<PortalBloc, PortalState, TierStatus>(
+                    selector: (state) {
+                  return state.tierStatus;
+                }, builder: (context, tierStatus) {
+                  final color = switch (tierStatus) {
+                    TierStatus.adventurer => TierStatus.adventurer.color,
+                    _ => TierStatus.basic.color,
+                  };
+
+                  return CustomPaint(
+                    painter: CryptoBackgroundPainter(color: color),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Positioned.fill(
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: IconButton(
+                              padding:
+                                  const EdgeInsets.only(left: 16.0, top: 32.0),
+                              icon: const Icon(
+                                Icons.arrow_back,
+                                color: AppPalette.contrastLight,
+                              ),
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                            ),
                           ),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
                         ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        spacing: 24.0,
-                        children: [
-                          Text(
-                            'Deposit SOL or \$WAGUS Tokens to this address:',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          InkWell(
-                            onTap: () {
-                              Clipboard.setData(ClipboardData(
-                                text: context
-                                        .read<PortalBloc>()
-                                        .state
-                                        .user
-                                        ?.embeddedSolanaWallets
-                                        .first
-                                        .address ??
-                                    '',
-                              ));
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Address copied to clipboard'),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                            },
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              width: double.infinity,
-                              margin: const EdgeInsets.only(top: 8),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                color: Colors.grey[900],
-                                border: Border.all(color: Colors.greenAccent),
-                              ),
-                              child: Text(
-                                context
-                                        .read<PortalBloc>()
-                                        .state
-                                        .user
-                                        ?.embeddedSolanaWallets
-                                        .first
-                                        .address ??
-                                    '',
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            spacing: 24.0,
+                            children: [
+                              Text(
+                                'Deposit \$SOL or \$${context.read<PortalBloc>().state.selectedToken.ticker ?? '\$WAGUS'} Tokens to this address:',
                                 textAlign: TextAlign.center,
-                                style:
-                                    const TextStyle(color: Colors.greenAccent),
-                              ),
-                            ),
-                          ),
-                          BlocSelector<PortalBloc, PortalState, Holder?>(
-                            selector: (state) => state.holder,
-                            builder: (context, portalState) {
-                              return Container(
-                                margin:
-                                    const EdgeInsets.symmetric(vertical: 32),
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[900],
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                      color:
-                                          Colors.greenAccent.withOpacity(0.5)),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Text(
-                                          'Bank Balance',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        RotationTransition(
-                                          turns: rotationAnimation,
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              rotationController.forward(
-                                                  from: 0);
-                                              context
-                                                  .read<PortalBloc>()
-                                                  .add(PortalRefreshEvent());
-                                            },
-                                            child: const Icon(Icons.refresh,
-                                                color: Colors.greenAccent),
-                                          ),
-                                        ),
-                                      ],
+                              ),
+                              InkWell(
+                                onTap: () {
+                                  Clipboard.setData(ClipboardData(
+                                    text: context
+                                            .read<PortalBloc>()
+                                            .state
+                                            .user
+                                            ?.embeddedSolanaWallets
+                                            .first
+                                            .address ??
+                                        '',
+                                  ));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content:
+                                          Text('Address copied to clipboard'),
+                                      behavior: SnackBarBehavior.floating,
                                     ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      '${portalState?.solanaAmount.toStringAsFixed(5) ?? '0.00000'} SOL',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  width: double.infinity,
+                                  margin: const EdgeInsets.only(top: 8),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    color: Colors.grey[900],
+                                    border: Border.all(
+                                        color: portalState.tierStatus ==
+                                                TierStatus.adventurer
+                                            ? TierStatus.adventurer.color
+                                            : TierStatus.basic.color),
+                                  ),
+                                  child: Text(
+                                    context
+                                            .read<PortalBloc>()
+                                            .state
+                                            .user
+                                            ?.embeddedSolanaWallets
+                                            .first
+                                            .address ??
+                                        '',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: tierStatus == TierStatus.adventurer
+                                          ? TierStatus.adventurer.color
+                                          : TierStatus.basic.color,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              BlocBuilder<PortalBloc, PortalState>(
+                                builder: (context, portalState) {
+                                  final selectedToken =
+                                      portalState.selectedToken;
+                                  final holder = portalState.holdersMap?[
+                                      selectedToken.ticker ?? 'WAGUS'];
+
+                                  return Column(
+                                    children: [
+                                      DropdownButton<Token>(
+                                        value: selectedToken,
+                                        icon: const Icon(Icons.arrow_drop_down,
+                                            color: Colors.white),
+                                        dropdownColor: Colors.grey[900],
+                                        onChanged: (Token? newToken) {
+                                          if (newToken != null) {
+                                            context.read<PortalBloc>().add(
+                                                PortalSetSelectedTokenEvent(
+                                                    newToken));
+
+                                            debugPrint(
+                                                'Mint address: ${selectedToken.address}');
+                                            debugPrint(context
+                                                    .read<PortalBloc>()
+                                                    .state
+                                                    .holdersMap
+                                                    ?.keys
+                                                    .toString() ??
+                                                'No holders map found' '');
+                                            debugPrint(
+                                                'Token balance for selected: ${holder?.tokenAmount}');
+                                          }
+                                        },
+                                        items: portalState.supportedTokens
+                                            .map((token) =>
+                                                DropdownMenuItem<Token>(
+                                                  value: token,
+                                                  child: Text(
+                                                    token.ticker,
+                                                    style: const TextStyle(
+                                                        color: Colors.white),
+                                                  ),
+                                                ))
+                                            .toList(),
+                                      ),
+                                      Container(
+                                        margin: const EdgeInsets.symmetric(
+                                            vertical: 16),
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[900],
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                          border: Border.all(
+                                              color: portalState.tierStatus ==
+                                                      TierStatus.adventurer
+                                                  ? TierStatus.adventurer.color
+                                                      .withOpacity(0.5)
+                                                  : TierStatus.basic.color
+                                                      .withOpacity(0.5)),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Text(
+                                                  'Bank Balance',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                RotationTransition(
+                                                  turns: rotationAnimation,
+                                                  child: GestureDetector(
+                                                    onTap: () {
+                                                      rotationController
+                                                          .forward(from: 0);
+                                                      context
+                                                          .read<PortalBloc>()
+                                                          .add(
+                                                              PortalRefreshEvent());
+                                                    },
+                                                    child: Icon(Icons.refresh,
+                                                        color: tierStatus ==
+                                                                TierStatus
+                                                                    .adventurer
+                                                            ? TierStatus
+                                                                .adventurer
+                                                                .color
+                                                            : TierStatus
+                                                                .basic.color),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Text(
+                                              '${holder?.solanaAmount.toStringAsFixed(5) ?? '0.00000'} SOL',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            Text(
+                                              '${(holder?.tokenAmount ?? 0).toCompact()} \$${selectedToken.ticker ?? 'WAGUS'}',
+                                              style: const TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w400,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 32.0, right: 32.0, bottom: 16.0),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (dialogContext) {
+                                            return BlocProvider.value(
+                                              value: context.read<BankBloc>(),
+                                              child: BlocConsumer<BankBloc,
+                                                  BankState>(
+                                                listener: (context, state) {
+                                                  if (state.dialogStatus ==
+                                                      DialogStatus.success) {
+                                                    Future.delayed(
+                                                        const Duration(
+                                                            milliseconds: 1500),
+                                                        () {
+                                                      if (context.mounted) {
+                                                        context.pop();
+                                                        context
+                                                            .read<BankBloc>()
+                                                            .add(
+                                                                BankResetDialogEvent());
+                                                        context
+                                                            .read<PortalBloc>()
+                                                            .add(
+                                                              PortalRefreshEvent(),
+                                                            );
+
+                                                        amountController
+                                                            .clear();
+                                                        destinationController
+                                                            .clear();
+                                                      }
+                                                    });
+                                                  }
+                                                },
+                                                builder: (context, state) {
+                                                  return AlertDialog(
+                                                    scrollable: true,
+                                                    title: Text(
+                                                      'Withdraw \$${context.read<PortalBloc>().state.selectedToken.ticker ?? '\$WAGUS'} Tokens',
+                                                      style: TextStyle(
+                                                        color: AppPalette
+                                                            .contrastDark,
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                    content: SizedBox(
+                                                      width:
+                                                          MediaQuery.of(context)
+                                                                  .size
+                                                                  .width *
+                                                              0.8,
+                                                      child:
+                                                          _buildDialogContent(
+                                                        context,
+                                                        state,
+                                                        amountController,
+                                                        destinationController,
+                                                        isTokenWithdrawal: true,
+                                                      ),
+                                                    ),
+                                                    actions:
+                                                        _buildDialogActions(
+                                                      context,
+                                                      state,
+                                                      amountController,
+                                                      destinationController,
+                                                      isTokenWithdrawal: true,
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                      style: ButtonStyle(
+                                        backgroundColor:
+                                            WidgetStateProperty.all(context
+                                                .appColors.contrastLight),
+                                        shape: WidgetStateProperty.all<
+                                            RoundedRectangleBorder>(
+                                          RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8.0),
+                                          ),
+                                        ),
+                                        padding: WidgetStateProperty.all(
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 32.0, vertical: 12.0),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Withdraw \$${context.read<PortalBloc>().state.selectedToken.ticker ?? '\$WAGUS'} Tokens',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: context.appColors.contrastDark,
+                                          fontSize: 16,
+                                        ),
                                       ),
                                     ),
-                                    Text(
-                                      '${(portalState?.tokenAmount ?? 0).toCompact()} \$WAGUS',
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w400,
+                                    const SizedBox(
+                                        height:
+                                            16), // Add spacing between buttons
+                                    TextButton(
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (dialogContext) {
+                                            return BlocProvider.value(
+                                              value: context.read<BankBloc>(),
+                                              child: BlocConsumer<BankBloc,
+                                                  BankState>(
+                                                listener: (context, state) {
+                                                  if (state.dialogStatus ==
+                                                      DialogStatus.success) {
+                                                    Future.delayed(
+                                                        const Duration(
+                                                            milliseconds: 1500),
+                                                        () {
+                                                      if (context.mounted) {
+                                                        context.pop();
+                                                        context
+                                                            .read<BankBloc>()
+                                                            .add(
+                                                                BankResetDialogEvent());
+                                                        context
+                                                            .read<PortalBloc>()
+                                                            .add(
+                                                              PortalRefreshEvent(),
+                                                            );
+
+                                                        amountController
+                                                            .clear();
+                                                        destinationController
+                                                            .clear();
+                                                      }
+                                                    });
+                                                  }
+                                                },
+                                                builder: (context, state) {
+                                                  return AlertDialog(
+                                                    scrollable: true,
+                                                    title: const Text(
+                                                      'Withdraw SOL',
+                                                      style: TextStyle(
+                                                        color: AppPalette
+                                                            .contrastDark,
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                    content: SizedBox(
+                                                      width:
+                                                          MediaQuery.of(context)
+                                                                  .size
+                                                                  .width *
+                                                              0.8,
+                                                      child:
+                                                          _buildDialogContent(
+                                                        context,
+                                                        state,
+                                                        amountController,
+                                                        destinationController,
+                                                        isTokenWithdrawal:
+                                                            false,
+                                                      ),
+                                                    ),
+                                                    actions:
+                                                        _buildDialogActions(
+                                                      context,
+                                                      state,
+                                                      amountController,
+                                                      destinationController,
+                                                      isTokenWithdrawal: false,
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            );
+                                          },
+                                        );
+                                      },
+                                      child: Text(
+                                        'Withdraw SOL',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color:
+                                              context.appColors.contrastLight,
+                                          fontSize: 16,
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                              );
-                            },
+                              ),
+                            ],
                           ),
-                          Padding(
-                            padding: const EdgeInsets.only(
-                                left: 32.0, right: 32.0, bottom: 16.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                ElevatedButton(
-                                  onPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (dialogContext) {
-                                        return BlocProvider.value(
-                                          value: context.read<BankBloc>(),
-                                          child:
-                                              BlocConsumer<BankBloc, BankState>(
-                                            listener: (context, state) {
-                                              if (state.dialogStatus ==
-                                                  DialogStatus.success) {
-                                                Future.delayed(
-                                                    const Duration(
-                                                        milliseconds: 1500),
-                                                    () {
-                                                  if (context.mounted) {
-                                                    context.pop();
-                                                    context.read<BankBloc>().add(
-                                                        BankResetDialogEvent());
-                                                    context
-                                                        .read<PortalBloc>()
-                                                        .add(
-                                                          PortalRefreshEvent(),
-                                                        );
-
-                                                    amountController.clear();
-                                                    destinationController
-                                                        .clear();
-                                                  }
-                                                });
-                                              }
-                                            },
-                                            builder: (context, state) {
-                                              return AlertDialog(
-                                                scrollable: true,
-                                                title: const Text(
-                                                  'Withdraw \$WAGUS Tokens',
-                                                  style: TextStyle(
-                                                    color:
-                                                        AppPalette.contrastDark,
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                                content: SizedBox(
-                                                  width: MediaQuery.of(context)
-                                                          .size
-                                                          .width *
-                                                      0.8,
-                                                  child: _buildDialogContent(
-                                                    context,
-                                                    state,
-                                                    amountController,
-                                                    destinationController,
-                                                    isTokenWithdrawal: true,
-                                                  ),
-                                                ),
-                                                actions: _buildDialogActions(
-                                                  context,
-                                                  state,
-                                                  amountController,
-                                                  destinationController,
-                                                  isTokenWithdrawal: true,
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  },
-                                  style: ButtonStyle(
-                                    backgroundColor: WidgetStateProperty.all(
-                                        context.appColors.contrastLight),
-                                    shape: WidgetStateProperty.all<
-                                        RoundedRectangleBorder>(
-                                      RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(8.0),
-                                      ),
-                                    ),
-                                    padding: WidgetStateProperty.all(
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 32.0, vertical: 12.0),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'Withdraw \$WAGUS Tokens',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: context.appColors.contrastDark,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(
-                                    height: 16), // Add spacing between buttons
-                                TextButton(
-                                  onPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (dialogContext) {
-                                        return BlocProvider.value(
-                                          value: context.read<BankBloc>(),
-                                          child:
-                                              BlocConsumer<BankBloc, BankState>(
-                                            listener: (context, state) {
-                                              if (state.dialogStatus ==
-                                                  DialogStatus.success) {
-                                                Future.delayed(
-                                                    const Duration(
-                                                        milliseconds: 1500),
-                                                    () {
-                                                  if (context.mounted) {
-                                                    context.pop();
-                                                    context.read<BankBloc>().add(
-                                                        BankResetDialogEvent());
-                                                    context
-                                                        .read<PortalBloc>()
-                                                        .add(
-                                                          PortalRefreshEvent(),
-                                                        );
-
-                                                    amountController.clear();
-                                                    destinationController
-                                                        .clear();
-                                                  }
-                                                });
-                                              }
-                                            },
-                                            builder: (context, state) {
-                                              return AlertDialog(
-                                                scrollable: true,
-                                                title: const Text(
-                                                  'Withdraw SOL',
-                                                  style: TextStyle(
-                                                    color:
-                                                        AppPalette.contrastDark,
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                                content: SizedBox(
-                                                  width: MediaQuery.of(context)
-                                                          .size
-                                                          .width *
-                                                      0.8,
-                                                  child: _buildDialogContent(
-                                                    context,
-                                                    state,
-                                                    amountController,
-                                                    destinationController,
-                                                    isTokenWithdrawal: false,
-                                                  ),
-                                                ),
-                                                actions: _buildDialogActions(
-                                                  context,
-                                                  state,
-                                                  amountController,
-                                                  destinationController,
-                                                  isTokenWithdrawal: false,
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  },
-                                  child: Text(
-                                    'Withdraw SOL',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: context.appColors.contrastLight,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
+                  );
+                }));
+          });
+        },
       ),
     );
   }
@@ -444,22 +541,18 @@ class Bank extends HookWidget {
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
-                    onTap: () => amountController.text = isTokenWithdrawal
-                        ? context
-                                .read<PortalBloc>()
-                                .state
-                                .holder
-                                ?.tokenAmount
-                                .toInt()
-                                .toString() ??
-                            ''
-                        : context
-                                .read<PortalBloc>()
-                                .state
-                                .holder
-                                ?.solanaAmount
-                                .toString() ??
-                            '',
+                    onTap: () {
+                      final portalState = context.read<PortalBloc>().state;
+
+                      final token = portalState.selectedToken;
+                      final holdersMap = portalState.holdersMap;
+
+                      final tokenHolder = holdersMap?[token.ticker ?? 'WAGUS'];
+
+                      amountController.text = isTokenWithdrawal
+                          ? tokenHolder?.tokenAmount.toInt().toString() ?? ''
+                          : tokenHolder?.solanaAmount.toString() ?? '';
+                    },
                     child: Container(
                       height: double.infinity,
                       decoration: BoxDecoration(
@@ -578,8 +671,7 @@ class Bank extends HookWidget {
                   senderWallet: senderWallet,
                   amount: amount.toInt(),
                   destinationAddress: destinationController.text,
-                  wagusMint:
-                      context.read<PortalBloc>().state.currentTokenAddress,
+                  token: context.read<PortalBloc>().state.selectedToken,
                 ));
           } else {
             final senderWallet = context

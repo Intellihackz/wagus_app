@@ -18,9 +18,12 @@ class HomeInitialEvent extends HomeEvent {
 class HomeSendMessageEvent extends HomeEvent {
   final Message message;
   final String currentTokenAddress;
+  final String ticker;
 
   HomeSendMessageEvent(
-      {required this.message, required this.currentTokenAddress});
+      {required this.message,
+      required this.currentTokenAddress,
+      required this.ticker});
 }
 
 class HomeSetRoomEvent extends HomeEvent {

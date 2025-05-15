@@ -14,6 +14,7 @@ import 'package:solana_web3/solana_web3.dart' as web3;
 import 'package:wagus/extensions.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/shared/holder/holder.dart';
+import 'package:wagus/shared/token/token.dart';
 
 class PortalRepository {
   PortalRepository();
@@ -29,6 +30,14 @@ class PortalRepository {
 
   Stream<QuerySnapshot> getCurrentTokenAddress() {
     return currentTokenAddressCollection.snapshots();
+  }
+
+  Stream<List<Token>> getSupportedTokens() {
+    return FirebaseFirestore.instance
+        .collection('supported_tokens')
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => Token.fromMap(doc.data())).toList());
   }
 
   Future<PrivyUser?> connect() async {

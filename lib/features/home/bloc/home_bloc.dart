@@ -42,6 +42,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     String mint,
     BankRepository bank,
     BuildContext context,
+    String ticker,
   ) async {
     giveawaySub?.cancel();
 
@@ -135,12 +136,13 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           add(HomeSendMessageEvent(
             message: Message(
               text:
-                  '[GIVEAWAY] 🎉 $amount \$BUCKAZOIDS was rewarded! Winner: ${winner.substring(0, 4)}...${winner.substring(winner.length - 4)}',
+                  '[GIVEAWAY] 🎉 $amount \$$ticker was rewarded! Winner: ${winner.substring(0, 4)}...${winner.substring(winner.length - 4)}',
               sender: 'System',
               tier: TierStatus.system,
               room: 'General',
             ),
             currentTokenAddress: mint,
+            ticker: ticker,
           ));
 
           add(HomeLaunchGiveawayConfettiEvent());
@@ -171,15 +173,15 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final BankRepository bankRepository;
   HomeBloc({required this.homeRepository, required this.bankRepository})
       : super(HomeState(messages: [])) {
-    FutureOr<Message> buildCommandPreview(
-        ChatCommand cmd, Message original, String currentTokenAddress) async {
+    FutureOr<Message> buildCommandPreview(ChatCommand cmd, Message original,
+        String currentTokenAddress, String ticker) async {
       switch (cmd.action.toLowerCase()) {
         case '/send':
           final amount = cmd.args.isNotEmpty ? cmd.args[0] : '?';
           final target = cmd.args.length > 1 ? cmd.args[1] : 'unknown';
           return original.copyWith(
             text:
-                '[SEND] ${original.sender} has sent $amount \$WAGUS to $target 📨',
+                '[SEND] ${original.sender} has sent $amount \$$ticker to $target 📨',
             sender: 'System',
             tier: TierStatus.system,
           );
@@ -221,7 +223,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
             return original.copyWith(
               text:
-                  '[BURN] ${original.sender} just burned $amount \$BUCKAZOIDS 🔥\nSometimes destruction is art.',
+                  '[BURN] ${original.sender} just burned $amount \$$ticker 🔥\nSometimes destruction is art.',
               sender: 'System',
               tier: TierStatus.system,
             );
@@ -278,7 +280,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
           return original.copyWith(
             text:
-                '[GIVEAWAY] 🎁 A giveaway has started in **${original.room}**!\n\nPrize: $amount \$BUCKAZOIDS\nKeyword: "$keyword"\nEnds in $duration seconds ⏳',
+                '[GIVEAWAY] 🎁 A giveaway has started in **${original.room}**!\n\nPrize: $amount \$$ticker\nKeyword: "$keyword"\nEnds in $duration seconds ⏳',
             sender: 'System',
             tier: TierStatus.system,
           );
@@ -286,7 +288,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         case '/flex':
           return original.copyWith(
             text:
-                '[FLEX] ${original.sender} has ${original.solBalance} SOL and ${original.wagBalance} \$WAGUS 💼',
+                '[FLEX] ${original.sender} has ${original.solBalance} SOL and ${original.wagBalance} \$$ticker 💼',
             sender: 'System',
             tier: TierStatus.system,
           );
@@ -305,6 +307,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
 /giveaway <amount> -keyword <word> -duration <seconds>
 Start a giveaway. Example: /giveaway 200 -keyword lucky -duration 60
+
+/create <room_name> – Create a new chat room. Example: /create MyRoom
 
 Type any command to try it out.''',
             sender: 'System',
@@ -594,7 +598,7 @@ Type any command to try it out.''',
 
         // Message is a command – transform and send only the preview
         final displayMessage = await buildCommandPreview(
-            parsed, event.message, event.currentTokenAddress);
+            parsed, event.message, event.currentTokenAddress, event.ticker);
         await homeRepository.sendMessage(displayMessage);
         return;
       }

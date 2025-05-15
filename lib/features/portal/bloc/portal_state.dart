@@ -6,6 +6,9 @@ class PortalState extends Equatable {
   final Holder? holder;
   final String currentTokenAddress;
   final TierStatus tierStatus;
+  final List<Token> supportedTokens;
+  final Token selectedToken;
+  final Map<String, Holder>? holdersMap;
 
   const PortalState({
     this.holdersCount = 0,
@@ -13,6 +16,9 @@ class PortalState extends Equatable {
     this.holder,
     required this.currentTokenAddress,
     this.tierStatus = TierStatus.none,
+    this.supportedTokens = const [],
+    required this.selectedToken,
+    this.holdersMap = const {},
   });
 
   PortalState copyWith({
@@ -22,6 +28,9 @@ class PortalState extends Equatable {
     List<List<Transaction>>? groupedTransactions,
     String? currentTokenAddress,
     TierStatus? tierStatus,
+    List<Token>? Function()? supportedTokens,
+    Token? Function()? selectedToken,
+    Map<String, Holder>? Function()? holdersMap,
   }) {
     return PortalState(
       holdersCount: holdersCount ?? this.holdersCount,
@@ -29,17 +38,28 @@ class PortalState extends Equatable {
       holder: holder?.call() ?? this.holder,
       currentTokenAddress: currentTokenAddress ?? this.currentTokenAddress,
       tierStatus: tierStatus ?? this.tierStatus,
+      supportedTokens: supportedTokens?.call() ?? this.supportedTokens,
+      selectedToken: selectedToken?.call() ?? this.selectedToken,
+      holdersMap: holdersMap?.call() ?? this.holdersMap,
     );
   }
 
   @override
-  List<Object?> get props =>
-      [holdersCount, user, holder, currentTokenAddress, tierStatus];
+  List<Object?> get props => [
+        holdersCount,
+        user,
+        holder,
+        currentTokenAddress,
+        tierStatus,
+        supportedTokens,
+        selectedToken,
+        holdersMap
+      ];
 }
 
 enum TierStatus {
   basic("Basic", Colors.yellow),
-  adventurer("Adventurer", Colors.red),
+  adventurer("Adventurer", Color.fromARGB(255, 226, 76, 26)),
   elite("Elite", Colors.green),
   creator("Creator", Colors.purple),
   system("System", Colors.cyan),

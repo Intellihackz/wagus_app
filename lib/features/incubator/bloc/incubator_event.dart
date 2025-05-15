@@ -43,14 +43,17 @@ class IncubatorWithdrawEvent extends IncubatorEvent {
   final EmbeddedSolanaWallet wallet;
   final int amount;
   final String userId;
-  final String wagusMint;
+
+  final String tokenAddress; // ✅ dynamic token mint
+  final String tokenTicker;
 
   IncubatorWithdrawEvent({
     required this.projectId,
     required this.wallet,
     required this.amount,
     required this.userId,
-    required this.wagusMint,
+    required this.tokenAddress,
+    required this.tokenTicker,
   });
 }
 

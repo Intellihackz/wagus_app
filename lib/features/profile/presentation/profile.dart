@@ -40,22 +40,32 @@ class ProfileScreen extends StatelessWidget {
                 Center(
                   child: Column(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border:
-                              Border.all(color: Colors.greenAccent, width: 3),
-                        ),
-                        child: const Hero(
-                          tag: 'profile',
-                          child: CircleAvatar(
-                            radius: 32,
-                            backgroundImage:
-                                AssetImage('assets/icons/avatar.png'),
-                            backgroundColor: Colors.transparent,
-                          ),
-                        ),
+                      BlocSelector<PortalBloc, PortalState, TierStatus>(
+                        selector: (state) {
+                          return state.tierStatus;
+                        },
+                        builder: (context, tierStatus) {
+                          return Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: tierStatus == TierStatus.adventurer
+                                      ? TierStatus.adventurer.color
+                                      : TierStatus.basic.color,
+                                  width: 3),
+                            ),
+                            child: const Hero(
+                              tag: 'profile',
+                              child: CircleAvatar(
+                                radius: 32,
+                                backgroundImage:
+                                    AssetImage('assets/icons/avatar.png'),
+                                backgroundColor: Colors.transparent,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 12),
                       GestureDetector(
@@ -183,9 +193,15 @@ class ProfileScreen extends StatelessWidget {
                                   // I will check the balance of SOL and WAGUS
 
                                   // they should be both 0 because we dont want loss of funds
-
-                                  final holder =
-                                      context.read<PortalBloc>().state.holder;
+                                  final holder = context
+                                      .read<PortalBloc>()
+                                      .state
+                                      .holdersMap?[context
+                                          .read<PortalBloc>()
+                                          .state
+                                          .selectedToken
+                                          ?.ticker ??
+                                      'WAGUS'];
 
                                   if (holder != null &&
                                       (holder.solanaAmount > 0 ||

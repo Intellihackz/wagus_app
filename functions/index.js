@@ -104,6 +104,13 @@ export const giveawayNotification = onDocumentCreated(
 
     if (!data || !ref) return;
 
+    const token = {
+      name: data.name || "Buckazoids",
+      ticker: data.ticker || "BUCKAZOIDS",
+      address: data.address || "BQQzEvYT4knThhkSPBvSKBLg1LEczisWLhx5ydJipump",
+      decimals: typeof data.decimals === "number" ? data.decimals : 6,
+    };
+
     let { amount, keyword, endTimestamp, duration } = data;
 
     // ✅ Patch: If endTimestamp missing, generate it using server time
@@ -122,7 +129,7 @@ export const giveawayNotification = onDocumentCreated(
       topic: "global_users",
       notification: {
         title: "🎉 New Giveaway!",
-        body: `Type "${keyword}" to win ${amount} $BUCKAZOIDS! Ends in ${timeLeft}s`,
+        body: `Type "${keyword}" to win ${amount} $${token.ticker}! Ends in ${timeLeft}s`,
       },
       android: { priority: "high" },
       apns: {
@@ -177,9 +184,17 @@ export const pickGiveawayWinner = onSchedule(
             updatedAt: FieldValue.serverTimestamp(),
           });
 
+          const token = {
+            name: data.name || "Buckazoids",
+            ticker: data.ticker || "BUCKAZOIDS",
+            address:
+              data.address || "BQQzEvYT4knThhkSPBvSKBLg1LEczisWLhx5ydJipump",
+            decimals: typeof data.decimals === "number" ? data.decimals : 6,
+          };
+
           if (winner) {
             await db.collection("chat").add({
-              message: `/send ${amount} ${winner}`,
+              message: `/send ${amount} ${winner} ${token.ticker}`,
               sender: host,
               tier: "adventurer",
               room: "General",
@@ -197,7 +212,7 @@ export const pickGiveawayWinner = onSchedule(
             notification: {
               title: "🏁 Giveaway Ended!",
               body: winner
-                ? `${winner} won ${amount} $BUCKAZOIDS!`
+                ? `${winner} won ${amount} $${token.ticker}!`
                 : "No one entered this giveaway.",
             },
             android: { priority: "high" },
@@ -247,6 +262,14 @@ export const runGiveawayWinnerNow = onRequest(async (req, res) => {
           ? participants[Math.floor(Math.random() * participants.length)]
           : null;
 
+        const token = {
+          name: data.name || "Buckazoids",
+          ticker: data.ticker || "BUCKAZOIDS",
+          address:
+            data.address || "BQQzEvYT4knThhkSPBvSKBLg1LEczisWLhx5ydJipump",
+          decimals: typeof data.decimals === "number" ? data.decimals : 6,
+        };
+
         try {
           await doc.ref.update({
             status: "ended",
@@ -256,7 +279,7 @@ export const runGiveawayWinnerNow = onRequest(async (req, res) => {
           });
           if (winner) {
             await db.collection("chat").add({
-              message: `/send ${amount} ${winner}`,
+              message: `/send ${amount} ${winner} ${token.ticker}`,
               sender: host,
               tier: "adventurer",
               room: "General",
@@ -277,7 +300,7 @@ export const runGiveawayWinnerNow = onRequest(async (req, res) => {
           notification: {
             title: "🏁 Giveaway Ended!",
             body: winner
-              ? `${winner} won ${amount} $BUCKAZOIDS!`
+              ? `${winner} won ${amount} $${token.ticker}!`
               : "No one entered this giveaway.",
           },
           android: { priority: "high" },

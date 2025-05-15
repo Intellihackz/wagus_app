@@ -25,3 +25,10 @@ class PortalUpdateTierEvent extends PortalEvent {
 }
 
 class PortalFetchHoldersCountEvent extends PortalEvent {}
+
+class PortalListenSupportedTokensEvent extends PortalEvent {}
+
+class PortalSetSelectedTokenEvent extends PortalEvent {
+  final Token token;
+  PortalSetSelectedTokenEvent(this.token);
+}

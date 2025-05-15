@@ -7,6 +7,7 @@ import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/services/user_service.dart';
 import 'package:wagus/shared/holder/holder.dart';
+import 'package:wagus/shared/token/token.dart';
 import 'package:wagus/shared/transaction/transaction.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -19,7 +20,8 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
   final PortalRepository portalRepository;
 
   PortalBloc({required this.portalRepository})
-      : super(const PortalState(currentTokenAddress: '')) {
+      : super(PortalState(
+            currentTokenAddress: '', selectedToken: Token.empty())) {
     on<PortalInitialEvent>(_handleInitial);
     on<PortalAuthorizeEvent>(_handleAuthorize);
     on<PortalRefreshEvent>(_handleRefresh);
@@ -27,6 +29,46 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     on<PortalClearEvent>(_handleClear);
     on<PortalUpdateTierEvent>(_handleUpdateTier);
     on<PortalFetchHoldersCountEvent>(_handleFetchHoldersCount);
+    on<PortalListenSupportedTokensEvent>((event, emit) async {
+      await emit.forEach<List<Token>>(
+        portalRepository.getSupportedTokens(),
+        onData: (tokens) {
+          final defaultToken = tokens.firstWhere(
+            (t) => t.ticker.toUpperCase() == 'WAGUS',
+            orElse: () => tokens.first,
+          );
+
+          return state.copyWith(
+            supportedTokens: () => tokens,
+            selectedToken: () => defaultToken,
+          );
+        },
+      );
+    });
+    on<PortalSetSelectedTokenEvent>((event, emit) async {
+      final user = state.user;
+      if (user == null || user.embeddedSolanaWallets.isEmpty) return;
+
+      final walletAddress = user.embeddedSolanaWallets.first.address;
+      final tokenMint = event.token.address;
+
+      final updatedHolder =
+          await _getSolAndTokenBalances(walletAddress, tokenMint);
+
+      final updatedMap = Map<String, Holder>.from(state.holdersMap ?? {});
+      updatedMap[event.token.ticker] = updatedHolder;
+
+      emit(state.copyWith(
+        selectedToken: () => event.token,
+        holdersMap: () => updatedMap,
+        holder: () => updatedHolder, // optional
+      ));
+
+      emit(state.copyWith(
+        selectedToken: () => event.token,
+        holdersMap: () => updatedMap,
+      ));
+    });
   }
 
   Future<void> _handleInitial(
@@ -51,15 +93,22 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       orElse: () => TierStatus.basic,
     );
 
-    // Fetch SOL + token balances
-    final holder =
-        await _getSolAndTokenBalances(address, state.currentTokenAddress);
+    final holdersMap = <String, Holder>{};
 
-    emit(state.copyWith(
-      user: () => user,
-      holder: () => holder,
-      tierStatus: tierEnum,
-    ));
+    if (state.supportedTokens == null || state.supportedTokens!.isEmpty) {
+      emit(state.copyWith(
+        user: () => user,
+        holdersMap: () => holdersMap,
+        tierStatus: tierEnum,
+      ));
+      return;
+    } else {
+      emit(state.copyWith(
+        user: () => user,
+        holdersMap: () => holdersMap,
+        tierStatus: tierEnum,
+      ));
+    }
 
     add(PortalFetchHoldersCountEvent());
 
@@ -147,9 +196,14 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       final holdersCount =
           await portalRepository.getHoldersCount(state.currentTokenAddress);
 
+      final updatedMap = Map<String, Holder>.from(state.holdersMap ?? {});
+      final selectedTicker = state.selectedToken?.ticker ?? 'WAGUS';
+      updatedMap[selectedTicker] = holder;
+
       emit(state.copyWith(
         holdersCount: holdersCount,
         holder: () => holder,
+        holdersMap: () => updatedMap,
       ));
     } catch (e) {
       debugPrint('[PortalBloc] Refresh failed: $e');

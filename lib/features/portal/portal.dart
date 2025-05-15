@@ -95,7 +95,9 @@ class Portal extends HookWidget {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 24, vertical: 14),
                               decoration: BoxDecoration(
-                                color: Colors.greenAccent,
+                                color: state.tierStatus == TierStatus.adventurer
+                                    ? TierStatus.adventurer.color
+                                    : TierStatus.basic.color,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: isLoading.value || state.user == null

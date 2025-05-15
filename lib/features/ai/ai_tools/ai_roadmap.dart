@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:wagus/features/ai/bloc/ai_bloc.dart';
+import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/theme/app_palette.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
@@ -18,80 +19,96 @@ class AiRoadmapGenerator extends HookWidget {
     final durationController = useTextEditingController();
     final formKey = useMemoized(() => GlobalKey<FormState>());
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
-        child: Form(
-          key: formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(
+    return BlocSelector<PortalBloc, PortalState, TierStatus>(
+      selector: (state) {
+        return state.tierStatus;
+      },
+      builder: (context, portalState) {
+        return Scaffold(
+          resizeToAvoidBottomInset: true,
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
+            child: Form(
+              key: formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  BackButton(color: Colors.white),
-                  SizedBox(width: 8),
-                  Text(
-                    'AI Roadmap Generator',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                  const Row(
+                    children: [
+                      BackButton(color: Colors.white),
+                      SizedBox(width: 8),
+                      Text(
+                        'AI Roadmap Generator',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  _buildInputField(
+                    label: 'Project Name',
+                    controller: nameController,
+                    validator: (val) => val == null || val.isEmpty
+                        ? 'Please enter a project name'
+                        : null,
+                    context: context,
+                    tierStatus: portalState,
+                  ),
+                  _buildInputField(
+                    label: 'Key Milestones',
+                    controller: milestonesController,
+                    validator: (val) => val == null || val.isEmpty
+                        ? 'Please enter key milestones'
+                        : null,
+                    context: context,
+                    tierStatus: portalState,
+                  ),
+                  _buildInputField(
+                    label: 'Expected Duration (e.g. 6 months)',
+                    controller: durationController,
+                    validator: (val) => val == null || val.isEmpty
+                        ? 'Please enter a time duration'
+                        : null,
+                    context: context,
+                    tierStatus: portalState,
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: portalState == TierStatus.adventurer
+                            ? TierStatus.adventurer.color
+                            : TierStatus.basic.color,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        FocusScope.of(context).unfocus();
+                        if (formKey.currentState!.validate()) {
+                          _handleGenerate(
+                              context,
+                              nameController,
+                              milestonesController,
+                              durationController,
+                              portalState);
+                        }
+                      },
+                      child: const Text('Generate Roadmap'),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              _buildInputField(
-                label: 'Project Name',
-                controller: nameController,
-                validator: (val) => val == null || val.isEmpty
-                    ? 'Please enter a project name'
-                    : null,
-                context: context,
-              ),
-              _buildInputField(
-                label: 'Key Milestones',
-                controller: milestonesController,
-                validator: (val) => val == null || val.isEmpty
-                    ? 'Please enter key milestones'
-                    : null,
-                context: context,
-              ),
-              _buildInputField(
-                label: 'Expected Duration (e.g. 6 months)',
-                controller: durationController,
-                validator: (val) => val == null || val.isEmpty
-                    ? 'Please enter a time duration'
-                    : null,
-                context: context,
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.greenAccent,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {
-                    FocusScope.of(context).unfocus();
-                    if (formKey.currentState!.validate()) {
-                      _handleGenerate(context, nameController,
-                          milestonesController, durationController);
-                    }
-                  },
-                  child: const Text('Generate Roadmap'),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -100,6 +117,7 @@ class AiRoadmapGenerator extends HookWidget {
     required TextEditingController controller,
     required String? Function(String?) validator,
     required BuildContext context,
+    required TierStatus tierStatus,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -115,11 +133,18 @@ class AiRoadmapGenerator extends HookWidget {
           fillColor: Colors.grey[850],
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.greenAccent),
+            borderSide: BorderSide(
+              color: tierStatus == TierStatus.adventurer
+                  ? TierStatus.adventurer.color
+                  : TierStatus.basic.color,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.green),
+            borderSide: BorderSide(
+                color: tierStatus == TierStatus.adventurer
+                    ? TierStatus.adventurer.color
+                    : TierStatus.basic.color),
           ),
         ),
       ),
@@ -131,6 +156,7 @@ class AiRoadmapGenerator extends HookWidget {
     TextEditingController nameController,
     TextEditingController milestonesController,
     TextEditingController durationController,
+    TierStatus tierStatus,
   ) {
     context.read<AiBloc>().add(
           AISubmitRoadmapFormEvent(
@@ -147,53 +173,72 @@ class AiRoadmapGenerator extends HookWidget {
     showDialog(
       context: context,
       builder: (dialogContext) {
-        return BlocBuilder<AiBloc, AiState>(
+        return BlocSelector<PortalBloc, PortalState, TierStatus>(
+          selector: (state) {
+            return state.tierStatus;
+          },
           builder: (context, state) {
-            return AlertDialog(
-              backgroundColor: Colors.black,
-              title: const Text(
-                'Generated Roadmap',
-                style: TextStyle(color: Colors.white),
-                textAlign: TextAlign.center,
-              ),
-              content: SizedBox(
-                width: double.maxFinite,
-                height: 400,
-                child: _buildDialogContent(state, context),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    context.read<AiBloc>().add(AIResetStateEvent());
-                  },
-                  child: const Text('Close',
-                      style: TextStyle(color: Colors.white)),
-                ),
-                if (state.roadmapFormState == AIRoadmapFormState.success)
-                  TextButton(
-                    onPressed: () async {
-                      final pdf = pw.Document();
-                      pdf.addPage(
-                        pw.Page(
-                          build: (context) => pw.Text(
-                            state.roadmap!,
-                            style: const pw.TextStyle(
-                                fontSize: 12, lineSpacing: 1.5),
-                          ),
-                        ),
-                      );
-                      final dir = await getApplicationDocumentsDirectory();
-                      final filePath =
-                          '${dir.path}/roadmap_${DateTime.now().millisecondsSinceEpoch}.pdf';
-                      final file = File(filePath);
-                      await file.writeAsBytes(await pdf.save());
-                      await Share.shareXFiles([XFile(filePath)]);
-                    },
-                    child: const Text('Save as PDF',
-                        style: TextStyle(color: Colors.greenAccent)),
+            return BlocBuilder<AiBloc, AiState>(
+              builder: (context, state) {
+                return AlertDialog(
+                  backgroundColor: Colors.black,
+                  title: const Text(
+                    'Generated Roadmap',
+                    style: TextStyle(color: Colors.white),
+                    textAlign: TextAlign.center,
                   ),
-              ],
+                  content: SizedBox(
+                    width: double.maxFinite,
+                    height: 400,
+                    child: _buildDialogContent(state, context, tierStatus),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        context.read<AiBloc>().add(AIResetStateEvent());
+                      },
+                      child: const Text('Close',
+                          style: TextStyle(color: Colors.white)),
+                    ),
+                    if (state.roadmapFormState == AIRoadmapFormState.success)
+                      TextButton(
+                        onPressed: () async {
+                          final pdf = pw.Document();
+                          pdf.addPage(
+                            pw.Page(
+                              build: (context) => pw.Text(
+                                state.roadmap!,
+                                style: const pw.TextStyle(
+                                    fontSize: 12, lineSpacing: 1.5),
+                              ),
+                            ),
+                          );
+                          final dir = await getApplicationDocumentsDirectory();
+                          final filePath =
+                              '${dir.path}/roadmap_${DateTime.now().millisecondsSinceEpoch}.pdf';
+                          final file = File(filePath);
+                          await file.writeAsBytes(await pdf.save());
+                          await Share.shareXFiles([XFile(filePath)]);
+                        },
+                        child:
+                            BlocSelector<PortalBloc, PortalState, TierStatus>(
+                          selector: (state) {
+                            return state.tierStatus;
+                          },
+                          builder: (context, state) {
+                            return Text('Save as PDF',
+                                style: TextStyle(
+                                  color: state == TierStatus.adventurer
+                                      ? TierStatus.adventurer.color
+                                      : TierStatus.basic.color,
+                                ));
+                          },
+                        ),
+                      ),
+                  ],
+                );
+              },
             );
           },
         );
@@ -201,11 +246,14 @@ class AiRoadmapGenerator extends HookWidget {
     );
   }
 
-  Widget _buildDialogContent(AiState state, BuildContext context) {
+  Widget _buildDialogContent(
+      AiState state, BuildContext context, TierStatus tierStatus) {
     if (state.roadmapFormState == AIRoadmapFormState.loading) {
-      return const Center(
+      return Center(
           child: CircularProgressIndicator(
-        color: Colors.greenAccent,
+        color: tierStatus == TierStatus.adventurer
+            ? TierStatus.adventurer.color
+            : TierStatus.basic.color,
       ));
     } else if (state.roadmapFormState == AIRoadmapFormState.failure) {
       return Center(

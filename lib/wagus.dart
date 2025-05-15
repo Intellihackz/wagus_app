@@ -45,8 +45,21 @@ class Wagus extends HookWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Positioned.fill(
-          child: CustomPaint(painter: CryptoBackgroundPainter()),
+        BlocSelector<PortalBloc, PortalState, TierStatus>(
+          selector: (state) {
+            return state.tierStatus;
+          },
+          builder: (context, tierStatus) {
+            final color = switch (tierStatus) {
+              TierStatus.adventurer => TierStatus.adventurer.color,
+              _ => TierStatus.basic.color,
+            };
+
+            return Positioned.fill(
+              child:
+                  CustomPaint(painter: CryptoBackgroundPainter(color: color)),
+            );
+          },
         ),
         BlocBuilder<PortalBloc, PortalState>(
           builder: (context, state) {
@@ -130,7 +143,10 @@ class Wagus extends HookWidget {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: Colors.greenAccent,
+                                    color: state.tierStatus ==
+                                            TierStatus.adventurer
+                                        ? TierStatus.adventurer.color
+                                        : TierStatus.basic.color,
                                     width: 3, // thick border
                                   ),
                                 ),
@@ -234,7 +250,7 @@ class CryptoBackgroundPainter extends CustomPainter {
   final Color color;
   static const double symbolSize = 30.0; // Size of crypto symbols
 
-  CryptoBackgroundPainter({this.color = Colors.blue});
+  CryptoBackgroundPainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {

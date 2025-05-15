@@ -16,7 +16,6 @@ import 'package:wagus/features/incubator/domain/project.dart';
 
 class IncubatorRepository {
   static const int wagusDecimals = 6;
-  static const int totalTokenAllocation = 20000; // Fixed allocation per project
   static final web3.Pubkey tokenProgramId = web3.Pubkey.fromBase58(splToken);
   static final web3.Pubkey systemProgramId =
       web3.Pubkey.fromBase58('11111111111111111111111111111111');
@@ -153,6 +152,7 @@ class IncubatorRepository {
         'addressesFunded': [],
         'launchDate': project.launchDate.toIso8601String(),
         'timestamp': FieldValue.serverTimestamp(),
+        'max_allocation': project.maxAllocation,
       });
 
       return projectId; // Return the ID for use in project.id
@@ -196,7 +196,7 @@ class IncubatorRepository {
     required int amount,
     required String projectId,
     required String userId,
-    required String wagusMint,
+    required String tokenAddress,
   }) async {
     debugPrint(
         '[IncubatorRepository] Starting withdrawal to project: $projectId');
@@ -245,7 +245,7 @@ class IncubatorRepository {
     final senderPubkey = _pubkeyFromBase58(wallet.address);
     final destinationPubkey =
         _pubkeyFromBase58(destinationAddress); // Should now work if valid
-    final mintPubkey = _pubkeyFromBase58(wagusMint);
+    final mintPubkey = _pubkeyFromBase58(tokenAddress);
 
     final sourceAta =
         await _getSenderTokenAccount(connection, senderPubkey, mintPubkey);
@@ -437,7 +437,7 @@ class IncubatorRepository {
         }
 
         final newTotal = currentTotal + amount;
-        final fundingProgress = newTotal / totalTokenAllocation;
+        final fundingProgress = newTotal / maxCap;
 
         // Now perform writes
         transaction.update(projectRef, {

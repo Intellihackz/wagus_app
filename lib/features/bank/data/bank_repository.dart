@@ -47,11 +47,6 @@ class BankRepository {
           Duration(seconds: 3),
         ],
         retryEvaluator: (e, attempt) {
-          final uri = e.requestOptions.uri.toString();
-          final shouldRetry = uri.contains("helius") || uri.contains("privy");
-
-          if (!shouldRetry) return false;
-
           if (e.type == DioExceptionType.connectionTimeout ||
               e.type == DioExceptionType.receiveTimeout ||
               e.type == DioExceptionType.sendTimeout) {
