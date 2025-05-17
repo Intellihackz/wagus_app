@@ -10,23 +10,20 @@ class HomeState {
   final Map<String, DocumentSnapshot> lastDocs;
   final List<String> rooms;
   final Message? replyingTo;
+  final Set<String> announcedGiveawayIds;
 
-  HomeState(
-      {required this.messages,
-      this.currentRoom = 'General',
-      this.activeUsersCount = 0,
-      this.commandSearch,
-      this.recentCommand,
-      this.canLaunchConfetti = false,
-      this.lastDocs = const {},
-      this.rooms = const [
-        'General',
-        'Support',
-        'Games',
-        'Ideas',
-        'Tier Lounge'
-      ],
-      this.replyingTo});
+  HomeState({
+    required this.messages,
+    required this.announcedGiveawayIds,
+    this.currentRoom = 'General',
+    this.activeUsersCount = 0,
+    this.commandSearch,
+    this.recentCommand,
+    this.canLaunchConfetti = false,
+    this.lastDocs = const {},
+    this.rooms = const ['General', 'Support', 'Games', 'Ideas', 'Tier Lounge'],
+    this.replyingTo,
+  });
 
   HomeState copyWith({
     List<Message>? messages,
@@ -38,6 +35,7 @@ class HomeState {
     Map<String, DocumentSnapshot>? lastDocs,
     List<String>? rooms,
     Message? Function()? replyingTo,
+    Set<String>? announcedGiveawayIds,
   }) {
     return HomeState(
       messages: messages ?? this.messages,
@@ -51,6 +49,7 @@ class HomeState {
       lastDocs: lastDocs ?? this.lastDocs,
       rooms: rooms ?? this.rooms,
       replyingTo: replyingTo != null ? replyingTo() : this.replyingTo,
+      announcedGiveawayIds: announcedGiveawayIds ?? this.announcedGiveawayIds,
     );
   }
 }

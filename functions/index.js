@@ -180,7 +180,7 @@ export const pickGiveawayWinner = onSchedule(
           await doc.ref.update({
             status: "ended",
             winner: winner ?? "No winner",
-            hasSent: false,
+            hasSent: winner ? false : true,
             updatedAt: FieldValue.serverTimestamp(),
           });
 
@@ -202,6 +202,9 @@ export const pickGiveawayWinner = onSchedule(
             });
             console.log(`💸 Injected /send ${amount} to ${winner}`);
           }
+
+          // ✅ Mark as announced to prevent re-display in frontend
+          await doc.ref.update({ announced: true });
 
           console.log(
             `✅ Giveaway ended: ${doc.id}, winner: ${winner ?? "none"}`
@@ -274,7 +277,7 @@ export const runGiveawayWinnerNow = onRequest(async (req, res) => {
           await doc.ref.update({
             status: "ended",
             winner: winner ?? "No winner",
-            hasSent: false,
+            hasSent: winner ? false : true,
             updatedAt: FieldValue.serverTimestamp(),
           });
           if (winner) {
@@ -287,6 +290,8 @@ export const runGiveawayWinnerNow = onRequest(async (req, res) => {
             });
             console.log(`💸 Injected /send ${amount} to ${winner}`);
           }
+
+          await doc.ref.update({ announced: true });
 
           console.log(
             `✅ Giveaway ended: ${doc.id}, winner: ${winner ?? "none"}`

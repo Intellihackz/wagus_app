@@ -16,6 +16,17 @@ class HomeRepository {
             toFirestore: (data, _) => data,
           );
 
+  Stream<QuerySnapshot> listenToActiveGiveaways(String room) {
+    return FirebaseFirestore.instance
+        .collection('giveaways')
+        .where('room', isEqualTo: room)
+        .where('status',
+            whereIn: ['started', 'ended']) // optionally 'completed'
+        .where('announced', isEqualTo: false)
+        .orderBy('endTimestamp', descending: true)
+        .snapshots();
+  }
+
   CollectionReference get roomCollection =>
       FirebaseFirestore.instance.collection('rooms');
 
@@ -49,14 +60,6 @@ class HomeRepository {
     return FirebaseFirestore.instance
         .collection('giveaways')
         .doc(giveawayId)
-        .snapshots();
-  }
-
-  Stream<QuerySnapshot> listenToActiveGiveaways(String hostWallet) {
-    return FirebaseFirestore.instance
-        .collection('giveaways')
-        .where('host', isEqualTo: hostWallet)
-        .where('status', whereIn: ['started', 'ended']) // ✅
         .snapshots();
   }
 

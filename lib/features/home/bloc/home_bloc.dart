@@ -36,133 +36,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
   final Set<String> announcedGiveawayIds = {};
 
-  Future<void> watchGiveaways(
-    String currentUserWallet,
-    EmbeddedSolanaWallet wallet,
-    String mint,
-    BankRepository bank,
-    BuildContext context,
-    String ticker,
-  ) async {
-    giveawaySub?.cancel();
-
-    giveawaySub = homeRepository
-        .listenToActiveGiveaways(currentUserWallet)
-        .listen((snapshot) async {
-      for (final doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        final id = doc.id;
-
-        final winner = data['winner'] as String?;
-        final status = data['status'];
-        final amount = data['amount'] ?? 0;
-        final isPending = data['pending'] ?? false;
-        final hasSent = data['hasSent'] ?? false;
-        final error = data['error'];
-        final updatedAt =
-            (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-        final isStale = DateTime.now().difference(updatedAt).inMinutes > 2;
-
-        // ✅ Skip if not ended or winner missing
-        if (winner == null ||
-            winner.isEmpty ||
-            winner == 'No winner' ||
-            status != 'ended') continue;
-
-        // ✅ Only host can send
-        if (currentUserWallet != data['host']) continue;
-
-        // ✅ Already sent or already processed this in memory
-        if (hasSent || announcedGiveawayIds.contains(id)) continue;
-
-        // ✅ Skip if previously errored and not marked pending (unless stale)
-        final shouldRetryErrored = error != null && !isPending && isStale;
-        if (error != null && !shouldRetryErrored) continue;
-
-        log('🧪 Evaluating giveaway $id');
-
-        bool markedPending = false;
-
-        try {
-          // 🚧 Transactional lock
-          await FirebaseFirestore.instance.runTransaction((transaction) async {
-            final freshDoc = await transaction.get(doc.reference);
-            final freshData = freshDoc.data() as Map<String, dynamic>;
-
-            final alreadySent = freshData['hasSent'] ?? false;
-            final isPending = freshData['pending'] ?? false;
-            final updatedAt =
-                (freshData['updatedAt'] as Timestamp?)?.toDate() ??
-                    DateTime.now();
-            final isStale = DateTime.now().difference(updatedAt).inMinutes > 2;
-
-            if (!alreadySent && (!isPending || isStale)) {
-              transaction.update(doc.reference, {
-                'pending': true,
-                'updatedAt': FieldValue.serverTimestamp(),
-              });
-              markedPending = true;
-              announcedGiveawayIds.add(id);
-              log('✅ Marked $id as pending');
-            } else {
-              log('⛔️ Skipped $id: already sent or in progress');
-            }
-          });
-
-          if (!markedPending) continue;
-
-          // ✅ Send tokens
-          await bank.withdrawFunds(
-            wallet: wallet,
-            destinationAddress: winner,
-            amount: amount,
-            wagusMint: mint,
-          );
-
-          // ✅ Mark as sent
-          await FirebaseFirestore.instance.runTransaction((transaction) async {
-            transaction.update(doc.reference, {
-              'hasSent': true,
-              'pending': false,
-              'status': 'completed',
-              'updatedAt': FieldValue.serverTimestamp(),
-              'error': FieldValue.delete(),
-            });
-          });
-
-          log('🎉 Giveaway $id paid out to $winner');
-
-          // ✅ Broadcast system message
-          add(HomeSendMessageEvent(
-            message: Message(
-              text:
-                  '[GIVEAWAY] 🎉 $amount \$$ticker was rewarded! Winner: ${winner.substring(0, 4)}...${winner.substring(winner.length - 4)}',
-              sender: 'System',
-              tier: TierStatus.system,
-              room: 'General',
-            ),
-            currentTokenAddress: mint,
-            ticker: ticker,
-          ));
-
-          add(HomeLaunchGiveawayConfettiEvent());
-        } catch (e) {
-          log('❌ Failed to process giveaway $id: $e');
-
-          // 🚨 Reset state for retry or manual fix
-          await FirebaseFirestore.instance.runTransaction((transaction) async {
-            transaction.update(doc.reference, {
-              'pending': false,
-              'hasSent': false,
-              'error': e.toString(),
-              'updatedAt': FieldValue.serverTimestamp(),
-            });
-          });
-        }
-      }
-    });
-  }
-
   bool pendingExpired(Map<String, dynamic> data) {
     final updatedAt =
         (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
@@ -172,7 +45,58 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final HomeRepository homeRepository;
   final BankRepository bankRepository;
   HomeBloc({required this.homeRepository, required this.bankRepository})
-      : super(HomeState(messages: [])) {
+      : super(HomeState(messages: [], announcedGiveawayIds: {})) {
+    on<HomeListenToGiveawayEvent>((event, emit) async {
+      await emit.forEach(
+        homeRepository.listenToActiveGiveaways(event.room),
+        onData: (snapshot) {
+          for (final doc in snapshot.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+
+            final winner = data['winner'] as String?;
+            final status = data['status'];
+            final hasSent = data['hasSent'] ?? false;
+            final id = doc.id;
+
+            final shouldAnnounce = winner != null &&
+                winner.isNotEmpty &&
+                status == 'ended' &&
+                hasSent == true; // ✅ Add this
+
+            if (shouldAnnounce && !state.announcedGiveawayIds.contains(id)) {
+              final newIds = Set<String>.from(state.announcedGiveawayIds)
+                ..add(id);
+
+              final amount = data['amount'] ?? 0;
+
+              add(HomeSendMessageEvent(
+                message: Message(
+                  text:
+                      '[GIVEAWAY] 🎉 $amount \$$event.ticker was rewarded! Winner: ${winner.substring(0, 4)}...${winner.substring(winner.length - 4)}',
+                  sender: 'System',
+                  tier: TierStatus.system,
+                  room: event.room,
+                ),
+                currentTokenAddress: '', // optional
+                ticker: event.ticker,
+              ));
+
+              add(HomeLaunchGiveawayConfettiEvent(canLaunchConfetti: false));
+
+              FirebaseFirestore.instance
+                  .collection('giveaways')
+                  .doc(id)
+                  .update({'announced': true});
+
+              return state.copyWith(announcedGiveawayIds: newIds);
+            }
+          }
+
+          return state;
+        },
+      );
+    });
+
     FutureOr<Message> buildCommandPreview(ChatCommand cmd, Message original,
         String currentTokenAddress, String ticker) async {
       switch (cmd.action.toLowerCase()) {
@@ -515,7 +439,7 @@ Type any command to try it out.''',
     });
 
     on<HomeLaunchGiveawayConfettiEvent>((event, emit) {
-      emit(state.copyWith(canLaunchConfetti: !state.canLaunchConfetti));
+      emit(state.copyWith(canLaunchConfetti: event.canLaunchConfetti));
     });
 
     on<HomeWatchOnlineUsersEvent>((event, emit) async {

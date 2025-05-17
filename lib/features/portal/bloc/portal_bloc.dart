@@ -95,7 +95,7 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
 
     final holdersMap = <String, Holder>{};
 
-    if (state.supportedTokens == null || state.supportedTokens!.isEmpty) {
+    if (state.supportedTokens.isEmpty) {
       emit(state.copyWith(
         user: () => user,
         holdersMap: () => holdersMap,
@@ -169,13 +169,21 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     final userInit = await portalRepository.init();
     if (userInit == null) return;
 
-    final user = await portalRepository.connect();
+    var user = await portalRepository.connect();
+    if (user == null) return;
+
+    if (user.embeddedSolanaWallets.isEmpty) {
+      debugPrint(
+          '[PortalBloc] User has no embedded wallet — possible error on Privy side.');
+      // Optional: force logout + retry login
+      await PrivyService().logout(event.context);
+      return;
+    }
+
     emit(state.copyWith(user: () => user));
 
-    if (user != null && user.embeddedSolanaWallets.isNotEmpty) {
-      final wallet = user.embeddedSolanaWallets.first.address;
-      await UserService().updateUserLogin(wallet);
-    }
+    final wallet = user.embeddedSolanaWallets.first.address;
+    await UserService().updateUserLogin(wallet);
 
     if (PrivyService().isAuthenticated()) {
       add(PortalInitialEvent());
@@ -197,7 +205,7 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
           await portalRepository.getHoldersCount(state.currentTokenAddress);
 
       final updatedMap = Map<String, Holder>.from(state.holdersMap ?? {});
-      final selectedTicker = state.selectedToken?.ticker ?? 'WAGUS';
+      final selectedTicker = state.selectedToken.ticker ?? 'WAGUS';
       updatedMap[selectedTicker] = holder;
 
       emit(state.copyWith(

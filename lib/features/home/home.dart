@@ -42,14 +42,17 @@ class Home extends HookWidget {
             getActiveWallet().then((wallet) async {
               if (wallet != null) {
                 homeBloc.add(HomeListenToRoomsEvent());
-                await homeBloc.watchGiveaways(
-                    wallet.address,
-                    wallet,
-                    portalState.selectedToken.address,
-                    bankRepo,
-                    context,
-                    portalState.selectedToken.ticker);
                 homeBloc.add(HomeSetRoomEvent(homeBloc.state.currentRoom));
+                context.read<HomeBloc>().add(
+                      HomeListenToGiveawayEvent(
+                        room: homeBloc.state.currentRoom,
+                        ticker: context
+                            .read<PortalBloc>()
+                            .state
+                            .selectedToken
+                            .ticker,
+                      ),
+                    );
               }
             });
           }
@@ -81,7 +84,8 @@ class Home extends HookWidget {
                     particleCount: 100, spread: 70, y: 0.7),
               );
 
-              context.read<HomeBloc>().add(HomeLaunchGiveawayConfettiEvent());
+              context.read<HomeBloc>().add(
+                  HomeLaunchGiveawayConfettiEvent(canLaunchConfetti: false));
             }
           },
           builder: (context, homeState) {

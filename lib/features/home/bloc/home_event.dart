@@ -43,7 +43,9 @@ class HomeCommandPopupTriggered extends HomeEvent {
 class HomeCommandPopupClosed extends HomeEvent {}
 
 class HomeLaunchGiveawayConfettiEvent extends HomeEvent {
-  HomeLaunchGiveawayConfettiEvent();
+  final bool canLaunchConfetti;
+
+  HomeLaunchGiveawayConfettiEvent({required this.canLaunchConfetti});
 }
 
 class HomeLoadMoreMessagesEvent extends HomeEvent {
@@ -60,6 +62,12 @@ class HomeLiveUpdateEvent extends HomeEvent {
 
 class HomeListenToRoomsEvent extends HomeEvent {
   HomeListenToRoomsEvent();
+}
+
+class HomeListenToGiveawayEvent extends HomeEvent {
+  final String room;
+  final String ticker;
+  HomeListenToGiveawayEvent({required this.room, required this.ticker});
 }
 
 class HomeSetReplyMessageEvent extends HomeEvent {
