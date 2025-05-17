@@ -62,7 +62,7 @@ class Quest extends HookWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => const DailyRewardsSheet(),
+      builder: (sheetContext) => DailyRewardsSheet(sheetContext: sheetContext),
     );
   }
 }
@@ -120,7 +120,9 @@ class _ComingSoonTile extends StatelessWidget {
 }
 
 class DailyRewardsSheet extends StatelessWidget {
-  const DailyRewardsSheet({super.key});
+  const DailyRewardsSheet({super.key, required this.sheetContext});
+
+  final BuildContext sheetContext;
 
   @override
   Widget build(BuildContext context) {
@@ -225,7 +227,7 @@ class DailyRewardsSheet extends StatelessWidget {
                   children: [
                     BackButton(
                       color: Colors.white,
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () => Navigator.of(sheetContext).pop(),
                     ),
                     const Text(
                       'Daily Rewards',
