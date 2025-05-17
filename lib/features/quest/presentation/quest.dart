@@ -167,6 +167,10 @@ class DailyRewardsSheet extends StatelessWidget {
         )..add(isAdventurer ? '\$1.00 in SOL' : '\$0.15 in SOL');
         print('[UI] timeRemaining: $timeRemaining');
 
+        if (timeRemaining != null && timeRemaining.inSeconds <= 2) {
+          timeRemaining = Duration.zero;
+        }
+
         return SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -187,9 +191,12 @@ class DailyRewardsSheet extends StatelessWidget {
                                 tween: Tween(
                                     begin: timeRemaining, end: Duration.zero),
                                 onEnd: () {
-                                  context.read<QuestBloc>().add(
-                                        QuestInitialEvent(address: wallet!),
-                                      );
+                                  Future.delayed(const Duration(seconds: 2),
+                                      () {
+                                    context.read<QuestBloc>().add(
+                                          QuestInitialEvent(address: wallet!),
+                                        );
+                                  });
                                 },
                                 builder: (_, Duration value, __) {
                                   String twoDigits(int n) =>
