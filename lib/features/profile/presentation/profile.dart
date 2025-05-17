@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 import 'package:wagus/features/bank/data/bank_repository.dart';
@@ -10,12 +12,14 @@ import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/services/user_service.dart';
 import 'package:wagus/theme/app_palette.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends HookWidget {
   final String address;
   const ProfileScreen({super.key, required this.address});
 
   @override
   Widget build(BuildContext context) {
+    final usernameController = useTextEditingController();
+
     return BlocSelector<PortalBloc, PortalState, PrivyUser?>(
       selector: (state) {
         return state.user;
@@ -68,6 +72,102 @@ class ProfileScreen extends StatelessWidget {
                         },
                       ),
                       const SizedBox(height: 12),
+                      if (isCurrentUser)
+                        StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                          stream: UserService.getUserStream(address),
+                          builder: (context, snapshot) {
+                            final doc = snapshot.data?.data();
+                            final currentUsername = doc?['username'] ?? '';
+
+                            // Only set the controller text if it's different
+                            if (usernameController.text != currentUsername) {
+                              usernameController.text = currentUsername;
+                              usernameController.selection =
+                                  TextSelection.fromPosition(
+                                TextPosition(offset: currentUsername.length),
+                              );
+                            }
+
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 32.0),
+                              child: Column(
+                                children: [
+                                  BlocSelector<PortalBloc, PortalState,
+                                      TierStatus>(
+                                    selector: (state) {
+                                      return state.tierStatus;
+                                    },
+                                    builder: (context, state) {
+                                      if (state == TierStatus.adventurer) {
+                                        return Center(
+                                          child: SizedBox(
+                                            width: 220, // adjust as needed
+                                            child: TextField(
+                                              controller: usernameController,
+                                              maxLength: 8,
+                                              textAlign: TextAlign.center,
+                                              style: const TextStyle(
+                                                  color: Colors.white),
+                                              decoration: InputDecoration(
+                                                labelText: '[ USERNAME ]',
+                                                labelStyle: const TextStyle(
+                                                    color: Colors.white70),
+                                                counterStyle: const TextStyle(
+                                                    color: Colors.white30),
+                                                enabledBorder:
+                                                    OutlineInputBorder(
+                                                  borderSide: const BorderSide(
+                                                      color: Colors.white24),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                focusedBorder:
+                                                    OutlineInputBorder(
+                                                  borderSide: const BorderSide(
+                                                      color: Colors.white70),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                              ),
+                                              onSubmitted: (value) async {
+                                                final trimmed = value.trim();
+                                                if (trimmed.length > 8 ||
+                                                    trimmed.isEmpty) return;
+
+                                                try {
+                                                  await UserService()
+                                                      .setUsername(
+                                                          address, trimmed);
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    const SnackBar(
+                                                        content: Text(
+                                                            "Username updated")),
+                                                  );
+                                                } catch (_) {
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    const SnackBar(
+                                                        content: Text(
+                                                            "Failed to update username")),
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                        );
+                                      } else {
+                                        return SizedBox.shrink();
+                                      }
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
@@ -134,6 +234,8 @@ class ProfileScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (isCurrentUser)
+                  _buildAllocationBar(context, isCurrentUser: isCurrentUser),
                 const SizedBox(height: 32),
                 if (isCurrentUser) ...[
                   _buildSectionTitle('Account'),
@@ -194,14 +296,14 @@ class ProfileScreen extends StatelessWidget {
 
                                   // they should be both 0 because we dont want loss of funds
                                   final holder = context
-                                      .read<PortalBloc>()
-                                      .state
-                                      .holdersMap?[context
+                                          .read<PortalBloc>()
+                                          .state
+                                          .holdersMap?[
+                                      context
                                           .read<PortalBloc>()
                                           .state
                                           .selectedToken
-                                          ?.ticker ??
-                                      'WAGUS'];
+                                          .ticker];
 
                                   if (holder != null &&
                                       (holder.solanaAmount > 0 ||
@@ -361,5 +463,120 @@ class ProfileScreen extends StatelessWidget {
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
     );
+  }
+
+  Widget _buildAllocationBar(BuildContext context,
+      {required bool isCurrentUser}) {
+    final holdersMap = context.read<PortalBloc>().state.holdersMap ?? {};
+
+    if (isCurrentUser &&
+        (context.read<PortalBloc>().state.holdersMap?.isEmpty ?? true)) {
+      context.read<PortalBloc>().add(PortalListenSupportedTokensEvent());
+    }
+
+    if (holdersMap.isEmpty) return const SizedBox();
+
+    print('the holders map is $holdersMap');
+
+    final allocations = holdersMap.entries.map((e) {
+      final token = e.key;
+      final holder = e.value;
+      return {
+        'label': token,
+        'value': holder.tokenAmount + holder.solanaAmount,
+        'color': _colorForToken(token),
+      };
+    }).toList();
+
+    final total =
+        allocations.fold(0.0, (sum, item) => sum + (item['value'] as double));
+
+    if (total == 0) return const SizedBox();
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Your Wallet Allocation',
+            style: TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.bold,
+                fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Row(
+              children: List.generate(allocations.length, (index) {
+                final entry = allocations[index];
+                final widthFactor = (entry['value'] as double) / total;
+
+                return Expanded(
+                  flex: (widthFactor * 1000).round(),
+                  child: Container(
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: entry['color'] as Color,
+                      gradient: LinearGradient(
+                        colors: [
+                          (entry['color'] as Color).withOpacity(0.8),
+                          (entry['color'] as Color).withOpacity(1.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: allocations.map((entry) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: entry['color'] as Color,
+                      borderRadius: BorderRadius.circular(3), // Rounded corners
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "${entry['label']} ${(entry['value'] as double).toStringAsFixed(2)}",
+                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _colorForToken(String ticker) {
+    switch (ticker.toUpperCase()) {
+      case 'WAGUS':
+        return const Color.fromARGB(255, 126, 129, 130); // Light blue
+      case 'SOL':
+        return const Color(0xFFFFA726); // Orange
+      case 'LUX':
+        return const Color.fromARGB(255, 155, 50, 50); // Teal
+      case 'BONK':
+        return const Color.fromARGB(255, 184, 195, 28); // Pink
+      case 'BUCKAZOIDS':
+        return const Color.fromARGB(255, 241, 176, 24); // Purple
+      case 'PAWS':
+        return const Color.fromARGB(255, 241, 248, 241); // Green
+      default:
+        return const Color(0xFF757575); // Grey for unknowns
+    }
   }
 }

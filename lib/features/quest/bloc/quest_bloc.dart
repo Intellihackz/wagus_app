@@ -21,20 +21,42 @@ class QuestBloc extends Bloc<QuestEvent, QuestState> {
           'claimed_days': [],
           'claimed_days_reset_at': FieldValue.delete(),
         }, SetOptions(merge: true));
-
-        // ✅ Emit manually before listening to stream
         emit(state.copyWith(claimedDays: {}));
-
-        // ⏳ Slight delay to let Firestore process write
         await Future.delayed(const Duration(milliseconds: 300));
       }
+
+      // Fetch server time snapshot
+      await FirebaseFirestore.instance.collection('serverTime').doc('now').set(
+        {'timestamp': FieldValue.serverTimestamp()},
+        SetOptions(merge: true),
+      );
+      final serverNowSnap = await FirebaseFirestore.instance
+          .collection('serverTime')
+          .doc('now')
+          .get();
+      final serverNowData = serverNowSnap.data();
+      if (serverNowData == null || serverNowData['timestamp'] == null) {
+        print('⚠️ serverNow not available yet, falling back to local time');
+      }
+      final serverNow =
+          serverNowData?['timestamp'] as Timestamp? ?? Timestamp.now();
 
       await emit.forEach(
         UserService.getUserStream(event.address),
         onData: (data) {
           final claimedDaysList =
               List<int>.from(data.data()?['claimed_days'] ?? []);
-          return state.copyWith(claimedDays: claimedDaysList.toSet());
+          final lastClaimed = (data.data()?['last_claimed'] as Timestamp?);
+
+          print('[Bloc] serverNow = $serverNow, lastClaimed = $lastClaimed');
+
+          // ✅ Inject serverNow from outer scope each time
+          return state.copyWith(
+            claimedDays: claimedDaysList.toSet(),
+            lastClaimed: () => lastClaimed,
+            serverNow: () =>
+                serverNow, // ← Make sure it's passed here every time
+          );
         },
       );
     });

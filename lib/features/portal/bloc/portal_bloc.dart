@@ -16,12 +16,23 @@ import 'dart:convert';
 part 'portal_event.dart';
 part 'portal_state.dart';
 
+class _CachedHolder {
+  final Holder holder;
+  final DateTime timestamp;
+
+  _CachedHolder(this.holder) : timestamp = DateTime.now();
+
+  bool get isFresh =>
+      DateTime.now().difference(timestamp) < const Duration(minutes: 1);
+}
+
 class PortalBloc extends Bloc<PortalEvent, PortalState> {
   final PortalRepository portalRepository;
 
+  final Map<String, _CachedHolder> _holderCache = {};
+
   PortalBloc({required this.portalRepository})
-      : super(PortalState(
-            currentTokenAddress: '', selectedToken: Token.empty())) {
+      : super(PortalState(selectedToken: Token.empty())) {
     on<PortalInitialEvent>(_handleInitial);
     on<PortalAuthorizeEvent>(_handleAuthorize);
     on<PortalRefreshEvent>(_handleRefresh);
@@ -30,21 +41,43 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     on<PortalUpdateTierEvent>(_handleUpdateTier);
     on<PortalFetchHoldersCountEvent>(_handleFetchHoldersCount);
     on<PortalListenSupportedTokensEvent>((event, emit) async {
-      await emit.forEach<List<Token>>(
-        portalRepository.getSupportedTokens(),
-        onData: (tokens) {
-          final defaultToken = tokens.firstWhere(
-            (t) => t.ticker.toUpperCase() == 'WAGUS',
-            orElse: () => tokens.first,
-          );
+      final tokensStream = portalRepository.getSupportedTokens();
 
-          return state.copyWith(
-            supportedTokens: () => tokens,
-            selectedToken: () => defaultToken,
-          );
-        },
-      );
+      await for (final tokens in tokensStream) {
+        final defaultToken = tokens.firstWhere(
+          (t) => t.ticker.toUpperCase() == 'WAGUS',
+          orElse: () => tokens.first,
+        );
+
+        final user = state.user;
+
+        final walletAddress = user?.embeddedSolanaWallets.first.address;
+
+        final holdersMap = <String, Holder>{};
+
+        if (walletAddress != null) {
+          final entries = <MapEntry<String, Holder>>[];
+          for (final token in tokens) {
+            final holder =
+                await _getSolAndTokenBalances(walletAddress, token.address);
+            entries.add(MapEntry(token.ticker, holder));
+            await Future.delayed(
+                const Duration(milliseconds: 200)); // avoid rate limit
+          }
+
+          holdersMap.addEntries(entries);
+        }
+
+        emit(state.copyWith(
+          supportedTokens: () => tokens,
+          selectedToken: () => defaultToken,
+          holdersMap: () => holdersMap,
+          holder: () => holdersMap[defaultToken.ticker],
+        ));
+        break; // stop after first emission
+      }
     });
+
     on<PortalSetSelectedTokenEvent>((event, emit) async {
       final user = state.user;
       if (user == null || user.embeddedSolanaWallets.isEmpty) return;
@@ -61,20 +94,13 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       emit(state.copyWith(
         selectedToken: () => event.token,
         holdersMap: () => updatedMap,
-        holder: () => updatedHolder, // optional
-      ));
-
-      emit(state.copyWith(
-        selectedToken: () => event.token,
-        holdersMap: () => updatedMap,
+        holder: () => updatedHolder,
       ));
     });
   }
 
   Future<void> _handleInitial(
       PortalInitialEvent event, Emitter<PortalState> emit) async {
-    await _setTokenAddress(emit);
-
     final user = await portalRepository.connect();
 
     if (!PrivyService().isAuthenticated()) {
@@ -100,13 +126,16 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
         user: () => user,
         holdersMap: () => holdersMap,
         tierStatus: tierEnum,
+        currentTokenAddress: state.selectedToken.address,
       ));
+
       return;
     } else {
       emit(state.copyWith(
         user: () => user,
         holdersMap: () => holdersMap,
         tierStatus: tierEnum,
+        currentTokenAddress: state.selectedToken.address,
       ));
     }
 
@@ -126,7 +155,7 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
         'method': 'getTokenAccounts',
         'params': {
           'limit': 1000,
-          'mint': state.currentTokenAddress,
+          'mint': state.selectedToken.address,
           if (cursor != null) 'cursor': cursor,
         },
       };
@@ -185,8 +214,11 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     final wallet = user.embeddedSolanaWallets.first.address;
     await UserService().updateUserLogin(wallet);
 
+    add(PortalListenSupportedTokensEvent());
+
     if (PrivyService().isAuthenticated()) {
       add(PortalInitialEvent());
+      add(PortalListenSupportedTokensEvent());
     }
   }
 
@@ -194,24 +226,22 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       PortalRefreshEvent event, Emitter<PortalState> emit) async {
     try {
       final user = state.user;
-      if (user == null || user.embeddedSolanaWallets.isEmpty) return;
+      final tokens = state.supportedTokens;
+      if (user == null || user.embeddedSolanaWallets.isEmpty || tokens.isEmpty)
+        return;
 
       final address = user.embeddedSolanaWallets.first.address;
+      final entries = await Future.wait(tokens.map((token) async {
+        final holder = await _getSolAndTokenBalances(address, token.address);
+        return MapEntry(token.ticker, holder);
+      }));
 
-      final holder =
-          await _getSolAndTokenBalances(address, state.currentTokenAddress);
-
-      final holdersCount =
-          await portalRepository.getHoldersCount(state.currentTokenAddress);
-
-      final updatedMap = Map<String, Holder>.from(state.holdersMap ?? {});
-      final selectedTicker = state.selectedToken.ticker ?? 'WAGUS';
-      updatedMap[selectedTicker] = holder;
+      final holdersMap = Map<String, Holder>.fromEntries(entries);
+      final selectedTicker = state.selectedToken.ticker;
 
       emit(state.copyWith(
-        holdersCount: holdersCount,
-        holder: () => holder,
-        holdersMap: () => updatedMap,
+        holdersMap: () => holdersMap,
+        holder: () => holdersMap[selectedTicker],
       ));
     } catch (e) {
       debugPrint('[PortalBloc] Refresh failed: $e');
@@ -221,6 +251,13 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
 
   Future<Holder> _getSolAndTokenBalances(
       String walletAddress, String mintAddress) async {
+    final cacheKey = '$walletAddress-$mintAddress';
+    final cached = _holderCache[cacheKey];
+
+    if (cached != null && cached.isFresh) {
+      return cached.holder;
+    }
+
     final rpcUrl = dotenv.env['HELIUS_RPC']!;
     final connection = web3.Connection(web3.Cluster(Uri.parse(rpcUrl)));
 
@@ -236,7 +273,8 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       pubkey,
       filter: web3.TokenAccountsFilter.mint(mintPubkey),
       config: web3.GetTokenAccountsByOwnerConfig(
-          encoding: web3.AccountEncoding.jsonParsed),
+        encoding: web3.AccountEncoding.jsonParsed,
+      ),
     );
 
     double tokenBalance = 0;
@@ -249,25 +287,21 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       }
     }
 
-    return Holder(
+    final holder = Holder(
       solanaAmount: solBalance,
       tokenAmount: tokenBalance,
       holderType: HolderType.plankton,
       holdings: tokenBalance,
     );
+
+    // ✅ cache result
+    _holderCache[cacheKey] = _CachedHolder(holder);
+
+    return holder;
   }
 
   Future<void> _handleTokenAddress(
-      PortalListenTokenAddressEvent event, Emitter<PortalState> emit) async {
-    await emit.forEach(portalRepository.getCurrentTokenAddress(),
-        onData: (snapshot) {
-      final currentTokenAddress = snapshot.docs.map((doc) {
-        return doc.data() as Map<String, dynamic>;
-      }).first['address'];
-      debugPrint('Token address updated: $currentTokenAddress');
-      return state.copyWith(currentTokenAddress: currentTokenAddress);
-    });
-  }
+      PortalListenTokenAddressEvent event, Emitter<PortalState> emit) async {}
 
   Future<void> _handleClear(
       PortalClearEvent event, Emitter<PortalState> emit) async {
@@ -290,16 +324,7 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
   Future<void> _handleFetchHoldersCount(
       PortalFetchHoldersCountEvent event, Emitter<PortalState> emit) async {
     final holdersCount =
-        await portalRepository.getHoldersCount(state.currentTokenAddress);
+        await portalRepository.getHoldersCount(state.selectedToken.address);
     emit(state.copyWith(holdersCount: holdersCount));
-  }
-
-  Future<void> _setTokenAddress(Emitter<PortalState> emit) async {
-    final tokenAddressSnapshot =
-        await portalRepository.getCurrentTokenAddress().first;
-    final currentTokenAddress = tokenAddressSnapshot.docs.map((doc) {
-      return doc.data() as Map<String, dynamic>;
-    }).first['address'];
-    emit(state.copyWith(currentTokenAddress: currentTokenAddress));
   }
 }

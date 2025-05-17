@@ -37,7 +37,6 @@ class Home extends HookWidget {
           if (portalState.user != null &&
               portalState.selectedToken.address.isNotEmpty) {
             final homeBloc = context.read<HomeBloc>();
-            final bankRepo = context.read<BankRepository>();
 
             getActiveWallet().then((wallet) async {
               if (wallet != null) {
@@ -903,11 +902,10 @@ class _ChatInputBar extends StatelessWidget {
                             .read<PortalBloc>()
                             .state
                             .holdersMap?[context
-                                    .read<PortalBloc>()
-                                    .state
-                                    .selectedToken
-                                    .ticker ??
-                                'WAGUS']
+                                .read<PortalBloc>()
+                                .state
+                                .selectedToken
+                                .ticker]
                             ?.tokenAmount
                             .toInt(),
 
@@ -919,20 +917,15 @@ class _ChatInputBar extends StatelessWidget {
                             HomeSendMessageEvent(
                               message: message,
                               currentTokenAddress: context
-                                      .read<PortalBloc>()
-                                      .state
-                                      .selectedToken
-                                      .address ??
-                                  context
-                                      .read<PortalBloc>()
-                                      .state
-                                      .currentTokenAddress,
+                                  .read<PortalBloc>()
+                                  .state
+                                  .selectedToken
+                                  .address,
                               ticker: context
-                                      .read<PortalBloc>()
-                                      .state
-                                      .selectedToken
-                                      .ticker ??
-                                  'WAGUS',
+                                  .read<PortalBloc>()
+                                  .state
+                                  .selectedToken
+                                  .ticker,
                             ),
                           );
 
@@ -978,7 +971,7 @@ class _ChatInputBar extends StatelessWidget {
 
                       final parsed = ChatCommandParser.parse(text);
 
-                      // Handle /upgrade
+                      // Handle /upgrade in UI (because it's a dialog flow)
                       if (parsed?.action == '/upgrade') {
                         if (tier == TierStatus.adventurer) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -994,187 +987,93 @@ class _ChatInputBar extends StatelessWidget {
                         controller.clear();
                         FocusScope.of(context).unfocus();
 
-                        final portalState = context.read<PortalBloc>().state;
-
                         final bankRepo = context.read<BankRepository>();
-
                         final double usdTarget = 3.5;
                         final double usdPerToken =
                             portalState.selectedToken.usdPerToken.toDouble();
-
                         final amount = (usdTarget / usdPerToken).ceil();
 
                         showDialog(
                           context: context,
                           barrierDismissible: false,
                           builder: (_) => UpgradeDialog(
-                              tokenAmount: amount,
-                              tierStatus: tier,
-                              wallet: wallet,
-                              mint: context
-                                  .read<PortalBloc>()
-                                  .state
-                                  .currentTokenAddress,
-                              onSuccess: () async {
-                                try {
-                                  print('[UpgradeDialog] onSuccess started');
+                            tokenAmount: amount,
+                            tierStatus: tier,
+                            wallet: wallet,
+                            mint: context
+                                .read<PortalBloc>()
+                                .state
+                                .selectedToken
+                                .address,
+                            onSuccess: () async {
+                              try {
+                                final treasuryWallet =
+                                    dotenv.env['TREASURY_WALLET_ADDRESS'];
+                                if (treasuryWallet == null) return false;
 
-                                  final treasuryWallet =
-                                      dotenv.env['TREASURY_WALLET_ADDRESS'];
-                                  if (treasuryWallet == null) {
-                                    print(
-                                        '[UpgradeDialog] ERROR: TREASURY_WALLET_ADDRESS is null');
-                                    return false;
-                                  }
+                                final currentTokenAddress = context
+                                    .read<PortalBloc>()
+                                    .state
+                                    .selectedToken
+                                    .address;
+                                await bankRepo.withdrawFunds(
+                                  wallet: wallet,
+                                  amount: amount,
+                                  destinationAddress: treasuryWallet,
+                                  wagusMint: currentTokenAddress,
+                                );
 
-                                  final currentTokenAddress = context
-                                      .read<PortalBloc>()
-                                      .state
-                                      .selectedToken
-                                      .address;
-                                  final wallet = context
-                                      .read<PortalBloc>()
-                                      .state
-                                      .user
-                                      ?.embeddedSolanaWallets
-                                      .first;
+                                final systemMsg = Message(
+                                  text:
+                                      '[UPGRADE] You’ve been upgraded to Adventurer 🧙‍♂️',
+                                  sender: 'System',
+                                  tier: TierStatus.system,
+                                  room: 'General',
+                                );
 
-                                  if (wallet == null) {
-                                    print(
-                                        '[UpgradeDialog] ERROR: Wallet is null');
-                                    return false;
-                                  }
+                                context
+                                    .read<HomeBloc>()
+                                    .add(HomeSendMessageEvent(
+                                      message: systemMsg,
+                                      currentTokenAddress: currentTokenAddress,
+                                      ticker: context
+                                          .read<PortalBloc>()
+                                          .state
+                                          .selectedToken
+                                          .ticker,
+                                    ));
 
-                                  await bankRepo.withdrawFunds(
-                                    wallet: wallet,
-                                    amount: amount,
-                                    destinationAddress: treasuryWallet,
-                                    wagusMint: currentTokenAddress,
-                                  );
+                                context.read<PortalBloc>().add(
+                                      PortalUpdateTierEvent(
+                                          TierStatus.adventurer,
+                                          wallet.address),
+                                    );
 
-                                  final systemMsg = Message(
-                                    text:
-                                        '[UPGRADE] You’ve been upgraded to Adventurer 🧙‍♂️',
-                                    sender: 'System',
-                                    tier: TierStatus.system,
-                                    room: 'General',
-                                  );
+                                await Dio().post(
+                                  'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com/upgrade',
+                                  data: {
+                                    'userWallet': wallet.address,
+                                    'amount': amount,
+                                  },
+                                  options: Options(headers: {
+                                    'Authorization':
+                                        'Bearer ${dotenv.env['INTERNAL_API_KEY']}',
+                                  }),
+                                );
 
-                                  context.read<HomeBloc>().add(
-                                        HomeSendMessageEvent(
-                                          message: systemMsg,
-                                          currentTokenAddress: context
-                                                  .read<PortalBloc>()
-                                                  .state
-                                                  .selectedToken
-                                                  .address ??
-                                              context
-                                                  .read<PortalBloc>()
-                                                  .state
-                                                  .currentTokenAddress,
-                                          ticker: context
-                                                  .read<PortalBloc>()
-                                                  .state
-                                                  .selectedToken
-                                                  .ticker ??
-                                              'WAGUS',
-                                        ),
-                                      );
-
-                                  context.read<PortalBloc>().add(
-                                        PortalUpdateTierEvent(
-                                            TierStatus.adventurer,
-                                            wallet.address),
-                                      );
-
-                                  await Dio().post(
-                                    'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com/upgrade',
-                                    data: {
-                                      'userWallet': wallet.address,
-                                      'amount': amount,
-                                    },
-                                    options: Options(headers: {
-                                      'Authorization':
-                                          'Bearer ${dotenv.env['INTERNAL_API_KEY']}',
-                                    }),
-                                  );
-
-                                  print('[UpgradeDialog] Success');
-
-                                  Navigator.of(context).pop();
-                                  return true;
-                                } catch (e, st) {
-                                  print('[UpgradeDialog] CRASH: $e');
-                                  print(st);
-                                  return false;
-                                }
-                              }),
+                                Navigator.of(context).pop();
+                                return true;
+                              } catch (_) {
+                                return false;
+                              }
+                            },
+                          ),
                         );
 
                         return;
                       }
 
-                      // Handle /send
-                      if (parsed?.action == '/send' &&
-                          parsed!.args.length >= 2) {
-                        controller.clear();
-                        FocusScope.of(context).unfocus();
-
-                        try {
-                          final amount = int.tryParse(parsed.args[0]) ?? 0;
-                          final recipient = parsed.args[1];
-                          final mint = context
-                              .read<PortalBloc>()
-                              .state
-                              .currentTokenAddress;
-
-                          final ticker = context
-                              .read<PortalBloc>()
-                              .state
-                              .selectedToken
-                              .ticker;
-
-                          context.read<HomeBloc>().add(
-                                HomeSendMessageEvent(
-                                  message: Message(
-                                    text:
-                                        '[SEND] ${wallet.address} has sent $amount \$$ticker to $recipient 📨',
-                                    sender: 'System',
-                                    tier: TierStatus.system,
-                                    room: selectedRoom,
-                                  ),
-                                  currentTokenAddress: context
-                                          .read<PortalBloc>()
-                                          .state
-                                          .selectedToken
-                                          .address ??
-                                      context
-                                          .read<PortalBloc>()
-                                          .state
-                                          .currentTokenAddress,
-                                  ticker: context
-                                          .read<PortalBloc>()
-                                          .state
-                                          .selectedToken
-                                          .ticker ??
-                                      'WAGUS',
-                                ),
-                              );
-
-                          await context.read<BankRepository>().withdrawFunds(
-                                wallet: wallet,
-                                amount: amount,
-                                destinationAddress: recipient,
-                                wagusMint: mint,
-                              );
-                        } catch (e) {
-                          debugPrint(
-                              '[ChatCommand] Failed to execute /send: $e');
-                        }
-                        return;
-                      }
-
-                      // Send as a regular message
+                      // ✅ Always send message (regular or command)
                       context.read<HomeBloc>().add(
                             HomeSendMessageEvent(
                               message: Message(
@@ -1191,40 +1090,32 @@ class _ChatInputBar extends StatelessWidget {
                                     .read<PortalBloc>()
                                     .state
                                     .holdersMap?[context
-                                            .read<PortalBloc>()
-                                            .state
-                                            .selectedToken
-                                            .ticker ??
-                                        'WAGUS']
+                                        .read<PortalBloc>()
+                                        .state
+                                        .selectedToken
+                                        .ticker]
                                     ?.tokenAmount
                                     .toInt(),
                                 replyToMessageId: homeState.replyingTo?.id,
                                 replyToText: homeState.replyingTo?.text,
                               ),
                               currentTokenAddress: context
-                                      .read<PortalBloc>()
-                                      .state
-                                      .selectedToken
-                                      .address ??
-                                  context
-                                      .read<PortalBloc>()
-                                      .state
-                                      .currentTokenAddress,
+                                  .read<PortalBloc>()
+                                  .state
+                                  .selectedToken
+                                  .address,
                               ticker: context
-                                      .read<PortalBloc>()
-                                      .state
-                                      .selectedToken
-                                      .ticker ??
-                                  'WAGUS',
+                                  .read<PortalBloc>()
+                                  .state
+                                  .selectedToken
+                                  .ticker,
                             ),
                           );
 
                       context.read<HomeBloc>().add(HomeCommandPopupClosed());
-
                       context
                           .read<HomeBloc>()
                           .add(HomeSetReplyMessageEvent(null));
-
                       controller.clear();
                       FocusScope.of(context).unfocus();
                     }

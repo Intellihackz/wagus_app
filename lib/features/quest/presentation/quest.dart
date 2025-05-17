@@ -146,12 +146,26 @@ class DailyRewardsSheet extends StatelessWidget {
       builder: (context, state) {
         final portalState = context.read<PortalBloc>().state;
         final wallet = portalState.user?.embeddedSolanaWallets.first.address;
+        final lastClaimed = state.lastClaimed?.toDate();
+        final serverNow = state.serverNow?.toDate();
+
+        print('[UI] lastClaimed: $lastClaimed');
+        print('[UI] serverNow: $serverNow');
+
+        Duration? timeRemaining;
+        if (lastClaimed != null && serverNow != null) {
+          final nextClaimTime = lastClaimed.add(const Duration(hours: 24));
+          timeRemaining = nextClaimTime.difference(serverNow);
+          if (timeRemaining.isNegative) timeRemaining = Duration.zero;
+        }
+
         final isAdventurer = portalState.tierStatus == TierStatus.adventurer;
 
         final List<String> solAmounts = List.generate(
           6,
           (_) => isAdventurer ? '\$0.25 in SOL' : '\$0.05 in SOL',
         )..add(isAdventurer ? '\$1.00 in SOL' : '\$0.15 in SOL');
+        print('[UI] timeRemaining: $timeRemaining');
 
         return SingleChildScrollView(
           child: Padding(
@@ -161,6 +175,45 @@ class DailyRewardsSheet extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Center(
+                    child: timeRemaining == null
+                        ? const SizedBox.shrink()
+                        : timeRemaining > Duration.zero
+                            ? TweenAnimationBuilder<Duration>(
+                                key: ValueKey(timeRemaining.inSeconds),
+                                duration: timeRemaining,
+                                tween: Tween(
+                                    begin: timeRemaining, end: Duration.zero),
+                                onEnd: () {
+                                  context.read<QuestBloc>().add(
+                                        QuestInitialEvent(address: wallet!),
+                                      );
+                                },
+                                builder: (_, Duration value, __) {
+                                  String twoDigits(int n) =>
+                                      n.toString().padLeft(2, '0');
+                                  final hours = twoDigits(value.inHours);
+                                  final minutes =
+                                      twoDigits(value.inMinutes.remainder(60));
+                                  final seconds =
+                                      twoDigits(value.inSeconds.remainder(60));
+                                  return Text(
+                                    'Next claim in: $hours:$minutes:$seconds',
+                                    style:
+                                        const TextStyle(color: Colors.white70),
+                                  );
+                                },
+                              )
+                            : const Text(
+                                '✅ You can now claim your reward!',
+                                style: TextStyle(
+                                    color: Colors.green, fontSize: 14),
+                              ),
+                  ),
+                ),
+                SizedBox(height: 16),
                 Row(
                   children: [
                     BackButton(

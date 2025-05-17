@@ -6,6 +6,8 @@ class QuestState extends Equatable {
   final Set<int> claimedDays;
   final int? currentlyClaimingDay;
   final bool claimSuccess;
+  final Timestamp? lastClaimed;
+  final Timestamp? serverNow;
 
   const QuestState({
     this.isLoading = false,
@@ -13,6 +15,8 @@ class QuestState extends Equatable {
     this.claimedDays = const {},
     this.currentlyClaimingDay,
     this.claimSuccess = false,
+    this.lastClaimed,
+    this.serverNow,
   });
 
   QuestState copyWith({
@@ -21,6 +25,8 @@ class QuestState extends Equatable {
     Set<int>? claimedDays,
     int? Function()? currentlyClaimingDay,
     bool? claimSuccess,
+    Timestamp? Function()? lastClaimed,
+    Timestamp? Function()? serverNow,
   }) {
     return QuestState(
       isLoading: isLoading ?? this.isLoading,
@@ -30,6 +36,8 @@ class QuestState extends Equatable {
           ? currentlyClaimingDay()
           : this.currentlyClaimingDay,
       claimSuccess: claimSuccess ?? this.claimSuccess,
+      lastClaimed: lastClaimed != null ? lastClaimed() : this.lastClaimed,
+      serverNow: serverNow != null ? serverNow() : this.serverNow,
     );
   }
 
@@ -39,6 +47,8 @@ class QuestState extends Equatable {
         errorMessage,
         claimedDays,
         currentlyClaimingDay,
-        claimSuccess
+        claimSuccess,
+        lastClaimed,
+        serverNow,
       ];
 }

@@ -4,7 +4,6 @@ class PortalState extends Equatable {
   final int holdersCount;
   final PrivyUser? user;
   final Holder? holder;
-  final String currentTokenAddress;
   final TierStatus tierStatus;
   final List<Token> supportedTokens;
   final Token selectedToken;
@@ -14,7 +13,6 @@ class PortalState extends Equatable {
     this.holdersCount = 0,
     this.user,
     this.holder,
-    required this.currentTokenAddress,
     this.tierStatus = TierStatus.none,
     this.supportedTokens = const [],
     required this.selectedToken,
@@ -36,7 +34,6 @@ class PortalState extends Equatable {
       holdersCount: holdersCount ?? this.holdersCount,
       user: user?.call() ?? this.user,
       holder: holder?.call() ?? this.holder,
-      currentTokenAddress: currentTokenAddress ?? this.currentTokenAddress,
       tierStatus: tierStatus ?? this.tierStatus,
       supportedTokens: supportedTokens?.call() ?? this.supportedTokens,
       selectedToken: selectedToken?.call() ?? this.selectedToken,
@@ -49,7 +46,6 @@ class PortalState extends Equatable {
         holdersCount,
         user,
         holder,
-        currentTokenAddress,
         tierStatus,
         supportedTokens,
         selectedToken,

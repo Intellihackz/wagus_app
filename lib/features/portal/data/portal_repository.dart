@@ -28,10 +28,6 @@ class PortalRepository {
     return PrivyService().privy.user;
   }
 
-  Stream<QuerySnapshot> getCurrentTokenAddress() {
-    return currentTokenAddressCollection.snapshots();
-  }
-
   Stream<List<Token>> getSupportedTokens() {
     return FirebaseFirestore.instance
         .collection('supported_tokens')

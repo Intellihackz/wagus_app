@@ -107,7 +107,7 @@ class Bank extends HookWidget {
                             spacing: 24.0,
                             children: [
                               Text(
-                                'Deposit \$SOL or \$${context.read<PortalBloc>().state.selectedToken.ticker ?? '\$WAGUS'} Tokens to this address:',
+                                'Deposit \$SOL or \$${context.read<PortalBloc>().state.selectedToken.ticker} Tokens to this address:',
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   color: Colors.white70,
@@ -171,8 +171,8 @@ class Bank extends HookWidget {
                                 builder: (context, portalState) {
                                   final selectedToken =
                                       portalState.selectedToken;
-                                  final holder = portalState.holdersMap?[
-                                      selectedToken.ticker ?? 'WAGUS'];
+                                  final holder = portalState
+                                      .holdersMap?[selectedToken.ticker];
 
                                   return Column(
                                     children: [
@@ -184,20 +184,22 @@ class Bank extends HookWidget {
                                         onChanged: (Token? newToken) {
                                           if (newToken != null) {
                                             context.read<PortalBloc>().add(
-                                                PortalSetSelectedTokenEvent(
-                                                    newToken));
+                                                  PortalSetSelectedTokenEvent(
+                                                      newToken),
+                                                );
 
-                                            debugPrint(
-                                                'Mint address: ${selectedToken.address}');
-                                            debugPrint(context
-                                                    .read<PortalBloc>()
-                                                    .state
-                                                    .holdersMap
-                                                    ?.keys
-                                                    .toString() ??
-                                                'No holders map found' '');
-                                            debugPrint(
-                                                'Token balance for selected: ${holder?.tokenAmount}');
+                                            Future.delayed(
+                                                Duration(milliseconds: 100),
+                                                () {
+                                              final updatedToken = context
+                                                  .read<PortalBloc>()
+                                                  .state
+                                                  .selectedToken;
+                                              debugPrint(
+                                                  '✅ NEW Mint address: ${updatedToken.address}');
+                                              debugPrint(
+                                                  '✅ NEW Ticker: ${updatedToken.ticker}');
+                                            });
                                           }
                                         },
                                         items: portalState.supportedTokens
@@ -278,7 +280,7 @@ class Bank extends HookWidget {
                                               ),
                                             ),
                                             Text(
-                                              '${(holder?.tokenAmount ?? 0).toCompact()} \$${selectedToken.ticker ?? 'WAGUS'}',
+                                              '${(holder?.tokenAmount ?? 0).toCompact()} \$${selectedToken.ticker}',
                                               style: const TextStyle(
                                                 color: Colors.white70,
                                                 fontSize: 14,
@@ -339,7 +341,7 @@ class Bank extends HookWidget {
                                                   return AlertDialog(
                                                     scrollable: true,
                                                     title: Text(
-                                                      'Withdraw \$${context.read<PortalBloc>().state.selectedToken.ticker ?? '\$WAGUS'} Tokens',
+                                                      'Withdraw \$${context.read<PortalBloc>().state.selectedToken.ticker} Tokens',
                                                       style: TextStyle(
                                                         color: AppPalette
                                                             .contrastDark,
@@ -393,7 +395,7 @@ class Bank extends HookWidget {
                                         ),
                                       ),
                                       child: Text(
-                                        'Withdraw \$${context.read<PortalBloc>().state.selectedToken.ticker ?? '\$WAGUS'} Tokens',
+                                        'Withdraw \$${context.read<PortalBloc>().state.selectedToken.ticker} Tokens',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           color: context.appColors.contrastDark,
@@ -547,7 +549,7 @@ class Bank extends HookWidget {
                       final token = portalState.selectedToken;
                       final holdersMap = portalState.holdersMap;
 
-                      final tokenHolder = holdersMap?[token.ticker ?? 'WAGUS'];
+                      final tokenHolder = holdersMap?[token.ticker];
 
                       amountController.text = isTokenWithdrawal
                           ? tokenHolder?.tokenAmount.toInt().toString() ?? ''

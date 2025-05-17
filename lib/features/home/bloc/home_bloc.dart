@@ -6,7 +6,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
-import 'package:privy_flutter/privy_flutter.dart';
 import 'package:wagus/features/bank/data/bank_repository.dart';
 import 'package:wagus/features/home/data/home_repository.dart';
 import 'package:wagus/features/home/domain/chat_command.dart';
@@ -101,14 +100,50 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         String currentTokenAddress, String ticker) async {
       switch (cmd.action.toLowerCase()) {
         case '/send':
-          final amount = cmd.args.isNotEmpty ? cmd.args[0] : '?';
-          final target = cmd.args.length > 1 ? cmd.args[1] : 'unknown';
-          return original.copyWith(
-            text:
-                '[SEND] ${original.sender} has sent $amount \$$ticker to $target 📨',
-            sender: 'System',
-            tier: TierStatus.system,
-          );
+          final amount = int.tryParse(cmd.args[0]) ?? 0;
+          final recipient = cmd.args.length > 1 ? cmd.args[1] : '';
+
+          if (amount <= 0 || recipient.isEmpty) {
+            return original.copyWith(
+              text: '[SEND] Invalid usage. Try: /send 100 <wallet>',
+              sender: 'System',
+              tier: TierStatus.system,
+            );
+          }
+
+          final user = await PrivyService().initialize();
+          final wallet = user?.embeddedSolanaWallets.first;
+          final mint = currentTokenAddress;
+
+          if (wallet == null) {
+            return original.copyWith(
+              text: '[SEND] Error: Wallet not connected.',
+              sender: 'System',
+              tier: TierStatus.system,
+            );
+          }
+
+          try {
+            await bankRepository.withdrawFunds(
+              wallet: wallet,
+              amount: amount,
+              destinationAddress: recipient,
+              wagusMint: mint,
+            );
+
+            return original.copyWith(
+              text:
+                  '[SEND] ${original.sender} has sent $amount \$$ticker to $recipient 📨',
+              sender: 'System',
+              tier: TierStatus.system,
+            );
+          } catch (e) {
+            return original.copyWith(
+              text: '[SEND] ❌ Failed to send tokens: $e',
+              sender: 'System',
+              tier: TierStatus.system,
+            );
+          }
 
         case '/burn':
           final amount = int.tryParse(cmd.args.firstOrNull ?? '') ?? 0;

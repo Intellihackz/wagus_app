@@ -97,4 +97,14 @@ class UserService {
   Future<void> setUserOffline(String walletAddress) async {
     await usersCollection.doc(walletAddress).update({'is_online': false});
   }
+
+  Future<void> setUsername(String walletAddress, String username) async {
+    if (username.length > 8) {
+      throw Exception("Username must be 8 characters or fewer.");
+    }
+
+    await usersCollection.doc(walletAddress).set({
+      'username': username,
+    }, SetOptions(merge: true));
+  }
 }
