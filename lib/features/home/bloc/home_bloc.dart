@@ -61,8 +61,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
                 winner.isNotEmpty &&
                 status == 'ended' &&
                 hasSent == true; // ✅ Add this
+            final alreadyAnnounced = (data['announced'] ?? false) == true;
 
-            if (shouldAnnounce && !state.announcedGiveawayIds.contains(id)) {
+            if (shouldAnnounce &&
+                !alreadyAnnounced &&
+                !state.announcedGiveawayIds.contains(id)) {
               final newIds = Set<String>.from(state.announcedGiveawayIds)
                 ..add(id);
 
@@ -71,7 +74,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               add(HomeSendMessageEvent(
                 message: Message(
                   text:
-                      '[GIVEAWAY] 🎉 $amount \$$event.ticker was rewarded! Winner: ${winner.substring(0, 4)}...${winner.substring(winner.length - 4)}',
+                      '[GIVEAWAY] 🎉 $amount \$${event.ticker} was rewarded! Winner: ${winner.substring(0, 4)}...${winner.substring(winner.length - 4)}',
                   sender: 'System',
                   tier: TierStatus.system,
                   room: event.room,
@@ -87,7 +90,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
                   .doc(id)
                   .update({'announced': true});
 
-              return state.copyWith(announcedGiveawayIds: newIds);
+              emit(state.copyWith(announcedGiveawayIds: newIds));
             }
           }
 
@@ -234,6 +237,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             'room': original.room,
             'pending': false, // ✅
             'tokenId': ticker.toLowerCase(),
+            'announced': false, // ✅ ADD THIS
           });
 
           await FirebaseMessaging.instance.subscribeToTopic('global_users');

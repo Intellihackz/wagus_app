@@ -20,8 +20,8 @@ class HomeRepository {
     return FirebaseFirestore.instance
         .collection('giveaways')
         .where('room', isEqualTo: room)
-        .where('status',
-            whereIn: ['started', 'ended']) // optionally 'completed'
+        .where('status', isEqualTo: 'ended')
+        .where('hasSent', isEqualTo: true)
         .where('announced', isEqualTo: false)
         .orderBy('endTimestamp', descending: true)
         .snapshots();
@@ -54,13 +54,6 @@ class HomeRepository {
         .startAfterDocument(lastDoc)
         .limit(limit)
         .get();
-  }
-
-  Stream<DocumentSnapshot> listenToGiveaway(String giveawayId) {
-    return FirebaseFirestore.instance
-        .collection('giveaways')
-        .doc(giveawayId)
-        .snapshots();
   }
 
   Stream<QuerySnapshot> listenToRooms() {

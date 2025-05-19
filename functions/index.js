@@ -237,10 +237,6 @@ export const pickGiveawayWinner = onSchedule(
               timestamp: Date.now(),
             });
             console.log(`💸 Injected /send ${amount} to ${winner}`);
-
-            await doc.ref.update({
-              hasSent: true, // ✅ Add this
-            });
           }
 
           console.log(
@@ -343,10 +339,6 @@ export const runGiveawayWinnerNow = onRequest(async (req, res) => {
               timestamp: Date.now(),
             });
             console.log(`💸 Injected /send ${amount} to ${winner}`);
-
-            await doc.ref.update({
-              hasSent: true,
-            });
           }
 
           console.log(

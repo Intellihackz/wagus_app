@@ -74,17 +74,63 @@ class Home extends HookWidget {
       builder: (context, portalState) {
         return BlocConsumer<HomeBloc, HomeState>(
           listenWhen: (prev, curr) => prev.messages != curr.messages,
-          listener: (context, homeState) {
+          listener: (context, homeState) async {
             if (homeState.canLaunchConfetti) {
-              // ignore: unused_local_variable
-              final controller = Confetti.launch(
+              Confetti.launch(
                 context,
                 options: const ConfettiOptions(
-                    particleCount: 100, spread: 70, y: 0.7),
+                  particleCount: 100,
+                  spread: 70,
+                  y: 0.7,
+                ),
               );
 
+              // Trigger once
               context.read<HomeBloc>().add(
-                  HomeLaunchGiveawayConfettiEvent(canLaunchConfetti: false));
+                    HomeLaunchGiveawayConfettiEvent(canLaunchConfetti: false),
+                  );
+
+              // 🧠 Now scan for just-ended giveaways that need a transfer
+              final giveaways = await FirebaseFirestore.instance
+                  .collection('giveaways')
+                  .where('status', isEqualTo: 'ended')
+                  .where('hasSent', isEqualTo: false)
+                  .where('announced', isEqualTo: false)
+                  .get();
+
+              final currentUser = context.read<PortalBloc>().state.user;
+              final selectedToken =
+                  context.read<PortalBloc>().state.selectedToken;
+              final wallet = currentUser?.embeddedSolanaWallets.first;
+
+              for (final doc in giveaways.docs) {
+                final data = doc.data();
+                final winner = data['winner'];
+                final amount = data['amount'];
+                final host = data['host'];
+
+                if (wallet?.address == host &&
+                    winner != null &&
+                    amount != null) {
+                  try {
+                    await context.read<BankRepository>().withdrawFunds(
+                          wallet: wallet!,
+                          amount: amount,
+                          destinationAddress: winner,
+                          wagusMint: selectedToken.address,
+                        );
+
+                    await doc.reference.update({
+                      'hasSent': true,
+                    });
+
+                    debugPrint(
+                        '[Giveaway] ✅ Sent $amount ${selectedToken.ticker} to $winner');
+                  } catch (e) {
+                    debugPrint('[Giveaway] ❌ Failed to send prize: $e');
+                  }
+                }
+              }
             }
           },
           builder: (context, homeState) {
