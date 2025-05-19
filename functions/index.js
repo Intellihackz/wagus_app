@@ -291,7 +291,10 @@ export const runGiveawayWinnerNow = onRequest(async (req, res) => {
             console.log(`💸 Injected /send ${amount} to ${winner}`);
           }
 
-          await doc.ref.update({ announced: true });
+          await doc.ref.update({
+            announced: true,
+            hasSent: true,
+          });
 
           console.log(
             `✅ Giveaway ended: ${doc.id}, winner: ${winner ?? "none"}`

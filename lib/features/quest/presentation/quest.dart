@@ -129,7 +129,10 @@ class DailyRewardsSheet extends StatelessWidget {
     return BlocConsumer<QuestBloc, QuestState>(
       listener: (context, state) {
         if (state.claimSuccess) {
-          Navigator.of(context).pop();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.of(context).pop();
+          });
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('✅ Reward Claimed Successfully!'),
@@ -225,10 +228,14 @@ class DailyRewardsSheet extends StatelessWidget {
                 SizedBox(height: 16),
                 Row(
                   children: [
-                    BackButton(
-                      color: Colors.white,
-                      onPressed: () => Navigator.of(sheetContext).pop(),
-                    ),
+                    if (state.claimSuccess ||
+                        state.currentlyClaimingDay != null)
+                      const SizedBox(width: 48) // prevent layout shift
+                    else
+                      BackButton(
+                        color: Colors.white,
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                      ),
                     const Text(
                       'Daily Rewards',
                       style: TextStyle(
