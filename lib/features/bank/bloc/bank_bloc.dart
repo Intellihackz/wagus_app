@@ -25,6 +25,7 @@ class BankBloc extends Bloc<BankEvent, BankState> {
           amount: event.amount,
           destinationAddress: event.destinationAddress,
           wagusMint: event.token.address,
+          decimals: event.token.decimals,
         );
 
         emit(state.copyWith(

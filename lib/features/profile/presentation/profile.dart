@@ -93,74 +93,59 @@ class ProfileScreen extends HookWidget {
                                   const EdgeInsets.symmetric(horizontal: 32.0),
                               child: Column(
                                 children: [
-                                  BlocSelector<PortalBloc, PortalState,
-                                      TierStatus>(
-                                    selector: (state) {
-                                      return state.tierStatus;
-                                    },
-                                    builder: (context, state) {
-                                      if (state == TierStatus.adventurer) {
-                                        return Center(
-                                          child: SizedBox(
-                                            width: 220, // adjust as needed
-                                            child: TextField(
-                                              controller: usernameController,
-                                              maxLength: 8,
-                                              textAlign: TextAlign.center,
-                                              style: const TextStyle(
-                                                  color: Colors.white),
-                                              decoration: InputDecoration(
-                                                labelText: '[ USERNAME ]',
-                                                labelStyle: const TextStyle(
-                                                    color: Colors.white70),
-                                                counterStyle: const TextStyle(
-                                                    color: Colors.white30),
-                                                enabledBorder:
-                                                    OutlineInputBorder(
-                                                  borderSide: const BorderSide(
-                                                      color: Colors.white24),
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                                focusedBorder:
-                                                    OutlineInputBorder(
-                                                  borderSide: const BorderSide(
-                                                      color: Colors.white70),
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                              ),
-                                              onSubmitted: (value) async {
-                                                final trimmed = value.trim();
-                                                if (trimmed.length > 8 ||
-                                                    trimmed.isEmpty) return;
-
-                                                try {
-                                                  await UserService()
-                                                      .setUsername(
-                                                          address, trimmed);
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                    const SnackBar(
-                                                        content: Text(
-                                                            "Username updated")),
-                                                  );
-                                                } catch (_) {
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
-                                                    const SnackBar(
-                                                        content: Text(
-                                                            "Failed to update username")),
-                                                  );
-                                                }
-                                              },
-                                            ),
+                                  Center(
+                                    child: SizedBox(
+                                      width: 220, // adjust as needed
+                                      child: TextField(
+                                        controller: usernameController,
+                                        maxLength: 8,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                            color: Colors.white),
+                                        decoration: InputDecoration(
+                                          labelText: '[ USERNAME ]',
+                                          labelStyle: const TextStyle(
+                                              color: Colors.white70),
+                                          counterStyle: const TextStyle(
+                                              color: Colors.white30),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderSide: const BorderSide(
+                                                color: Colors.white24),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
                                           ),
-                                        );
-                                      } else {
-                                        return SizedBox.shrink();
-                                      }
-                                    },
+                                          focusedBorder: OutlineInputBorder(
+                                            borderSide: const BorderSide(
+                                                color: Colors.white70),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                        onSubmitted: (value) async {
+                                          final trimmed = value.trim();
+                                          if (trimmed.length > 8 ||
+                                              trimmed.isEmpty) return;
+
+                                          try {
+                                            await UserService()
+                                                .setUsername(address, trimmed);
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                  content:
+                                                      Text("Username updated")),
+                                            );
+                                          } catch (_) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                  content: Text(
+                                                      "Failed to update username")),
+                                            );
+                                          }
+                                        },
+                                      ),
+                                    ),
                                   ),
                                   const SizedBox(height: 12),
                                 ],

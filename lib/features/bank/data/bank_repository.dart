@@ -19,7 +19,7 @@ class BankRepository {
   final Dio _dio = Dio();
   final String _baseUrl = 'https://api.privy.io/v1';
 
-  static const int wagusDecimals = 6;
+  // static const int wagusDecimals = 6;
   static final web3.Pubkey tokenProgramId =
       web3.Pubkey.fromBase58('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
   static final web3.Pubkey systemProgramId =
@@ -65,6 +65,7 @@ class BankRepository {
     required int amount,
     required String destinationAddress,
     required String wagusMint,
+    required int decimals,
   }) async {
     debugPrint('[BankRepository] Starting withdrawal...');
     debugPrint('[BankRepository] Sender Wallet: ${wallet.address}');
@@ -83,7 +84,7 @@ class BankRepository {
     debugPrint(
         '[BankRepository] Fetched latest blockhash: ${blockHash.blockhash}');
 
-    final amountInUnits = _calculateAmountInUnits(amount, wagusDecimals);
+    final amountInUnits = _calculateAmountInUnits(amount, decimals);
     debugPrint('[BankRepository] Amount in base units: $amountInUnits');
 
     // Convert addresses to Pubkey

@@ -142,7 +142,7 @@ class DailyRewardsSheet extends StatelessWidget {
         } else if (state.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(state.errorMessage!),
+              content: Text('Something went wrong'),
               backgroundColor: Colors.red,
             ),
           );

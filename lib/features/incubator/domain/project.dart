@@ -14,11 +14,12 @@ class Project {
   final String roadmapLink;
   final String socialsLink;
   final String telegramLink;
-  final double? totalFunded;
+  final num? totalFunded;
   final List<String> addressesFunded;
   final int maxAllocation;
   final String preferredTokenAddress;
   final String preferredTokenTicker;
+  final String? spendingPlan;
 
   Project({
     required this.id,
@@ -40,6 +41,7 @@ class Project {
     required this.preferredTokenAddress,
     required this.preferredTokenTicker,
     this.maxAllocation = 20000,
+    this.spendingPlan,
   });
 
   factory Project.fromJson(Map<String, dynamic> json) {
@@ -63,6 +65,7 @@ class Project {
       maxAllocation: json['max_allocation'] ?? 20000,
       preferredTokenAddress: json['preferred_token_address'] ?? '',
       preferredTokenTicker: json['preferred_token_ticker'] ?? '',
+      spendingPlan: json['spendingPlan'] as String?,
     );
   }
 
@@ -87,6 +90,7 @@ class Project {
       maxAllocation: maxAllocation,
       preferredTokenAddress: preferredTokenAddress,
       preferredTokenTicker: preferredTokenTicker,
+      spendingPlan: spendingPlan,
     );
   }
 
@@ -106,11 +110,12 @@ class Project {
     String? roadmapLink,
     String? socialsLink,
     String? telegramLink,
-    double? Function()? totalFunded,
+    num? Function()? totalFunded,
     List<String>? addressesFunded,
     int? maxAllocation,
     String? preferredTokenAddress,
     String? preferredTokenTicker,
+    String? Function()? spendingPlan,
   }) {
     return Project(
       id: id ?? this.id,
@@ -133,6 +138,7 @@ class Project {
       preferredTokenAddress:
           preferredTokenAddress ?? this.preferredTokenAddress,
       preferredTokenTicker: preferredTokenTicker ?? this.preferredTokenTicker,
+      spendingPlan: spendingPlan != null ? spendingPlan() : this.spendingPlan,
     );
   }
 }

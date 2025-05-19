@@ -19,11 +19,13 @@ class HomeSendMessageEvent extends HomeEvent {
   final Message message;
   final String currentTokenAddress;
   final String ticker;
+  final int decimals;
 
   HomeSendMessageEvent(
       {required this.message,
       required this.currentTokenAddress,
-      required this.ticker});
+      required this.ticker,
+      required this.decimals});
 }
 
 class HomeSetRoomEvent extends HomeEvent {
@@ -64,11 +66,7 @@ class HomeListenToRoomsEvent extends HomeEvent {
   HomeListenToRoomsEvent();
 }
 
-class HomeListenToGiveawayEvent extends HomeEvent {
-  final String room;
-  final String ticker;
-  HomeListenToGiveawayEvent({required this.room, required this.ticker});
-}
+class HomeListenToGiveawayEvent extends HomeEvent {}
 
 class HomeSetReplyMessageEvent extends HomeEvent {
   final Message? message;

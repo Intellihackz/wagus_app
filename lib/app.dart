@@ -71,7 +71,9 @@ class App extends HookWidget {
                         bankRepository: context.read<BankRepository>(),
                       )
                         ..add(HomeSetRoomEvent('General'))
-                        ..add(HomeWatchOnlineUsersEvent())),
+                        ..add(HomeWatchOnlineUsersEvent())
+                        ..add(HomeListenToRoomsEvent())
+                        ..add(HomeListenToGiveawayEvent())),
               BlocProvider<PortalBloc>(
                   create: (_) => PortalBloc(
                         portalRepository: context.read<PortalRepository>(),

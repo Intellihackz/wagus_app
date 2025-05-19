@@ -16,15 +16,14 @@ class HomeRepository {
             toFirestore: (data, _) => data,
           );
 
-  Stream<QuerySnapshot> listenToActiveGiveaways(String room) {
+  Stream<QuerySnapshot> listenToActiveGiveaways() {
     return FirebaseFirestore.instance
         .collection('giveaways')
-        .where('room', isEqualTo: room)
-        .where('status', isEqualTo: 'ended')
-        .where('hasSent', isEqualTo: true)
         .where('announced', isEqualTo: false)
+        .where('hasSent', isEqualTo: false)
+        .where('status', isEqualTo: 'ended')
         .orderBy('endTimestamp', descending: true)
-        .snapshots();
+        .snapshots(includeMetadataChanges: true);
   }
 
   CollectionReference get roomCollection =>

@@ -65,7 +65,7 @@ Future<void> main() async {
     // TODO: Navigate to a specific screen based on the message
   });
 
-  Bloc.observer = AppBlocObserver();
+  //Bloc.observer = AppBlocObserver();
 
   RemoteMessage? initialMessage =
       await FirebaseMessaging.instance.getInitialMessage();

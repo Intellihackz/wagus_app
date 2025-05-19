@@ -188,6 +188,7 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
           projectId: event.projectId,
           userId: event.userId,
           tokenAddress: event.tokenAddress,
+          tokenTicker: event.tokenTicker,
         );
 
         // Update the project in state

@@ -15,7 +15,7 @@ import 'package:wagus/extensions.dart';
 import 'package:wagus/features/incubator/domain/project.dart';
 
 class IncubatorRepository {
-  static const int wagusDecimals = 6;
+  //static const int wagusDecimals = 6;
   static final web3.Pubkey tokenProgramId = web3.Pubkey.fromBase58(splToken);
   static final web3.Pubkey systemProgramId =
       web3.Pubkey.fromBase58('11111111111111111111111111111111');
@@ -35,6 +35,20 @@ class IncubatorRepository {
     } catch (e) {
       throw Exception('Failed to upload PDF: $e');
     }
+  }
+
+  Future<double> getUsdPerToken(String tokenTicker) async {
+    final tokenDoc = await FirebaseFirestore.instance
+        .collection('supported_tokens')
+        .doc(tokenTicker)
+        .get();
+
+    if (!tokenDoc.exists) {
+      throw Exception('Token not supported or missing usdPerToken');
+    }
+
+    final data = tokenDoc.data()!;
+    return (data['usdPerToken'] as num).toDouble();
   }
 
   // Like a project (add user to likes subcollection and increment likesCount)
@@ -197,6 +211,7 @@ class IncubatorRepository {
     required String projectId,
     required String userId,
     required String tokenAddress,
+    required String tokenTicker,
   }) async {
     debugPrint(
         '[IncubatorRepository] Starting withdrawal to project: $projectId');
@@ -239,7 +254,9 @@ class IncubatorRepository {
     debugPrint(
         '[IncubatorRepository] Fetched latest blockhash: ${blockHash.blockhash}');
 
-    final amountInUnits = _calculateAmountInUnits(amount, wagusDecimals);
+    final decimals = await getTokenDecimals(tokenTicker.toLowerCase());
+
+    final amountInUnits = _calculateAmountInUnits(amount, decimals);
     debugPrint('[IncubatorRepository] Amount in units: $amountInUnits');
 
     final senderPubkey = _pubkeyFromBase58(wallet.address);
@@ -274,11 +291,25 @@ class IncubatorRepository {
 
     await _signAndSendTransaction(wallet, connection, transaction);
 
-    await _updateProjectFunding(projectId, userId, amount, wallet);
+    await _updateProjectFunding(projectId, userId, amount, wallet, tokenTicker);
   }
 
   BigInt _calculateAmountInUnits(int amount, int decimals) {
     return BigInt.from(amount) * BigInt.from(10).pow(decimals);
+  }
+
+  Future<int> getTokenDecimals(String tokenTicker) async {
+    final tokenDoc = await FirebaseFirestore.instance
+        .collection('supported_tokens')
+        .doc(tokenTicker)
+        .get();
+
+    if (!tokenDoc.exists) {
+      throw Exception('Token not supported or missing decimals');
+    }
+
+    final data = tokenDoc.data()!;
+    return (data['decimals'] as num).toInt();
   }
 
   Future<web3.Pubkey?> _getSenderTokenAccount(
@@ -416,7 +447,7 @@ class IncubatorRepository {
   }
 
   Future<void> _updateProjectFunding(String projectId, String userId,
-      int amount, EmbeddedSolanaWallet wallet) async {
+      int amount, EmbeddedSolanaWallet wallet, String tokenTicker) async {
     try {
       final projectRef = projectsCollection.doc(projectId);
       final investorRef = projectRef.collection('investors').doc(userId);
@@ -432,11 +463,16 @@ class IncubatorRepository {
         final currentTotal =
             (projectData['totalFunded'] as num?)?.toDouble() ?? 0.0;
         final maxCap = projectData['max_allocation'] ?? 20000;
-        if ((currentTotal + amount) > maxCap) {
+
+        final usdPerToken = await getUsdPerToken(tokenTicker.toLowerCase());
+        final amountInUsd = amount * usdPerToken;
+
+        if ((currentTotal + amountInUsd) > maxCap) {
           throw Exception('Contribution would exceed project funding cap.');
         }
 
-        final newTotal = currentTotal + amount;
+        final newTotal = currentTotal + amountInUsd;
+
         final fundingProgress = newTotal / maxCap;
 
         // Now perform writes
@@ -451,13 +487,13 @@ class IncubatorRepository {
           final currentAmount =
               (investorData['amount'] as num?)?.toDouble() ?? 0.0;
           transaction.update(investorRef, {
-            'amount': currentAmount + amount,
+            'amount': currentAmount + amountInUsd,
             'updatedAt': FieldValue.serverTimestamp(),
           });
         } else {
           transaction.set(investorRef, {
             'userId': userId,
-            'amount': amount,
+            'amount': amountInUsd,
             'createdAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
           });

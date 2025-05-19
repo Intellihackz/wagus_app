@@ -20,9 +20,6 @@ class PortalRepository {
   PortalRepository();
   final _privyService = PrivyService();
 
-  final currentTokenAddressCollection =
-      FirebaseFirestore.instance.collection('current_token');
-
   Future<PrivyUser?> init() async {
     if (!PrivyService().isAuthenticated()) return null;
     return PrivyService().privy.user;

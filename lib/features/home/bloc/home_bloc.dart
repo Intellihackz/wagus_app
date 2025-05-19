@@ -47,50 +47,36 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       : super(HomeState(messages: [], announcedGiveawayIds: {})) {
     on<HomeListenToGiveawayEvent>((event, emit) async {
       await emit.forEach(
-        homeRepository.listenToActiveGiveaways(event.room),
+        homeRepository.listenToActiveGiveaways(),
         onData: (snapshot) {
-          for (final doc in snapshot.docs) {
-            final data = doc.data() as Map<String, dynamic>;
+          log('[GiveawayListener] 🔍 Fetched ${snapshot.docs.length} docs');
 
+          for (final change in snapshot.docChanges) {
+            log('[GiveawayListener] ${change.type}: ${change.doc.id}');
+            log('Data: ${change.doc.data()}');
+          }
+
+          for (final doc in snapshot.docs) {
+            log('[GiveawayListener] Checking doc: ${doc.id}');
+
+            final data = doc.data() as Map<String, dynamic>;
             final winner = data['winner'] as String?;
             final status = data['status'];
             final hasSent = data['hasSent'] ?? false;
-            final id = doc.id;
+            final alreadyAnnounced = data['announced'] ?? false;
+
+            log('[GiveawayListener] winner: $winner | status: $status | hasSent: $hasSent | announced: $alreadyAnnounced');
 
             final shouldAnnounce = winner != null &&
                 winner.isNotEmpty &&
                 status == 'ended' &&
-                hasSent == true; // ✅ Add this
-            final alreadyAnnounced = (data['announced'] ?? false) == true;
+                hasSent == false &&
+                alreadyAnnounced == false;
 
-            if (shouldAnnounce &&
-                !alreadyAnnounced &&
-                !state.announcedGiveawayIds.contains(id)) {
-              final newIds = Set<String>.from(state.announcedGiveawayIds)
-                ..add(id);
+            if (shouldAnnounce && !alreadyAnnounced) {
+              log('[GiveawayListener] ✅ Triggering announcement');
 
-              final amount = data['amount'] ?? 0;
-
-              add(HomeSendMessageEvent(
-                message: Message(
-                  text:
-                      '[GIVEAWAY] 🎉 $amount \$${event.ticker} was rewarded! Winner: ${winner.substring(0, 4)}...${winner.substring(winner.length - 4)}',
-                  sender: 'System',
-                  tier: TierStatus.system,
-                  room: event.room,
-                ),
-                currentTokenAddress: '', // optional
-                ticker: event.ticker,
-              ));
-
-              add(HomeLaunchGiveawayConfettiEvent(canLaunchConfetti: false));
-
-              FirebaseFirestore.instance
-                  .collection('giveaways')
-                  .doc(id)
-                  .update({'announced': true});
-
-              emit(state.copyWith(announcedGiveawayIds: newIds));
+              add(HomeLaunchGiveawayConfettiEvent(canLaunchConfetti: true));
             }
           }
 
@@ -100,7 +86,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     });
 
     FutureOr<Message> buildCommandPreview(ChatCommand cmd, Message original,
-        String currentTokenAddress, String ticker) async {
+        String currentTokenAddress, String ticker, int decimals) async {
       switch (cmd.action.toLowerCase()) {
         case '/send':
           final amount = int.tryParse(cmd.args[0]) ?? 0;
@@ -132,6 +118,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               amount: amount,
               destinationAddress: recipient,
               wagusMint: mint,
+              decimals: decimals,
             );
 
             return original.copyWith(
@@ -181,6 +168,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               amount: amount,
               destinationAddress: blackHoleAddress,
               wagusMint: mint,
+              decimals: decimals,
             );
 
             return original.copyWith(
@@ -561,8 +549,8 @@ Type any command to try it out.''',
         log('[BLOC] Sending regular message: ${event.message.text}');
 
         // Message is a command – transform and send only the preview
-        final displayMessage = await buildCommandPreview(
-            parsed, event.message, event.currentTokenAddress, event.ticker);
+        final displayMessage = await buildCommandPreview(parsed, event.message,
+            event.currentTokenAddress, event.ticker, event.decimals);
         await homeRepository.sendMessage(displayMessage);
         return;
       }

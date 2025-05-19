@@ -8,6 +8,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:wagus/features/incubator/bloc/incubator_bloc.dart';
+import 'package:wagus/features/incubator/data/incubator_repository.dart';
 import 'package:wagus/features/incubator/domain/project.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
@@ -188,6 +189,23 @@ class Incubator extends HookWidget {
                                     style:
                                         const TextStyle(color: Colors.white70)),
                                 const SizedBox(height: 12),
+                                if (project.spendingPlan != null &&
+                                    project.spendingPlan!.isNotEmpty) ...[
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    'Spending Plan:',
+                                    style: TextStyle(
+                                        color: Colors.white70,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    project.spendingPlan!,
+                                    style:
+                                        const TextStyle(color: Colors.white60),
+                                  ),
+                                ],
+                                const SizedBox(height: 12),
                                 Wrap(
                                   spacing: 12,
                                   runSpacing: 12,
@@ -342,7 +360,7 @@ class Incubator extends HookWidget {
                                           color: Colors.white54, fontSize: 12),
                                     ),
                                     Text(
-                                      '${((project.totalFunded ?? 0) / project.maxAllocation * 100).toInt()}% funded',
+                                      '${((project.totalFunded ?? 0) / 60 * 100).clamp(0, 100).toInt()}% funded',
                                       style: TextStyle(
                                           color: tierStatus ==
                                                   TierStatus.adventurer
@@ -368,13 +386,13 @@ class Incubator extends HookWidget {
                                   spacing: 12,
                                   runSpacing: 12,
                                   children: [
-                                    _contributionChip(context, project, 100,
+                                    _contributionChip(context, project, 1,
                                         amountController, tierStatus),
-                                    _contributionChip(context, project, 250,
+                                    _contributionChip(context, project, 5,
                                         amountController, tierStatus),
-                                    _contributionChip(context, project, 500,
+                                    _contributionChip(context, project, 10,
                                         amountController, tierStatus),
-                                    _contributionChip(context, project, 1000,
+                                    _contributionChip(context, project, 25,
                                         amountController, tierStatus),
                                   ],
                                 )
@@ -507,7 +525,7 @@ class Incubator extends HookWidget {
                                   style: TextStyle(color: Colors.redAccent)),
                             ),
                             GestureDetector(
-                              onTap: () {
+                              onTap: () async {
                                 if ((project.totalFunded ?? 0) >=
                                     project.maxAllocation) {
                                   return;
@@ -532,12 +550,25 @@ class Incubator extends HookWidget {
                                     );
                                     return;
                                   }
+
+                                  final targetUsd =
+                                      parsedAmount.toDouble(); // e.g. 60.0
+                                  final tokenTicker = project
+                                      .preferredTokenTicker
+                                      .toLowerCase();
+                                  final usdPerToken = await context
+                                      .read<IncubatorRepository>()
+                                      .getUsdPerToken(tokenTicker);
+
+                                  final adjustedAmountInTokens =
+                                      (targetUsd / usdPerToken).ceil();
+
                                   context
                                       .read<IncubatorBloc>()
                                       .add(IncubatorWithdrawEvent(
                                         projectId: project.id,
                                         userId: userId,
-                                        amount: parsedAmount,
+                                        amount: adjustedAmountInTokens,
                                         wallet: context
                                             .read<PortalBloc>()
                                             .state
@@ -587,19 +618,20 @@ class Incubator extends HookWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Icon(
+              FontAwesomeIcons.dollarSign,
+              size: 16,
+              color: tierStatus == TierStatus.adventurer
+                  ? TierStatus.adventurer.color
+                  : TierStatus.basic.color,
+            ),
+            const SizedBox(width: 4),
             Text('$amount',
                 style: TextStyle(
                     color: tierStatus == TierStatus.adventurer
                         ? TierStatus.adventurer.color
                         : TierStatus.basic.color,
                     fontWeight: FontWeight.bold)),
-            const SizedBox(width: 4),
-            Image.asset('assets/icons/logo.png',
-                width: 16,
-                height: 16,
-                color: tierStatus == TierStatus.adventurer
-                    ? TierStatus.adventurer.color
-                    : TierStatus.basic.color),
           ],
         ),
       ),

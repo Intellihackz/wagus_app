@@ -92,7 +92,7 @@ class QuestBloc extends Bloc<QuestEvent, QuestState> {
         emit(state.copyWith(
           isLoading: false,
           currentlyClaimingDay: () => null,
-          errorMessage: () => e.toString(), // ← show real error in snackbar
+          errorMessage: () => 'Something went wrong. Please try again.',
         ));
       }
     });

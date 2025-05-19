@@ -20,6 +20,8 @@ import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/theme/app_palette.dart';
 import 'package:wagus/utils.dart';
 
+final Set<String> _giveawayProcessing = {};
+
 class Home extends HookWidget {
   const Home({super.key});
 
@@ -32,30 +34,6 @@ class Home extends HookWidget {
 
     useAsyncEffect(
         effect: () async {
-          final portalState = context.read<PortalBloc>().state;
-
-          if (portalState.user != null &&
-              portalState.selectedToken.address.isNotEmpty) {
-            final homeBloc = context.read<HomeBloc>();
-
-            getActiveWallet().then((wallet) async {
-              if (wallet != null) {
-                homeBloc.add(HomeListenToRoomsEvent());
-                homeBloc.add(HomeSetRoomEvent(homeBloc.state.currentRoom));
-                context.read<HomeBloc>().add(
-                      HomeListenToGiveawayEvent(
-                        room: homeBloc.state.currentRoom,
-                        ticker: context
-                            .read<PortalBloc>()
-                            .state
-                            .selectedToken
-                            .ticker,
-                      ),
-                    );
-              }
-            });
-          }
-
           void listener() {
             final controller = scrollController;
             if (!controller.hasClients) return;
@@ -73,24 +51,22 @@ class Home extends HookWidget {
     return BlocBuilder<PortalBloc, PortalState>(
       builder: (context, portalState) {
         return BlocConsumer<HomeBloc, HomeState>(
-          listenWhen: (prev, curr) => prev.messages != curr.messages,
           listener: (context, homeState) async {
+            // 🎉 Confetti (visual only)
             if (homeState.canLaunchConfetti) {
-              Confetti.launch(
-                context,
-                options: const ConfettiOptions(
-                  particleCount: 100,
-                  spread: 70,
-                  y: 0.7,
-                ),
-              );
+              // giveaway payout logic here
+              final selectedRoom = context.read<HomeBloc>().state.currentRoom;
+              final selectedToken =
+                  context.read<PortalBloc>().state.selectedToken;
+              final wallet = context
+                  .read<PortalBloc>()
+                  .state
+                  .user
+                  ?.embeddedSolanaWallets
+                  .first;
 
-              // Trigger once
-              context.read<HomeBloc>().add(
-                    HomeLaunchGiveawayConfettiEvent(canLaunchConfetti: false),
-                  );
+              if (wallet == null) return;
 
-              // 🧠 Now scan for just-ended giveaways that need a transfer
               final giveaways = await FirebaseFirestore.instance
                   .collection('giveaways')
                   .where('status', isEqualTo: 'ended')
@@ -98,36 +74,68 @@ class Home extends HookWidget {
                   .where('announced', isEqualTo: false)
                   .get();
 
-              final currentUser = context.read<PortalBloc>().state.user;
-              final selectedToken =
-                  context.read<PortalBloc>().state.selectedToken;
-              final wallet = currentUser?.embeddedSolanaWallets.first;
-
               for (final doc in giveaways.docs) {
+                if (_giveawayProcessing.contains(doc.id)) continue;
+
+                _giveawayProcessing.add(doc.id);
+
                 final data = doc.data();
                 final winner = data['winner'];
                 final amount = data['amount'];
                 final host = data['host'];
 
-                if (wallet?.address == host &&
-                    winner != null &&
-                    amount != null) {
+                if (winner != null &&
+                    amount != null &&
+                    host == wallet.address) {
                   try {
                     await context.read<BankRepository>().withdrawFunds(
-                          wallet: wallet!,
+                          wallet: wallet,
                           amount: amount,
                           destinationAddress: winner,
                           wagusMint: selectedToken.address,
+                          decimals: selectedToken.decimals,
                         );
+
+                    final announcementText =
+                        '[GIVEAWAY] 🎉 $amount \$${selectedToken.ticker} was rewarded! Winner: ${winner.substring(0, 4)}...${winner.substring(winner.length - 4)}';
+
+                    context.read<HomeBloc>().add(HomeSendMessageEvent(
+                          message: Message(
+                            text: announcementText,
+                            sender: 'System',
+                            tier: TierStatus.system,
+                            room: selectedRoom,
+                          ),
+                          currentTokenAddress: '',
+                          ticker: selectedToken.ticker,
+                          decimals: selectedToken.decimals,
+                        ));
 
                     await doc.reference.update({
                       'hasSent': true,
+                      'announced': true,
+                      'updatedAt': FieldValue.serverTimestamp(),
                     });
 
                     debugPrint(
-                        '[Giveaway] ✅ Sent $amount ${selectedToken.ticker} to $winner');
+                        '[Giveaway] ✅ Sent and announced $amount to $winner');
+
+                    WidgetsBinding.instance.addPostFrameCallback((_) async {
+                      Confetti.launch(
+                        context,
+                        options: const ConfettiOptions(
+                          particleCount: 100,
+                          spread: 70,
+                          y: 0.7,
+                        ),
+                      );
+                      context.read<HomeBloc>().add(
+                            HomeLaunchGiveawayConfettiEvent(
+                                canLaunchConfetti: false),
+                          );
+                    });
                   } catch (e) {
-                    debugPrint('[Giveaway] ❌ Failed to send prize: $e');
+                    debugPrint('[Giveaway] ❌ Failed to send reward: $e');
                   }
                 }
               }
@@ -157,9 +165,6 @@ class Home extends HookWidget {
                                 .where(
                                     (msg) => msg.room == homeState.currentRoom)
                                 .toList();
-
-                            print(
-                                '🔍 Filtered messages for room "${homeState.currentRoom}": ${filteredMessages.length}');
 
                             return NotificationListener<ScrollNotification>(
                               onNotification: (ScrollNotification scrollInfo) {
@@ -209,9 +214,6 @@ class Home extends HookWidget {
                                 itemCount: filteredMessages.length,
                                 itemBuilder: (context, index) {
                                   final message = filteredMessages[index];
-
-                                  print(
-                                      'last message: ${filteredMessages.first.text}');
 
                                   String getTierPrefix(TierStatus tier) {
                                     if (tier == TierStatus.adventurer)
@@ -972,6 +974,11 @@ class _ChatInputBar extends StatelessWidget {
                                   .state
                                   .selectedToken
                                   .ticker,
+                              decimals: context
+                                  .read<PortalBloc>()
+                                  .state
+                                  .selectedToken
+                                  .decimals,
                             ),
                           );
 
@@ -1067,6 +1074,11 @@ class _ChatInputBar extends StatelessWidget {
                                   amount: amount,
                                   destinationAddress: treasuryWallet,
                                   wagusMint: currentTokenAddress,
+                                  decimals: context
+                                      .read<PortalBloc>()
+                                      .state
+                                      .selectedToken
+                                      .decimals,
                                 );
 
                                 final systemMsg = Message(
@@ -1087,6 +1099,11 @@ class _ChatInputBar extends StatelessWidget {
                                           .state
                                           .selectedToken
                                           .ticker,
+                                      decimals: context
+                                          .read<PortalBloc>()
+                                          .state
+                                          .selectedToken
+                                          .decimals,
                                     ));
 
                                 context.read<PortalBloc>().add(
@@ -1155,6 +1172,11 @@ class _ChatInputBar extends StatelessWidget {
                                   .state
                                   .selectedToken
                                   .ticker,
+                              decimals: context
+                                  .read<PortalBloc>()
+                                  .state
+                                  .selectedToken
+                                  .decimals,
                             ),
                           );
 
