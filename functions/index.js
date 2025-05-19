@@ -104,12 +104,31 @@ export const giveawayNotification = onDocumentCreated(
 
     if (!data || !ref) return;
 
-    const token = {
-      name: data.name || "Buckazoids",
-      ticker: data.ticker || "BUCKAZOIDS",
-      address: data.address || "BQQzEvYT4knThhkSPBvSKBLg1LEczisWLhx5ydJipump",
-      decimals: typeof data.decimals === "number" ? data.decimals : 6,
-    };
+    let token;
+    try {
+      const tokenId = data.tokenId || "WAGUS"; // fallback to WAGUS if somehow missing
+      const tokenDoc = await db
+        .collection("supported_tokens")
+        .doc(tokenId)
+        .get();
+
+      if (!tokenDoc.exists) throw new Error("Token not found");
+
+      token = {
+        name: tokenDoc.data().name,
+        ticker: tokenDoc.data().ticker,
+        address: tokenDoc.data().address,
+        decimals: tokenDoc.data().decimals,
+      };
+    } catch (err) {
+      console.warn("❌ Token not found. Falling back to BUCKAZOIDS");
+      token = {
+        name: "WAGUS",
+        ticker: "WAGUS",
+        address: "7BMxgTQhTthoBcQizzFoLyhmSDscM56uMramXGMhpump",
+        decimals: 6,
+      };
+    }
 
     let { amount, keyword, endTimestamp, duration } = data;
 
@@ -184,13 +203,30 @@ export const pickGiveawayWinner = onSchedule(
             updatedAt: FieldValue.serverTimestamp(),
           });
 
-          const token = {
-            name: data.name || "Buckazoids",
-            ticker: data.ticker || "BUCKAZOIDS",
-            address:
-              data.address || "BQQzEvYT4knThhkSPBvSKBLg1LEczisWLhx5ydJipump",
-            decimals: typeof data.decimals === "number" ? data.decimals : 6,
-          };
+          let token;
+          try {
+            const tokenId = data.tokenId || "WAGUS"; // fallback
+            const tokenDoc = await db
+              .collection("supported_tokens")
+              .doc(tokenId)
+              .get();
+            if (!tokenDoc.exists) throw new Error("Token not found");
+
+            token = {
+              name: tokenDoc.data().name,
+              ticker: tokenDoc.data().ticker,
+              address: tokenDoc.data().address,
+              decimals: tokenDoc.data().decimals,
+            };
+          } catch (err) {
+            console.warn("❌ Token not found. Falling back to WAGUS");
+            token = {
+              name: "WAGUS",
+              ticker: "WAGUS",
+              address: "7BMxgTQhTthoBcQizzFoLyhmSDscM56uMramXGMhpump",
+              decimals: 6,
+            };
+          }
 
           if (winner) {
             await db.collection("chat").add({
@@ -201,10 +237,12 @@ export const pickGiveawayWinner = onSchedule(
               timestamp: Date.now(),
             });
             console.log(`💸 Injected /send ${amount} to ${winner}`);
-          }
 
-          // ✅ Mark as announced to prevent re-display in frontend
-          await doc.ref.update({ announced: true });
+            await doc.ref.update({
+              announced: true,
+              hasSent: true, // ✅ Add this
+            });
+          }
 
           console.log(
             `✅ Giveaway ended: ${doc.id}, winner: ${winner ?? "none"}`
@@ -265,13 +303,30 @@ export const runGiveawayWinnerNow = onRequest(async (req, res) => {
           ? participants[Math.floor(Math.random() * participants.length)]
           : null;
 
-        const token = {
-          name: data.name || "Buckazoids",
-          ticker: data.ticker || "BUCKAZOIDS",
-          address:
-            data.address || "BQQzEvYT4knThhkSPBvSKBLg1LEczisWLhx5ydJipump",
-          decimals: typeof data.decimals === "number" ? data.decimals : 6,
-        };
+        let token;
+        try {
+          const tokenId = data.tokenId || "WAGUS"; // fallback
+          const tokenDoc = await db
+            .collection("supported_tokens")
+            .doc(tokenId)
+            .get();
+          if (!tokenDoc.exists) throw new Error("Token not found");
+
+          token = {
+            name: tokenDoc.data().name,
+            ticker: tokenDoc.data().ticker,
+            address: tokenDoc.data().address,
+            decimals: tokenDoc.data().decimals,
+          };
+        } catch (err) {
+          console.warn("❌ Token not found. Falling back to WAGUS");
+          token = {
+            name: "WAGUS",
+            ticker: "WAGUS",
+            address: "7BMxgTQhTthoBcQizzFoLyhmSDscM56uMramXGMhpump",
+            decimals: 6,
+          };
+        }
 
         try {
           await doc.ref.update({
@@ -289,12 +344,12 @@ export const runGiveawayWinnerNow = onRequest(async (req, res) => {
               timestamp: Date.now(),
             });
             console.log(`💸 Injected /send ${amount} to ${winner}`);
-          }
 
-          await doc.ref.update({
-            announced: true,
-            hasSent: true,
-          });
+            await doc.ref.update({
+              announced: true,
+              hasSent: true,
+            });
+          }
 
           console.log(
             `✅ Giveaway ended: ${doc.id}, winner: ${winner ?? "none"}`

@@ -233,6 +233,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             'hasSent': false,
             'room': original.room,
             'pending': false, // ✅
+            'tokenId': ticker.toLowerCase(),
           });
 
           await FirebaseMessaging.instance.subscribeToTopic('global_users');
