@@ -57,22 +57,6 @@ class GuessTheDrawing extends HookWidget {
         }
       });
 
-      // s.onConnect((_) async {
-      //   print('✅ Socket connected: $address');
-      //   s.emit('join_game', {'wallet': address}); // socket only
-      // });
-
-      s.on('new_stroke', (data) {
-        final dx = data['dx'];
-        final dy = data['dy'];
-
-        if (dx == null || dy == null) {
-          strokes.value = [...strokes.value, null];
-        } else {
-          strokes.value = [...strokes.value, Offset(dx * 1.0, dy * 1.0)];
-        }
-      });
-
       s.on('guess_result', (data) {
         // show success/failure
       });
@@ -266,6 +250,9 @@ class _DrawingViewer extends HookWidget {
   Widget build(BuildContext context) {
     useEffect(() {
       socket.on('new_stroke', (data) {
+        print(
+            "👀 Viewer received stroke: $data"); // 👈 Add this line for logging
+
         final dx = data['dx'];
         final dy = data['dy'];
 
@@ -293,22 +280,6 @@ class _DrawingCanvas extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final throttle = useRef<Timer?>(null); // ✅ persistent reference
-
-    useEffect(() {
-      socket.on('new_stroke', (data) {
-        print("📥 Received stroke: $data");
-
-        final dx = data['dx'];
-        final dy = data['dy'];
-
-        if (dx == null || dy == null) {
-          strokes.value = [...strokes.value, null];
-        } else {
-          strokes.value = [...strokes.value, Offset(dx * 1.0, dy * 1.0)];
-        }
-      });
-      return () => socket.off('new_stroke');
-    }, []);
 
     return GestureDetector(
       onPanStart: (_) {
