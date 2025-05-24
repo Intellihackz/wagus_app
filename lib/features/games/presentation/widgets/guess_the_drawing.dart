@@ -53,6 +53,9 @@ class GuessTheDrawing extends HookWidget {
         // show success/failure
       });
 
+      s.onConnectError((err) => print('❌ Socket connect error: $err'));
+      s.onError((err) => print('❌ Socket general error: $err'));
+
       return s;
     });
 
@@ -64,6 +67,7 @@ class GuessTheDrawing extends HookWidget {
           );
 
       return () {
+        socket.disconnect();
         socket.dispose();
       };
     }, [address]);
