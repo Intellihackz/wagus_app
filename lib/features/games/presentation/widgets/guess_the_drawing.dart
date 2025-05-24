@@ -128,22 +128,6 @@ class GuessTheDrawing extends HookWidget {
             final hasNotStarted = !session.gameStarted;
             final hasEnoughPlayers = session.players.length >= 3;
 
-            if (hasNotStarted) {
-              return Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    context.read<GameRepository>().startGuessDrawingGame(
-                          sessionId: 'test-session',
-                          playerWallets: session.players.isEmpty
-                              ? [address]
-                              : session.players,
-                        );
-                  },
-                  child: const Text('🧪 Start Game'),
-                ),
-              );
-            }
-
             final wallet = context
                 .read<PortalBloc>()
                 .state
@@ -154,30 +138,46 @@ class GuessTheDrawing extends HookWidget {
 
             final isDrawer = session.drawer == wallet;
 
-            if (!hasEnoughPlayers) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '${session.players.length} joined • Not enough players yet',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: () {
-                        context.read<GameRepository>().startGuessDrawingGame(
-                              sessionId: 'test-session',
-                              playerWallets: session.players.isEmpty
-                                  ? [address]
-                                  : session.players,
-                            );
-                      },
-                      child: const Text('Force Start Anyway'),
-                    ),
-                  ],
-                ),
-              );
+            if (hasNotStarted) {
+              if (!hasEnoughPlayers) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '${session.players.length} joined • Not enough players yet',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: () {
+                          context.read<GameRepository>().startGuessDrawingGame(
+                                sessionId: 'test-session',
+                                playerWallets: session.players.isEmpty
+                                    ? [address]
+                                    : session.players,
+                              );
+                        },
+                        child: const Text('Force Start Anyway'),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                return Center(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      context.read<GameRepository>().startGuessDrawingGame(
+                            sessionId: 'test-session',
+                            playerWallets: session.players.isEmpty
+                                ? [address]
+                                : session.players,
+                          );
+                    },
+                    child: const Text('🧪 Start Game'),
+                  ),
+                );
+              }
             }
 
             // Game can start
