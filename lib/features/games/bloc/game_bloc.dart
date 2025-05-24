@@ -1,6 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:wagus/features/games/data/game_repository.dart';
+import 'package:wagus/features/games/domain/guess_the_drawing/chat_message_entry.dart';
 import 'package:wagus/features/games/domain/guess_the_drawing/guess_the_drawing_session.dart';
 import 'package:wagus/features/games/domain/spygus_game_data.dart';
 import 'package:wagus/features/home/data/home_repository.dart';
@@ -28,6 +29,17 @@ class GameBloc extends Bloc<GameEvent, GameState> {
           guessTheDrawingSession: () => session,
         ),
       );
+    });
+
+    on<GameListenGuessChatMessages>((event, emit) async {
+      await emit.forEach<List<ChatMessageEntry>>(
+          gameRepository.streamChatMessages(event.sessionId),
+          onData: (messages) {
+        print('Chat messages: $messages');
+        return state.copyWith(
+          chatMessages: () => messages,
+        );
+      });
     });
   }
 }

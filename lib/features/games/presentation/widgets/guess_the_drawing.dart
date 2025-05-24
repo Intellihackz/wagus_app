@@ -7,6 +7,8 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wagus/features/games/bloc/game_bloc.dart';
 import 'package:wagus/features/games/data/game_repository.dart';
+import 'package:wagus/features/games/domain/guess_the_drawing/chat_message_entry.dart';
+import 'package:wagus/features/games/domain/guess_the_drawing/guess_entry.dart';
 import 'package:wagus/features/games/game.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
@@ -87,6 +89,7 @@ class GuessTheDrawing extends HookWidget {
       context
           .read<GameBloc>()
           .add(GameListenGuessDrawingSession('test-session'));
+      context.read<GameBloc>().add(GameListenGuessChatMessages('test-session'));
 
       final locationSub = locationControler.stream.listen((route) {
         if (!route!.startsWith('/guess-the-drawing')) {
@@ -210,7 +213,14 @@ class GuessTheDrawing extends HookWidget {
                             child: Text('Waiting for guesses...',
                                 style: TextStyle(color: Colors.white38)),
                           )
-                        : _ChatInput(socket: socket)
+                        : Expanded(
+                            child: Column(
+                              children: [
+                                Expanded(child: ChatMessageList()),
+                                _ChatInput(socket: socket),
+                              ],
+                            ),
+                          )
                   else
                     Padding(
                       padding: const EdgeInsets.all(12.0),
@@ -256,35 +266,6 @@ class _DrawingViewer extends HookWidget {
     return CustomPaint(
       painter: _CanvasPainter(strokes.value),
       child: Container(color: Colors.black),
-    );
-  }
-}
-
-class _GameHeader extends StatelessWidget {
-  final IO.Socket socket;
-  const _GameHeader({required this.socket});
-
-  @override
-  Widget build(BuildContext context) {
-    // replace this with actual state later
-    final isDrawer = true;
-    final word = "apple";
-    final round = 1;
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            _GameHeader(socket: socket),
-            const SizedBox(height: 12),
-            Expanded(child: _DrawingCanvas(socket: socket)),
-            const Divider(color: Colors.white24),
-            _ChatInput(socket: socket),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -348,6 +329,15 @@ class _ChatInput extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final controller = useTextEditingController();
+    final session = context.read<GameBloc>().state.guessTheDrawingSession!;
+    final wallet = context
+        .read<PortalBloc>()
+        .state
+        .user!
+        .embeddedSolanaWallets
+        .first
+        .address;
+    final isDrawer = session.drawer == wallet;
 
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -358,29 +348,127 @@ class _ChatInput extends HookWidget {
               controller: controller,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: 'Enter your guess...',
+                hintText:
+                    isDrawer ? 'You are drawing...' : 'Type /guess <word>',
                 hintStyle: const TextStyle(color: Colors.white38),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: const BorderSide(color: Colors.white24),
                 ),
               ),
-              onSubmitted: (value) {
-                socket.emit('send_guess', {'guess': value});
-                controller.clear();
-              },
+              enabled: !isDrawer,
+              onSubmitted: (value) => _handleGuess(context, value, controller),
             ),
           ),
           const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.send, color: Colors.white),
-            onPressed: () {
-              socket.emit('send_guess', {'guess': controller.text});
-              controller.clear();
-            },
+            onPressed: isDrawer
+                ? null
+                : () => _handleGuess(context, controller.text, controller),
           )
         ],
       ),
+    );
+  }
+
+  void _handleGuess(BuildContext context, String input,
+      TextEditingController controller) async {
+    input = input.trim();
+    final session = context.read<GameBloc>().state.guessTheDrawingSession!;
+    final wallet = context
+        .read<PortalBloc>()
+        .state
+        .user!
+        .embeddedSolanaWallets
+        .first
+        .address;
+
+    final isGuess = input.toLowerCase().startsWith('/guess ');
+    final guessWord = isGuess ? input.substring(7).trim() : input;
+
+    if (guessWord.isEmpty) {
+      controller.clear();
+      return;
+    }
+
+    if (isGuess) {
+      socket.emit('send_guess', {'guess': guessWord});
+
+      final guessEntry = GuessEntry(
+          wallet: wallet, guess: guessWord, timestamp: DateTime.now());
+      await context
+          .read<GameRepository>()
+          .submitGuessToSession(session.id, guessEntry);
+    }
+
+    final chatMessage = ChatMessageEntry(
+      wallet: wallet,
+      text: guessWord,
+      isGuess: isGuess,
+      timestamp: DateTime.now(),
+    );
+
+    await context.read<GameRepository>().sendChatMessage(
+          sessionId: session.id,
+          message: chatMessage,
+        );
+
+    controller.clear();
+  }
+}
+
+class ChatMessageList extends HookWidget {
+  const ChatMessageList({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final messages = context.watch<GameBloc>().state.chatMessages;
+    if (messages == null) return const SizedBox(height: 150);
+
+    if (messages.isEmpty) return const SizedBox(height: 150);
+
+    final scrollController = useScrollController();
+
+    useEffect(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (scrollController.hasClients) {
+          scrollController.jumpTo(0.0); // scroll to bottom (0.0 if reversed)
+        }
+      });
+      return null;
+    }, [messages.length]);
+
+    return ListView.builder(
+      itemCount: messages.length,
+      reverse: true,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      itemBuilder: (context, index) {
+        final message = messages[index];
+        final isCorrectGuess = message.isGuess &&
+            message.text.toLowerCase() ==
+                context
+                    .read<GameBloc>()
+                    .state
+                    .guessTheDrawingSession
+                    ?.word
+                    .toLowerCase();
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Text(
+            '${message.wallet.substring(0, 4)}: ${message.text}',
+            style: TextStyle(
+              color: isCorrectGuess
+                  ? Colors.greenAccent
+                  : message.isGuess
+                      ? Colors.amber
+                      : Colors.white70,
+              fontWeight: isCorrectGuess ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        );
+      },
     );
   }
 }

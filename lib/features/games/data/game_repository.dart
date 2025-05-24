@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:wagus/features/games/domain/guess_the_drawing/chat_message_entry.dart';
 import 'package:wagus/features/games/domain/guess_the_drawing/guess_entry.dart';
 import 'package:wagus/features/games/domain/guess_the_drawing/guess_the_drawing_session.dart';
 import 'package:wagus/features/games/domain/spygus_game_data.dart';
@@ -113,11 +114,66 @@ class GameRepository {
             .toList());
   }
 
+  Future<void> sendChatMessage({
+    required String sessionId,
+    required ChatMessageEntry message,
+  }) {
+    return _guessTheDrawingCollection
+        .doc(sessionId)
+        .collection('chat_messages')
+        .add(message.toMap());
+  }
+
+  Stream<List<ChatMessageEntry>> streamChatMessages(String sessionId) {
+    return _guessTheDrawingCollection
+        .doc(sessionId)
+        .collection('chat_messages')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((doc) => ChatMessageEntry.fromMap(doc.data()))
+            .toList());
+  }
+
   /// 📝 Guess the Drawing: Submit a guess
   Future<void> submitGuessToSession(String sessionId, GuessEntry entry) async {
-    await _guessTheDrawingCollection.doc(sessionId).update({
-      'guesses': FieldValue.arrayUnion([entry.toMap()]),
+    final docRef = _guessTheDrawingCollection.doc(sessionId);
+    final snapshot = await docRef.get();
+    if (!snapshot.exists) return;
+
+    final currentSession =
+        GuessTheDrawingSession.fromFirestore(sessionId, snapshot.data()!);
+
+    // Prevent drawer from guessing
+    if (entry.wallet == currentSession.drawer) return;
+
+    // If someone already guessed correctly, skip further processing
+    final alreadyGuessedCorrectly = currentSession.guesses
+        .any((g) => g.guess.toLowerCase() == currentSession.word.toLowerCase());
+
+    if (alreadyGuessedCorrectly) return;
+
+    // Add guess to Firestore
+    await docRef.update({
+      'guesses': FieldValue.arrayUnion([entry.toMap()])
     });
+
+    // If guess is correct, award point and advance round
+    if (entry.guess.toLowerCase() == currentSession.word.toLowerCase()) {
+      await awardPointToGuesser(
+        sessionId: sessionId,
+        currentSession: currentSession,
+        wallet: entry.wallet,
+      );
+
+      // Delay briefly before advancing round
+      await Future.delayed(const Duration(seconds: 2));
+
+      await advanceGuessDrawingRound(
+        sessionId: sessionId,
+        currentSession: currentSession,
+      );
+    }
   }
 
   /// 🔁 Guess the Drawing: Update full session

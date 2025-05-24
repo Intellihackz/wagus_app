@@ -1,27 +1,31 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class GuessEntry {
+class ChatMessageEntry {
   final String wallet;
-  final String guess;
+  final String text;
+  final bool isGuess;
   final DateTime timestamp;
 
-  GuessEntry({
+  ChatMessageEntry({
     required this.wallet,
-    required this.guess,
+    required this.text,
+    required this.isGuess,
     required this.timestamp,
   });
 
-  factory GuessEntry.fromMap(Map<String, dynamic> data) {
-    return GuessEntry(
+  factory ChatMessageEntry.fromMap(Map<String, dynamic> data) {
+    return ChatMessageEntry(
       wallet: data['wallet'],
-      guess: data['guess'],
+      text: data['text'],
+      isGuess: data['isGuess'],
       timestamp: (data['timestamp'] as Timestamp).toDate(),
     );
   }
 
   Map<String, dynamic> toMap() => {
         'wallet': wallet,
-        'guess': guess,
+        'text': text,
+        'isGuess': isGuess,
         'timestamp': Timestamp.fromDate(timestamp),
       };
 }

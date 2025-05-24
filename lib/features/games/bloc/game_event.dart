@@ -18,3 +18,11 @@ class GameListenGuessDrawingSession extends GameEvent {
   @override
   List<Object> get props => [sessionId];
 }
+
+class GameListenGuessChatMessages extends GameEvent {
+  final String sessionId;
+  const GameListenGuessChatMessages(this.sessionId);
+
+  @override
+  List<Object> get props => [sessionId];
+}
