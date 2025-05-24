@@ -28,11 +28,36 @@ class GuessTheDrawing extends HookWidget {
           });
 
       s.connect();
-
       s.onConnect((_) async {
         print('✅ Socket connected: $address');
-        s.emit('join_game', {'wallet': address}); // socket only
+        s.emit('join_game', {'wallet': address});
+
+        final sessionRef = FirebaseFirestore.instance
+            .collection('guess_the_drawing_sessions')
+            .doc('test-session');
+
+        final doc = await sessionRef.get();
+        if (!doc.exists) {
+          await sessionRef.set({
+            'players': [],
+            'lastSeen': {},
+            'guesses': [],
+            'scores': {},
+            'round': 0,
+            'word': '',
+            'currentDrawerIndex': 0,
+            'isComplete': false,
+            'drawer': address,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+          print('✅ test-session initialized');
+        }
       });
+
+      // s.onConnect((_) async {
+      //   print('✅ Socket connected: $address');
+      //   s.emit('join_game', {'wallet': address}); // socket only
+      // });
 
       s.on('new_stroke', (data) {
         // update canvas
@@ -161,7 +186,9 @@ class GuessTheDrawing extends HookWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Round ${session.round} • Drawer: ${session.drawer.substring(0, 6)}...',
+                    session.drawer.isNotEmpty
+                        ? 'Round ${session.round} • Drawer: ${session.drawer.substring(0, 6)}...'
+                        : 'Round ${session.round} • Waiting for drawer...',
                     style: const TextStyle(color: Colors.white60),
                   ),
                   const SizedBox(height: 12),

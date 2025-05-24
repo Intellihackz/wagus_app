@@ -37,7 +37,9 @@ class GuessTheDrawingSession {
     );
   }
 
-  String get drawer => players[currentDrawerIndex];
+  String get drawer => players.isNotEmpty && currentDrawerIndex < players.length
+      ? players[currentDrawerIndex]
+      : '';
 
   factory GuessTheDrawingSession.fromFirestore(
       String id, Map<String, dynamic> data) {
