@@ -266,6 +266,8 @@ class _DrawingViewer extends HookWidget {
 
     useEffect(() {
       socket.on('new_stroke', (data) {
+        print("📥 Received stroke: $data");
+
         final dx = data['dx'];
         final dy = data['dy'];
 
@@ -296,6 +298,8 @@ class _DrawingCanvas extends HookWidget {
 
     useEffect(() {
       socket.on('new_stroke', (data) {
+        print("📥 Received stroke: $data");
+
         final dx = data['dx'];
         final dy = data['dy'];
 
