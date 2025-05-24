@@ -265,9 +265,14 @@ class _DrawingViewer extends HookWidget {
       return () => socket.off('new_stroke');
     }, [socket]);
 
-    return CustomPaint(
-      painter: _CanvasPainter(strokes.value),
-      child: Container(color: Colors.black),
+    return ValueListenableBuilder<List<Offset?>>(
+      valueListenable: strokes,
+      builder: (_, value, __) {
+        return CustomPaint(
+          painter: _CanvasPainter(value),
+          child: Container(color: Colors.transparent),
+        );
+      },
     );
   }
 }
@@ -282,33 +287,37 @@ class _DrawingCanvas extends HookWidget {
     final throttle = useRef<Timer?>(null); // ✅ persistent reference
 
     return GestureDetector(
-      onPanStart: (_) {
-        strokes.value = [...strokes.value, null]; // null separates new stroke
-        socket
-            .emit('send_stroke', {'dx': null, 'dy': null}); // signal new stroke
-      },
-      onPanUpdate: (details) {
-        final box = context.findRenderObject() as RenderBox;
-        final local = box.globalToLocal(details.globalPosition);
+        onPanStart: (_) {
+          strokes.value = [...strokes.value, null]; // null separates new stroke
+          socket.emit(
+              'send_stroke', {'dx': null, 'dy': null}); // signal new stroke
+        },
+        onPanUpdate: (details) {
+          final box = context.findRenderObject() as RenderBox;
+          final local = box.globalToLocal(details.globalPosition);
 
 // Clamp within canvas height
-        final clampedDy = local.dy.clamp(0.0, box.size.height);
-        final clampedDx = local.dx.clamp(0.0, box.size.width);
-        final clampedOffset = Offset(clampedDx, clampedDy);
+          final clampedDy = local.dy.clamp(0.0, box.size.height);
+          final clampedDx = local.dx.clamp(0.0, box.size.width);
+          final clampedOffset = Offset(clampedDx, clampedDy);
 
-        strokes.value = [...strokes.value, clampedOffset];
+          strokes.value = [...strokes.value, clampedOffset];
 
-        if (throttle.value?.isActive ?? false) return;
+          if (throttle.value?.isActive ?? false) return;
 
-        throttle.value = Timer(const Duration(milliseconds: 16), () {
-          socket.emit('send_stroke', {'dx': clampedDx, 'dy': clampedDy});
-        });
-      },
-      child: CustomPaint(
-        painter: _CanvasPainter(strokes.value),
-        child: Container(color: Colors.transparent),
-      ),
-    );
+          throttle.value = Timer(const Duration(milliseconds: 16), () {
+            socket.emit('send_stroke', {'dx': clampedDx, 'dy': clampedDy});
+          });
+        },
+        child: ValueListenableBuilder<List<Offset?>>(
+          valueListenable: strokes,
+          builder: (_, value, __) {
+            return CustomPaint(
+              painter: _CanvasPainter(value),
+              child: Container(color: Colors.transparent),
+            );
+          },
+        ));
   }
 }
 
@@ -334,7 +343,7 @@ class _CanvasPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CanvasPainter oldDelegate) {
-    return true;
+    return true; // always repaint
   }
 }
 
