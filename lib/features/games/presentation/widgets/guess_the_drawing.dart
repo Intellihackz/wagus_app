@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -15,15 +16,33 @@ class GuessTheDrawing extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final socket = useMemoized(() {
-      final s = IO.io('https://your-heroku-or-server-url', <String, dynamic>{
-        'transports': ['websocket'],
-        'autoConnect': false,
-      });
+      final s = IO.io(
+          'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com',
+          <String, dynamic>{
+            'transports': ['websocket'],
+            'autoConnect': false,
+          });
 
       s.connect();
 
-      s.onConnect((_) {
-        s.emit('join_game', {'wallet': address});
+      s.onConnect((_) async {
+        print('✅ Socket connected: $address');
+        s.emit('join_game', {'wallet': address}); // socket only
+
+        final sessionRef = FirebaseFirestore.instance
+            .collection('guess_the_drawing_sessions')
+            .doc('test-session');
+
+        final doc = await sessionRef.get();
+        if (doc.exists) {
+          final players = List<String>.from(doc.data()?['players'] ?? []);
+          if (!players.contains(address)) {
+            await sessionRef.update({
+              'players': FieldValue.arrayUnion([address]),
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          }
+        }
       });
 
       s.on('new_stroke', (data) {
@@ -40,7 +59,7 @@ class GuessTheDrawing extends HookWidget {
     useEffect(() {
       context.read<GameBloc>().add(
             GameListenGuessDrawingSession(
-              address,
+              'test-session',
             ),
           );
 
@@ -61,7 +80,7 @@ class GuessTheDrawing extends HookWidget {
                   onPressed: () async {
                     // Temporary debug start
                     await context.read<GameRepository>().startGuessDrawingGame(
-                      sessionId: address,
+                      sessionId: 'test-session',
                       playerWallets: [
                         address
                       ], // force your own wallet as the player
@@ -80,7 +99,7 @@ class GuessTheDrawing extends HookWidget {
                 child: ElevatedButton(
                   onPressed: () {
                     context.read<GameRepository>().startGuessDrawingGame(
-                          sessionId: address,
+                          sessionId: 'test-session',
                           playerWallets: session.players.isEmpty
                               ? [address]
                               : session.players,
