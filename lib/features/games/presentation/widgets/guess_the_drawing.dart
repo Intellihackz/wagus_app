@@ -311,11 +311,7 @@ class _DrawingCanvas extends HookWidget {
           if (throttle.value?.isActive ?? false) return;
 
           throttle.value = Timer(const Duration(milliseconds: 16), () {
-            final normalizedDx = clampedDx / box.size.width;
-            final normalizedDy = clampedDy / box.size.height;
-
-            socket
-                .emit('send_stroke', {'dx': normalizedDx, 'dy': normalizedDy});
+            socket.emit('send_stroke', {'dx': clampedDx, 'dy': clampedDy});
           });
         },
         child: ValueListenableBuilder<List<Offset?>>(
