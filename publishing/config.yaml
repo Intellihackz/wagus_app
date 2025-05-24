@@ -1,0 +1,62 @@
+publisher:
+  name: WAGUS LLC
+  address: GgYuKG5w6f1aszSmQbUyYp7hHhaEZ4RoJsUeVvLCXecx
+  website: https://wagus.app
+  email: info@wagus-app.com
+  media:
+    - purpose: icon
+      uri: ../assets/icon/icon_solana.png
+app:
+  name: WAGUS
+  address: 7R6QuELURVrhirjfj8sETiSDWe13QPc8zUE6or1kuFdn
+  android_package: com.silnt.wagus
+  urls:
+    license_url: https://wagus-app.com
+    copyright_url: https://wagus-app.com
+    privacy_policy_url: https://wagus-app.com
+    website: https://wagus-app.com
+  media:
+    - purpose: icon
+      uri: ../assets/icon/icon_solana.png
+release:
+  address: FU1k19JFYbAcMFAWNgfAesDnpvyRpud2vPDVxfG5KCUQ
+  media:
+    - purpose: icon
+      uri: ../assets/icon/icon_solana.png
+    - purpose: banner
+      uri: ../assets/graphics/banner.png
+    - purpose: featureGraphic
+      uri: ../assets/graphics/feature.png
+    - purpose: screenshot
+      uri: ../assets/graphics/graphic1.png
+    - purpose: screenshot
+      uri: ../assets/graphics/graphic2.png
+    - purpose: screenshot
+      uri: ../assets/graphics/graphic3.png
+    - purpose: screenshot
+      uri: ../assets/graphics/graphic4.png
+    - purpose: video
+      uri: ../assets/graphics/wagus_trailer_mobile.mp4
+  files:
+    - purpose: install
+      uri: ../build/app/outputs/apk/release/app-release.apk
+  catalog:
+    en-US:
+      name: WAGUS
+      short_description: All-in-one crypto rewards hub
+      long_description: |
+        WAGUS is your all-in-one app for community rewards, project funding, chat, games, and AI tools. Connect your wallet, earn tokens, and unlock new experiences every day. Built for mobile-first Solana users.
+      new_in_version: |
+        Added project transparency, username customization, and better token UX.
+      saga_features: Supports Mobile Wallet Adapter natively
+solana_mobile_dapp_publisher_portal:
+  google_store_package: com.yourcompany.wagus
+  testing_instructions: |
+    Open the app, connect wallet using Mobile Wallet Adapter, test sending/receiving tokens in chat and funding a project.
+  alpha_testers: []
+lastSubmittedVersionOnChain:
+  address: FU1k19JFYbAcMFAWNgfAesDnpvyRpud2vPDVxfG5KCUQ
+  version_code: 37
+  apk_hash: U4h+a11MJ6/cAs9zimueQyM6q7AKRJ+KKZ9yFEcOJpM=
+lastUpdatedVersionOnStore:
+  address: FU1k19JFYbAcMFAWNgfAesDnpvyRpud2vPDVxfG5KCUQ

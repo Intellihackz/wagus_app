@@ -1,0 +1,49 @@
+{
+  "assets": {
+    "../assets/icon/icon_solana.png": {
+      "path": "../assets/icon/icon_solana.png",
+      "sha256": "oZ7fok/1w9mTCpoZ29UjH44cAsZZyUnKgWp8DSrWxdg=",
+      "uri": "https://arweave.net/Ufz6C5Q8SoDXFBVmsoo3_yRuc2bGg7ImhMBJChb80ds"
+    },
+    "../assets/graphics/banner.png": {
+      "path": "../assets/graphics/banner.png",
+      "sha256": "ESlAdCEYNXyAbhvMUg7pNyvsF94vLo67skIxfHohkPc=",
+      "uri": "https://arweave.net/Tp8UeKvWx2z_DE6TGA3sc0R2l9K4A5xZGpWTi6oGhJA"
+    },
+    "../assets/graphics/graphic1.png": {
+      "path": "../assets/graphics/graphic1.png",
+      "sha256": "VBE94IteO0i10Mi9DjJTBpxwreUE6ITSXO8jwUeC7BM=",
+      "uri": "https://arweave.net/phErYYjJinud-V6eF4en1q3vojvdofPsb2UtrdBghGQ"
+    },
+    "../assets/graphics/graphic2.png": {
+      "path": "../assets/graphics/graphic2.png",
+      "sha256": "VhXNhPNcygZlgEMOO5RjdMdZk2/iyGYtmqx7VkKIqfM=",
+      "uri": "https://arweave.net/tvzLW3-5AWvXy4FxkNbuFxbcddKyGDY9SPQsZRbW9H0"
+    },
+    "../assets/graphics/graphic3.png": {
+      "path": "../assets/graphics/graphic3.png",
+      "sha256": "+IkESpFnDR6COatNAYrvaEV1w8q8PAQm1iYgvYNnI+k=",
+      "uri": "https://arweave.net/48tjwQp3Y3sXUTMhBNHj8BOoaH2YEuu2vvocxkM0Rrc"
+    },
+    "../assets/graphics/graphic4.png": {
+      "path": "../assets/graphics/graphic4.png",
+      "sha256": "jP3JfBoGjHE4ul6MTpp6dLcfLCV9m7ffKdc6JiCm5xo=",
+      "uri": "https://arweave.net/7cI398tGPcqrW9LY6xiYvQGfmlfxJsQ2aOan9oRuriM"
+    },
+    "../assets/graphics/feature.png": {
+      "path": "../assets/graphics/feature.png",
+      "sha256": "s283XbM62AZdqF3ev4SK+wr7pJwnAVJbKpBIKtARER4=",
+      "uri": "https://arweave.net/wEX8QZjAG_fEvjwltMKAis_a4_HSDYkHXDEiuQk5BKA"
+    },
+    "../assets/graphics/wagus_trailer_mobile.mp4": {
+      "path": "../assets/graphics/wagus_trailer_mobile.mp4",
+      "sha256": "bAr5O9UJpaSjYqlammzQJmmEngYSdPu3OPB4hXNAAn0=",
+      "uri": "https://arweave.net/yF14QsCfO_6hRQo1HLrOKAkjDs79T6oVVg7rR95XiUM"
+    },
+    "../build/app/outputs/apk/release/app-release.apk": {
+      "path": "../build/app/outputs/apk/release/app-release.apk",
+      "sha256": "U4h+a11MJ6/cAs9zimueQyM6q7AKRJ+KKZ9yFEcOJpM=",
+      "uri": "https://arweave.net/L0kmCiUXlrjcF-YSPGRSGMSEndjBbYgdYHjHQRuWD4Y"
+    }
+  }
+}
