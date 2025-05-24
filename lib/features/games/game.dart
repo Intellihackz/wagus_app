@@ -35,7 +35,8 @@ class Game extends StatelessWidget {
         'icon': FontAwesomeIcons.puzzlePiece,
         'title': 'Guess the Drawing',
         'tagline': 'Draw and guess with friends.',
-        'status': 'coming',
+        'status': 'live',
+        'route': guessTheDrawing,
       },
       {
         'icon': FontAwesomeIcons.egg,
@@ -69,114 +70,130 @@ class Game extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
                     Expanded(
-                      child: ListView.separated(
-                        itemCount: games.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final game = games[index];
-                          final isLive = game['status'] == 'live';
+                      child: Builder(builder: (context) {
+                        final sortedGames = [...games]..sort((a, b) {
+                            // Sort by status first: 'live' before 'coming'
+                            final statusA = a['status'] == 'live' ? 0 : 1;
+                            final statusB = b['status'] == 'live' ? 0 : 1;
 
-                          return InkWell(
-                            onTap: () {
-                              if (isLive) {
-                                final wallet = context
-                                    .read<PortalBloc>()
-                                    .state
-                                    .user!
-                                    .embeddedSolanaWallets
-                                    .first
-                                    .address;
-                                context.push('${game['route']}/$wallet');
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Coming soon!'),
-                                    duration: Duration(seconds: 1),
+                            if (statusA != statusB) return statusA - statusB;
+
+                            // If same status, sort by title
+                            return (a['title'] as String)
+                                .compareTo(b['title'] as String);
+                          });
+                        return ListView.separated(
+                          itemCount: sortedGames.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final game = sortedGames[index];
+                            final isLive = game['status'] == 'live';
+
+                            return InkWell(
+                              onTap: () {
+                                if (isLive) {
+                                  final wallet = context
+                                      .read<PortalBloc>()
+                                      .state
+                                      .user!
+                                      .embeddedSolanaWallets
+                                      .first
+                                      .address;
+                                  context.push('${game['route']}/$wallet');
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Coming soon!'),
+                                      duration: Duration(seconds: 1),
+                                    ),
+                                  );
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[900],
+                                  border: Border.all(
+                                    color: isLive
+                                        ? portalState == TierStatus.adventurer
+                                            ? TierStatus.adventurer.color
+                                            : TierStatus.basic.color
+                                        : Colors.white24,
                                   ),
-                                );
-                              }
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.grey[900],
-                                border: Border.all(
-                                  color: isLive
-                                      ? portalState == TierStatus.adventurer
-                                          ? TierStatus.adventurer.color
-                                          : TierStatus.basic.color
-                                      : Colors.white24,
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 16, horizontal: 16),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Icon(game['icon'] as IconData,
-                                      size: 20,
-                                      color:
-                                          portalState == TierStatus.adventurer
-                                              ? TierStatus.adventurer.color
-                                              : TierStatus.basic.color),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              game['title'] as String,
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                            if (!isLive)
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 6,
-                                                        vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.orangeAccent,
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 16, horizontal: 16),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(game['icon'] as IconData,
+                                        size: 20,
+                                        color:
+                                            portalState == TierStatus.adventurer
+                                                ? TierStatus.adventurer.color
+                                                : TierStatus.basic.color),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                game['title'] as String,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w500,
                                                 ),
-                                                child: const Text(
-                                                  'Coming Soon',
-                                                  style: TextStyle(
-                                                    color: Colors.black,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
+                                              ),
+                                              if (!isLive)
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.orangeAccent,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            6),
+                                                  ),
+                                                  child: const Text(
+                                                    'Coming Soon',
+                                                    style: TextStyle(
+                                                      color: Colors.black,
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          game['tagline'] as String,
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.white60,
+                                            ],
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            game['tagline'] as String,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.white60,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
+                            );
+                          },
+                        );
+                      }),
                     ),
                   ],
                 ),

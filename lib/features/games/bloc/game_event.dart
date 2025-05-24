@@ -10,3 +10,11 @@ sealed class GameEvent extends Equatable {
 class GameSpygusInitializeEvent extends GameEvent {
   const GameSpygusInitializeEvent();
 }
+
+class GameListenGuessDrawingSession extends GameEvent {
+  final String sessionId;
+  const GameListenGuessDrawingSession(this.sessionId);
+
+  @override
+  List<Object> get props => [sessionId];
+}

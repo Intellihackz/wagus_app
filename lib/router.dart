@@ -6,6 +6,7 @@ import 'package:wagus/features/ai/ai_tools/ai_roadmap.dart';
 import 'package:wagus/features/ai/ai_tools/ai_tokenomics.dart';
 import 'package:wagus/features/ai/ai_tools/ai_tools.dart';
 import 'package:wagus/features/auth/login_screen.dart';
+import 'package:wagus/features/games/presentation/widgets/guess_the_drawing.dart';
 import 'package:wagus/features/games/presentation/widgets/spygus.dart';
 import 'package:wagus/features/incubator/project_interface.dart';
 import 'package:wagus/features/portal/portal.dart';
@@ -17,6 +18,7 @@ const String login = '/login';
 const String portal = '/portal';
 const String home = '/home';
 const String spygus = '/spygus';
+const String guessTheDrawing = '/guess-the-drawing';
 const String aiImageGeneration = '/ai-image-generation';
 const String aiAnalysisPrediction = '/ai-analysis-prediction';
 const String aiWhitePaperGeneration = '/ai-whitepaper';
@@ -67,6 +69,12 @@ final GoRouter appRouter = GoRouter(
         return Spygus(walletAddress: walletAddress);
       },
     ),
+    GoRoute(
+        path: '$guessTheDrawing/:walletAddress',
+        builder: (context, state) {
+          final walletAddress = state.pathParameters['walletAddress']!;
+          return GuessTheDrawing(address: walletAddress);
+        }),
     GoRoute(
       path: aiImageGeneration,
       builder: (context, state) => const AIImageGeneration(),

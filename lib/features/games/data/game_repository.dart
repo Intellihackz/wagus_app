@@ -2,11 +2,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:wagus/features/games/domain/guess_the_drawing/guess_entry.dart';
+import 'package:wagus/features/games/domain/guess_the_drawing/guess_the_drawing_session.dart';
 import 'package:wagus/features/games/domain/spygus_game_data.dart';
 
 class GameRepository {
   final _spygusCollection = FirebaseFirestore.instance.collection('spygus');
   final _usersCollection = FirebaseFirestore.instance.collection('users');
+  final _guessTheDrawingCollection =
+      FirebaseFirestore.instance.collection('guess_the_drawing_sessions');
   final _storage = FirebaseStorage.instance;
   final Dio _dio = Dio();
 
@@ -80,5 +84,120 @@ class GameRepository {
     final nowDate = DateTime(serverNow.year, serverNow.month, serverNow.day);
 
     return lastDate.isBefore(nowDate); // true = can claim
+  }
+
+  /// 🎮 Guess the Drawing: Create new session
+  Future<void> createGuessDrawingSession(
+      String sessionId, GuessTheDrawingSession session) {
+    return _guessTheDrawingCollection.doc(sessionId).set(session.toMap());
+  }
+
+  /// 🧠 Guess the Drawing: Stream session
+  Stream<GuessTheDrawingSession> streamGuessDrawingSession(String sessionId) {
+    return _guessTheDrawingCollection
+        .doc(sessionId)
+        .snapshots()
+        .where((doc) => doc.exists && doc.data() != null)
+        .map((doc) {
+      return GuessTheDrawingSession.fromFirestore(doc.id, doc.data()!);
+    });
+  }
+
+  Stream<List<GuessTheDrawingSession>> streamAllSessions() {
+    return _guessTheDrawingCollection
+        .orderBy('updatedAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((doc) =>
+                GuessTheDrawingSession.fromFirestore(doc.id, doc.data()))
+            .toList());
+  }
+
+  /// 📝 Guess the Drawing: Submit a guess
+  Future<void> submitGuessToSession(String sessionId, GuessEntry entry) async {
+    await _guessTheDrawingCollection.doc(sessionId).update({
+      'guesses': FieldValue.arrayUnion([entry.toMap()]),
+    });
+  }
+
+  /// 🔁 Guess the Drawing: Update full session
+  Future<void> updateGuessDrawingSession(
+      String sessionId, GuessTheDrawingSession session) {
+    return _guessTheDrawingCollection.doc(sessionId).set(session.toMap());
+  }
+
+  Future<void> startGuessDrawingGame({
+    required String sessionId,
+    required List<String> playerWallets,
+  }) async {
+    final firstDrawerIndex = 0;
+    final firstWord = _pickWord();
+
+    final session = GuessTheDrawingSession(
+      id: sessionId,
+      players: playerWallets,
+      scores: {for (var w in playerWallets) w: 0},
+      round: 1,
+      currentDrawerIndex: firstDrawerIndex,
+      word: firstWord,
+      guesses: [],
+      isComplete: false,
+    );
+
+    await _guessTheDrawingCollection
+        .doc(sessionId)
+        .set(session.toMap()); // This overwrites
+  }
+
+  /// Simple hardcoded word list for now
+  String _pickWord() {
+    final words = ['apple', 'sun', 'car', 'house', 'tree', 'phone'];
+    words.shuffle();
+    return words.first;
+  }
+
+  /// 🏆 Award 1 point to the guesser
+  Future<void> awardPointToGuesser({
+    required String sessionId,
+    required GuessTheDrawingSession currentSession,
+    required String wallet,
+  }) async {
+    final updatedScores = Map<String, int>.from(currentSession.scores);
+    updatedScores[wallet] = (updatedScores[wallet] ?? 0) + 1;
+
+    final updatedSession = GuessTheDrawingSession(
+      id: currentSession.id,
+      players: currentSession.players,
+      scores: updatedScores,
+      round: currentSession.round,
+      currentDrawerIndex: currentSession.currentDrawerIndex,
+      word: currentSession.word,
+      guesses: currentSession.guesses,
+      isComplete: currentSession.isComplete,
+    );
+
+    await updateGuessDrawingSession(sessionId, updatedSession);
+  }
+
+  Future<void> advanceGuessDrawingRound({
+    required String sessionId,
+    required GuessTheDrawingSession currentSession,
+  }) async {
+    final nextIndex =
+        (currentSession.currentDrawerIndex + 1) % currentSession.players.length;
+    final nextRound = currentSession.round + 1;
+
+    final nextSession = GuessTheDrawingSession(
+      id: sessionId,
+      players: currentSession.players,
+      scores: currentSession.scores,
+      round: nextRound,
+      currentDrawerIndex: nextIndex,
+      word: _pickWord(),
+      guesses: [],
+      isComplete: nextRound > 3, // mark complete after 3 rounds
+    );
+
+    await updateGuessDrawingSession(sessionId, nextSession);
   }
 }
