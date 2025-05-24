@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -7,6 +9,7 @@ import 'package:wagus/features/games/bloc/game_bloc.dart';
 import 'package:wagus/features/games/data/game_repository.dart';
 import 'package:wagus/features/games/game.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
+import 'package:wagus/router.dart';
 
 class GuessTheDrawing extends HookWidget {
   const GuessTheDrawing({super.key, required this.address});
@@ -21,6 +24,7 @@ class GuessTheDrawing extends HookWidget {
           <String, dynamic>{
             'transports': ['websocket'],
             'autoConnect': false,
+            'query': {'wallet': address},
           });
 
       s.connect();
@@ -28,21 +32,6 @@ class GuessTheDrawing extends HookWidget {
       s.onConnect((_) async {
         print('✅ Socket connected: $address');
         s.emit('join_game', {'wallet': address}); // socket only
-
-        final sessionRef = FirebaseFirestore.instance
-            .collection('guess_the_drawing_sessions')
-            .doc('test-session');
-
-        final doc = await sessionRef.get();
-        if (doc.exists) {
-          final players = List<String>.from(doc.data()?['players'] ?? []);
-          if (!players.contains(address)) {
-            await sessionRef.update({
-              'players': FieldValue.arrayUnion([address]),
-              'updatedAt': FieldValue.serverTimestamp(),
-            });
-          }
-        }
       });
 
       s.on('new_stroke', (data) {
@@ -53,6 +42,12 @@ class GuessTheDrawing extends HookWidget {
         // show success/failure
       });
 
+      s.on('player_left', (data) {
+        // data is a list of removed wallet addresses
+        // use this to update the player list UI in real-time
+        print("Players left: $data");
+      });
+
       s.onConnectError((err) => print('❌ Socket connect error: $err'));
       s.onError((err) => print('❌ Socket general error: $err'));
 
@@ -60,13 +55,23 @@ class GuessTheDrawing extends HookWidget {
     });
 
     useEffect(() {
-      context.read<GameBloc>().add(
-            GameListenGuessDrawingSession(
-              'test-session',
-            ),
-          );
+      final timer = Timer.periodic(const Duration(seconds: 30), (_) {
+        socket.emit('ping_alive', {'wallet': address});
+      });
+
+      context
+          .read<GameBloc>()
+          .add(GameListenGuessDrawingSession('test-session'));
+
+      final locationSub = locationControler.stream.listen((route) {
+        if (!route!.startsWith('/guess-the-drawing')) {
+          socket.disconnect();
+        }
+      });
 
       return () {
+        timer.cancel();
+        locationSub.cancel();
         socket.disconnect();
         socket.dispose();
       };
