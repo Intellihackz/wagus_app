@@ -212,7 +212,7 @@ class GuessTheDrawing extends HookWidget {
                     height: MediaQuery.of(context).size.height * 0.45,
                     child: isDrawer
                         ? _DrawingCanvas(socket: socket, strokes: strokes)
-                        : _DrawingViewer(socket: socket),
+                        : _DrawingViewer(socket: socket, strokes: strokes),
                   ),
                   const Divider(color: Colors.white24),
                   if (!session.isComplete)
@@ -258,16 +258,14 @@ class GuessTheDrawing extends HookWidget {
 
 class _DrawingViewer extends HookWidget {
   final IO.Socket socket;
-  const _DrawingViewer({required this.socket});
+  final ValueNotifier<List<Offset?>> strokes;
+
+  const _DrawingViewer({required this.socket, required this.strokes});
 
   @override
   Widget build(BuildContext context) {
-    final strokes = useState<List<Offset?>>([]);
-
     useEffect(() {
       socket.on('new_stroke', (data) {
-        print("📥 Received stroke: $data");
-
         final dx = data['dx'];
         final dy = data['dy'];
 
@@ -278,7 +276,7 @@ class _DrawingViewer extends HookWidget {
         }
       });
       return () => socket.off('new_stroke');
-    }, []);
+    }, [socket]);
 
     return CustomPaint(
       painter: _CanvasPainter(strokes.value),
