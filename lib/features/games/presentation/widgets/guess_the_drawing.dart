@@ -125,7 +125,7 @@ class GuessTheDrawing extends HookWidget {
               );
             }
 
-            final hasNotStarted = session.round == 0 || session.word.isEmpty;
+            final hasNotStarted = !session.gameStarted;
             final hasEnoughPlayers = session.players.length >= 3;
 
             if (hasNotStarted) {
@@ -159,17 +159,22 @@ class GuessTheDrawing extends HookWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Waiting for players...',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                    const SizedBox(height: 8),
                     Text(
-                      '${session.players.length} joined • Need 3 to start',
-                      style: const TextStyle(color: Colors.white38),
+                      '${session.players.length} joined • Not enough players yet',
+                      style: const TextStyle(color: Colors.white),
                     ),
-                    const SizedBox(height: 24),
-                    const CircularProgressIndicator(color: Colors.white),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () {
+                        context.read<GameRepository>().startGuessDrawingGame(
+                              sessionId: 'test-session',
+                              playerWallets: session.players.isEmpty
+                                  ? [address]
+                                  : session.players,
+                            );
+                      },
+                      child: const Text('Force Start Anyway'),
+                    ),
                   ],
                 ),
               );

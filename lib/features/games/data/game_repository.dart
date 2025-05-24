@@ -134,28 +134,39 @@ class GameRepository {
     final existing = await docRef.get();
 
     if (existing.exists) {
-      final existingPlayers =
-          List<String>.from(existing.data()?['players'] ?? []);
+      final data = existing.data()!;
+      if (data['gameStarted'] == true) {
+        print('⛔ Game already started');
+        return;
+      }
+
+      final existingPlayers = List<String>.from(data['players'] ?? []);
       final mergedPlayers = {...existingPlayers, ...playerWallets}.toList();
 
       await docRef.update({
         'players': mergedPlayers,
+        'gameStarted': true,
+        'round': 1,
+        'word': pickWord(),
+        'scores': {for (var w in mergedPlayers) w: 0},
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } else {
-      final firstWord = pickWord();
       final session = GuessTheDrawingSession(
         id: sessionId,
         players: playerWallets,
         scores: {for (var w in playerWallets) w: 0},
         round: 1,
         currentDrawerIndex: 0,
-        word: firstWord,
+        word: pickWord(),
         guesses: [],
         isComplete: false,
+        gameStarted: true,
       );
 
-      await docRef.set(session.toMap());
+      final data = session.toMap()..['gameStarted'] = true;
+
+      await docRef.set(data);
     }
   }
 
@@ -184,6 +195,7 @@ class GameRepository {
       word: currentSession.word,
       guesses: currentSession.guesses,
       isComplete: currentSession.isComplete,
+      gameStarted: currentSession.gameStarted,
     );
 
     await updateGuessDrawingSession(sessionId, updatedSession);
@@ -206,6 +218,7 @@ class GameRepository {
       word: pickWord(),
       guesses: [],
       isComplete: nextRound > 3, // mark complete after 3 rounds
+      gameStarted: currentSession.gameStarted,
     );
 
     await updateGuessDrawingSession(sessionId, nextSession);

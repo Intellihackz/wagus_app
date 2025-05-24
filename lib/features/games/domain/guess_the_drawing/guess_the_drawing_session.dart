@@ -6,10 +6,11 @@ class GuessTheDrawingSession {
   final List<String> players;
   final Map<String, int> scores;
   final int round;
-  final int currentDrawerIndex; // <- replace drawer string
+  final int currentDrawerIndex;
   final String word;
   final List<GuessEntry> guesses;
   final bool isComplete;
+  final bool gameStarted; // 🔥 New field
 
   GuessTheDrawingSession({
     required this.id,
@@ -20,6 +21,7 @@ class GuessTheDrawingSession {
     required this.word,
     required this.guesses,
     required this.isComplete,
+    required this.gameStarted, // 🔥 New field
   });
 
   GuessTheDrawingSession nextRound(String newWord) {
@@ -34,6 +36,7 @@ class GuessTheDrawingSession {
       word: newWord,
       guesses: [],
       isComplete: false,
+      gameStarted: true, // stay true
     );
   }
 
@@ -55,6 +58,7 @@ class GuessTheDrawingSession {
               .toList() ??
           [],
       isComplete: data['isComplete'] ?? false,
+      gameStarted: data['gameStarted'] ?? false, // 🔥 Add fallback
     );
   }
 
@@ -66,6 +70,7 @@ class GuessTheDrawingSession {
         'word': word,
         'guesses': guesses.map((g) => g.toMap()).toList(),
         'isComplete': isComplete,
+        'gameStarted': gameStarted, // 🔥 Include this
         'updatedAt': FieldValue.serverTimestamp(),
       };
 }
