@@ -20,6 +20,7 @@ class GuessTheDrawing extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strokes = useState<List<Offset?>>([]);
     final socket = useMemoized(() {
       final s = IO.io(
           'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com',
@@ -62,7 +63,14 @@ class GuessTheDrawing extends HookWidget {
       // });
 
       s.on('new_stroke', (data) {
-        // update canvas
+        final dx = data['dx'];
+        final dy = data['dy'];
+
+        if (dx == null || dy == null) {
+          strokes.value = [...strokes.value, null];
+        } else {
+          strokes.value = [...strokes.value, Offset(dx * 1.0, dy * 1.0)];
+        }
       });
 
       s.on('guess_result', (data) {
@@ -200,27 +208,29 @@ class GuessTheDrawing extends HookWidget {
                     style: const TextStyle(color: Colors.white60),
                   ),
                   const SizedBox(height: 12),
-                  Expanded(
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.45,
                     child: isDrawer
-                        ? _DrawingCanvas(socket: socket)
+                        ? _DrawingCanvas(socket: socket, strokes: strokes)
                         : _DrawingViewer(socket: socket),
                   ),
                   const Divider(color: Colors.white24),
                   if (!session.isComplete)
-                    isDrawer
-                        ? const Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: Text('Waiting for guesses...',
-                                style: TextStyle(color: Colors.white38)),
-                          )
-                        : Expanded(
-                            child: Column(
-                              children: [
-                                Expanded(child: ChatMessageList()),
-                                _ChatInput(socket: socket),
-                              ],
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Expanded(child: ChatMessageList()),
+                          if (!isDrawer)
+                            _ChatInput(socket: socket)
+                          else
+                            const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Text('Waiting for guesses...',
+                                  style: TextStyle(color: Colors.white38)),
                             ),
-                          )
+                        ],
+                      ),
+                    )
                   else
                     Padding(
                       padding: const EdgeInsets.all(12.0),
@@ -272,11 +282,12 @@ class _DrawingViewer extends HookWidget {
 
 class _DrawingCanvas extends HookWidget {
   final IO.Socket socket;
-  const _DrawingCanvas({required this.socket});
+  final ValueNotifier<List<Offset?>> strokes;
+  const _DrawingCanvas({required this.socket, required this.strokes});
 
   @override
   Widget build(BuildContext context) {
-    final strokes = useState<List<Offset>>([]);
+    final throttle = useRef<Timer?>(null); // ✅ persistent reference
 
     useEffect(() {
       socket.on('new_stroke', (data) {
@@ -288,22 +299,38 @@ class _DrawingCanvas extends HookWidget {
     }, []);
 
     return GestureDetector(
+      onPanStart: (_) {
+        strokes.value = [...strokes.value, null]; // null separates new stroke
+        socket
+            .emit('send_stroke', {'dx': null, 'dy': null}); // signal new stroke
+      },
       onPanUpdate: (details) {
-        final local = (context.findRenderObject() as RenderBox)
-            .globalToLocal(details.globalPosition);
-        strokes.value = [...strokes.value, local];
-        socket.emit('send_stroke', {'dx': local.dx, 'dy': local.dy});
+        final box = context.findRenderObject() as RenderBox;
+        final local = box.globalToLocal(details.globalPosition);
+
+// Clamp within canvas height
+        final clampedDy = local.dy.clamp(0.0, box.size.height);
+        final clampedDx = local.dx.clamp(0.0, box.size.width);
+        final clampedOffset = Offset(clampedDx, clampedDy);
+
+        strokes.value = [...strokes.value, clampedOffset];
+
+        if (throttle.value?.isActive ?? false) return;
+
+        throttle.value = Timer(const Duration(milliseconds: 16), () {
+          socket.emit('send_stroke', {'dx': clampedDx, 'dy': clampedDy});
+        });
       },
       child: CustomPaint(
         painter: _CanvasPainter(strokes.value),
-        child: Container(color: Colors.black),
+        child: Container(color: Colors.transparent),
       ),
     );
   }
 }
 
 class _CanvasPainter extends CustomPainter {
-  final List<Offset> strokes;
+  final List<Offset?> strokes;
   _CanvasPainter(this.strokes);
 
   @override
@@ -313,8 +340,12 @@ class _CanvasPainter extends CustomPainter {
       ..strokeWidth = 4
       ..strokeCap = StrokeCap.round;
 
-    for (final point in strokes) {
-      canvas.drawCircle(point, 2, paint);
+    for (int i = 0; i < strokes.length - 1; i++) {
+      final p1 = strokes[i];
+      final p2 = strokes[i + 1];
+      if (p1 != null && p2 != null) {
+        canvas.drawLine(p1, p2, paint);
+      }
     }
   }
 
