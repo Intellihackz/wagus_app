@@ -333,7 +333,9 @@ class _CanvasPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _CanvasPainter oldDelegate) {
+    return true;
+  }
 }
 
 class _ChatInput extends HookWidget {
