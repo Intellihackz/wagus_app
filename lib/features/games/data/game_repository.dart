@@ -130,23 +130,33 @@ class GameRepository {
     required String sessionId,
     required List<String> playerWallets,
   }) async {
-    final firstDrawerIndex = 0;
-    final firstWord = _pickWord();
+    final docRef = _guessTheDrawingCollection.doc(sessionId);
+    final existing = await docRef.get();
 
-    final session = GuessTheDrawingSession(
-      id: sessionId,
-      players: playerWallets,
-      scores: {for (var w in playerWallets) w: 0},
-      round: 1,
-      currentDrawerIndex: firstDrawerIndex,
-      word: firstWord,
-      guesses: [],
-      isComplete: false,
-    );
+    if (existing.exists) {
+      final existingPlayers =
+          List<String>.from(existing.data()?['players'] ?? []);
+      final mergedPlayers = {...existingPlayers, ...playerWallets}.toList();
 
-    await _guessTheDrawingCollection
-        .doc(sessionId)
-        .set(session.toMap()); // This overwrites
+      await docRef.update({
+        'players': mergedPlayers,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } else {
+      final firstWord = _pickWord();
+      final session = GuessTheDrawingSession(
+        id: sessionId,
+        players: playerWallets,
+        scores: {for (var w in playerWallets) w: 0},
+        round: 1,
+        currentDrawerIndex: 0,
+        word: firstWord,
+        guesses: [],
+        isComplete: false,
+      );
+
+      await docRef.set(session.toMap());
+    }
   }
 
   /// Simple hardcoded word list for now

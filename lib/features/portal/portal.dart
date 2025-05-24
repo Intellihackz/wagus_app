@@ -19,7 +19,18 @@ class Portal extends HookWidget {
     return RepositoryProvider(
       create: (context) => PortalRepository(),
       child: BlocListener<PortalBloc, PortalState>(
-        listener: (context, state) {},
+        listener: (context, state) async {
+          final user = state.user;
+          final hasWallets = user?.embeddedSolanaWallets.isNotEmpty ?? false;
+
+          if (user != null && hasWallets) {
+            await UserService()
+                .setUserOnline(user.embeddedSolanaWallets.first.address);
+            if (context.mounted) {
+              context.go(home);
+            }
+          }
+        },
         child: BlocBuilder<PortalBloc, PortalState>(
           builder: (context, state) {
             return Scaffold(
@@ -63,9 +74,6 @@ class Portal extends HookWidget {
                                       context
                                           .read<PortalBloc>()
                                           .add(PortalAuthorizeEvent(context));
-
-                                      await Future.delayed(
-                                          const Duration(milliseconds: 300));
 
                                       final portalBlocState =
                                           context.read<PortalBloc>().state;
