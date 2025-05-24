@@ -259,12 +259,7 @@ class _DrawingViewer extends HookWidget {
         if (dx == null || dy == null) {
           strokes.value = [...strokes.value, null];
         } else {
-          final canvasSize =
-              MediaQuery.of(context).size; // or exact canvas height/width
-          final actualDx = data['dx'] * canvasSize.width;
-          final actualDy = data['dy'] * canvasSize.height;
-
-          strokes.value = [...strokes.value, Offset(actualDx, actualDy)];
+          strokes.value = [...strokes.value, Offset(dx * 1.0, dy * 1.0)];
         }
       });
       return () => socket.off('new_stroke');
