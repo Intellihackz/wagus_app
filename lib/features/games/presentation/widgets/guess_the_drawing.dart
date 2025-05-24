@@ -259,7 +259,12 @@ class _DrawingViewer extends HookWidget {
         if (dx == null || dy == null) {
           strokes.value = [...strokes.value, null];
         } else {
-          strokes.value = [...strokes.value, Offset(dx * 1.0, dy * 1.0)];
+          final canvasSize =
+              MediaQuery.of(context).size; // or exact canvas height/width
+          final actualDx = data['dx'] * canvasSize.width;
+          final actualDy = data['dy'] * canvasSize.height;
+
+          strokes.value = [...strokes.value, Offset(actualDx, actualDy)];
         }
       });
       return () => socket.off('new_stroke');
@@ -306,7 +311,11 @@ class _DrawingCanvas extends HookWidget {
           if (throttle.value?.isActive ?? false) return;
 
           throttle.value = Timer(const Duration(milliseconds: 16), () {
-            socket.emit('send_stroke', {'dx': clampedDx, 'dy': clampedDy});
+            final normalizedDx = clampedDx / box.size.width;
+            final normalizedDy = clampedDy / box.size.height;
+
+            socket
+                .emit('send_stroke', {'dx': normalizedDx, 'dy': normalizedDy});
           });
         },
         child: ValueListenableBuilder<List<Offset?>>(
