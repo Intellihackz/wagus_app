@@ -26,7 +26,6 @@ Future<void> main() async {
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   await dotenv.load(fileName: ".env");
-
   await Firebase.initializeApp();
 
   final configService = ConfigService();
@@ -38,64 +37,49 @@ Future<void> main() async {
   }
 
   if (await configService.isAppOutdated()) {
-    runApp(
-      UpdateRequiredScreen(),
-    );
+    runApp(UpdateRequiredScreen());
     return;
   }
 
-  // Set the background messaging handler early on, as a named top-level function
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  runApp(App(router: appRouter)); // ⬅️ Moved early to ensure UI renders
 
-  // Request notification permissions
-  await _requestNotificationPermission();
+  // SAFE async ops after UI starts
+  _postBootAsync();
+}
 
-  // Set up foreground message handler
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    print('Received a foreground message: ${message.messageId}');
-    if (message.notification != null) {
-      print('Message also contained a notification: ${message.notification}');
+Future<void> _postBootAsync() async {
+  try {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    await _requestNotificationPermission();
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Received a foreground message: ${message.messageId}');
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print('Message clicked!: ${message.messageId}');
+    });
+
+    final token = await FirebaseMessaging.instance.getToken();
+    print('📲 FCM Token: $token');
+
+    await FirebaseMessaging.instance.subscribeToTopic('daily_reward');
+    await FirebaseMessaging.instance.subscribeToTopic('global_users');
+
+    final privyUser = await PrivyService().initialize();
+    final wallet = privyUser?.embeddedSolanaWallets.firstOrNull?.address;
+    print('🔑 Wallet address: $wallet');
+
+    if (wallet != null) {
+      WidgetsBinding.instance.addObserver(LifecycleHandler(wallet));
+      await UserService().setUserOnline(wallet);
+    } else {
+      print("⚠️ No wallet found, skipping lifecycle observer.");
     }
-    // TODO: Handle the message and update UI as needed
-  });
-
-  // Set up message opened app handler
-  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-    print('Message clicked!: ${message.messageId}');
-    // TODO: Navigate to a specific screen based on the message
-  });
-
-  //Bloc.observer = AppBlocObserver();
-
-  RemoteMessage? initialMessage =
-      await FirebaseMessaging.instance.getInitialMessage();
-  if (initialMessage != null) {
-    print(
-        '🔥 App launched from terminated state via notification: ${initialMessage.messageId}');
-    // You could pass this to the App widget or trigger navigation logic here
+  } catch (e, st) {
+    print('🛑 Startup error: $e');
+    print(st);
   }
-
-  String? token = await FirebaseMessaging.instance.getToken();
-  print('📲 FCM Token: $token');
-
-  await FirebaseMessaging.instance.subscribeToTopic('daily_reward');
-  print('✅ Subscribed to daily_reward topic');
-
-  await FirebaseMessaging.instance.subscribeToTopic('global_users');
-  print('✅ Subscribed to global_users topic');
-
-  final privyUser = await PrivyService().initialize();
-  final wallet = privyUser?.embeddedSolanaWallets.firstOrNull?.address;
-  print('🔑 Wallet address: $wallet');
-
-  if (wallet != null) {
-    WidgetsBinding.instance.addObserver(LifecycleHandler(wallet));
-    await UserService().setUserOnline(wallet);
-  } else {
-    print("⚠️ No wallet found, skipping lifecycle observer.");
-  }
-
-  runApp(App(router: appRouter));
 }
 
 /// Requests notification permissions from the user

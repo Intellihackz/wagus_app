@@ -143,7 +143,7 @@ class GameRepository {
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } else {
-      final firstWord = _pickWord();
+      final firstWord = pickWord();
       final session = GuessTheDrawingSession(
         id: sessionId,
         players: playerWallets,
@@ -160,7 +160,7 @@ class GameRepository {
   }
 
   /// Simple hardcoded word list for now
-  String _pickWord() {
+  String pickWord() {
     final words = ['apple', 'sun', 'car', 'house', 'tree', 'phone'];
     words.shuffle();
     return words.first;
@@ -203,7 +203,7 @@ class GameRepository {
       scores: currentSession.scores,
       round: nextRound,
       currentDrawerIndex: nextIndex,
-      word: _pickWord(),
+      word: pickWord(),
       guesses: [],
       isComplete: nextRound > 3, // mark complete after 3 rounds
     );

@@ -16,14 +16,17 @@ class GuessTheDrawing extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final socket = useMemoized(() {
-      final s = IO.io('https://your-heroku-or-server-url', <String, dynamic>{
-        'transports': ['websocket'],
-        'autoConnect': false,
-      });
+      final s = IO.io(
+          'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com',
+          <String, dynamic>{
+            'transports': ['websocket'],
+            'autoConnect': false,
+          });
 
       s.connect();
 
       s.onConnect((_) async {
+        print('✅ Socket connected: $address');
         s.emit('join_game', {'wallet': address}); // socket only
 
         final sessionRef = FirebaseFirestore.instance
