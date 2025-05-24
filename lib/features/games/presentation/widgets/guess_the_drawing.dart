@@ -262,13 +262,18 @@ class _DrawingViewer extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final strokes = useState<List<Offset>>([]);
+    final strokes = useState<List<Offset?>>([]);
 
     useEffect(() {
       socket.on('new_stroke', (data) {
-        final dx = data['dx'] * 1.0;
-        final dy = data['dy'] * 1.0;
-        strokes.value = [...strokes.value, Offset(dx, dy)];
+        final dx = data['dx'];
+        final dy = data['dy'];
+
+        if (dx == null || dy == null) {
+          strokes.value = [...strokes.value, null];
+        } else {
+          strokes.value = [...strokes.value, Offset(dx * 1.0, dy * 1.0)];
+        }
       });
       return () => socket.off('new_stroke');
     }, []);
@@ -291,9 +296,14 @@ class _DrawingCanvas extends HookWidget {
 
     useEffect(() {
       socket.on('new_stroke', (data) {
-        final dx = data['dx'] * 1.0;
-        final dy = data['dy'] * 1.0;
-        strokes.value = [...strokes.value, Offset(dx, dy)];
+        final dx = data['dx'];
+        final dy = data['dy'];
+
+        if (dx == null || dy == null) {
+          strokes.value = [...strokes.value, null];
+        } else {
+          strokes.value = [...strokes.value, Offset(dx * 1.0, dy * 1.0)];
+        }
       });
       return () => socket.off('new_stroke');
     }, []);
