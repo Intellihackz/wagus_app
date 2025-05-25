@@ -63,6 +63,53 @@ class Wagus extends HookWidget {
         ),
         BlocBuilder<PortalBloc, PortalState>(
           builder: (context, state) {
+            final user = state.user;
+
+            if (user == null) {
+              return Scaffold(
+                backgroundColor: Colors.black,
+                body: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Logo
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.white10,
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
+                            )
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image(
+                            image: AssetImage('assets/icon/icon_solana.png'),
+                            height: 64,
+                            width: 64,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 24),
+                      Text(
+                        'Connecting your wallet...',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Please wait a moment',
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
             return SafeArea(
               child: Scaffold(
                 resizeToAvoidBottomInset: false,

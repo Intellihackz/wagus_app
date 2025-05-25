@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/quest/bloc/quest_bloc.dart';
 
@@ -10,18 +11,20 @@ class Quest extends HookWidget {
   @override
   Widget build(BuildContext context) {
     useEffect(() {
-      final address = context
-          .read<PortalBloc>()
-          .state
-          .user
-          ?.embeddedSolanaWallets
-          .first
-          .address;
-      if (address != null) {
-        context.read<QuestBloc>().add(QuestInitialEvent(address: address));
-      }
+      context.read<QuestBloc>().add(
+            QuestInitialEvent(
+              address: context
+                  .read<PortalBloc>()
+                  .state
+                  .user!
+                  .embeddedSolanaWallets
+                  .first
+                  .address,
+            ),
+          );
+
       return null;
-    }, []);
+    });
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -130,7 +133,9 @@ class DailyRewardsSheet extends StatelessWidget {
       listener: (context, state) {
         if (state.claimSuccess) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.of(context).pop();
+            if (context.canPop()) {
+              context.pop();
+            }
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -228,14 +233,10 @@ class DailyRewardsSheet extends StatelessWidget {
                 SizedBox(height: 16),
                 Row(
                   children: [
-                    if (state.claimSuccess ||
-                        state.currentlyClaimingDay != null)
-                      const SizedBox(width: 48) // prevent layout shift
-                    else
-                      BackButton(
-                        color: Colors.white,
-                        onPressed: () => Navigator.of(sheetContext).pop(),
-                      ),
+                    BackButton(
+                      color: Colors.white,
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                    ),
                     const Text(
                       'Daily Rewards',
                       style: TextStyle(

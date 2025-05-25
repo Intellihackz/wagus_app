@@ -4,14 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wagus/features/games/bloc/game_bloc.dart';
 import 'package:wagus/features/games/data/game_repository.dart';
 import 'package:wagus/features/games/domain/guess_the_drawing/chat_message_entry.dart';
 import 'package:wagus/features/games/domain/guess_the_drawing/guess_entry.dart';
-import 'package:wagus/features/games/domain/guess_the_drawing/guess_the_drawing_session.dart';
-import 'package:wagus/features/games/game.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
 
@@ -109,6 +108,18 @@ class GuessTheDrawing extends HookWidget {
         print("Players left: $data");
       });
 
+      s.on('join_rejected', (data) {
+        final reason = data['reason'] ?? 'Join rejected';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(reason), backgroundColor: Colors.red),
+        );
+        s.disconnect();
+
+        if (context.canPop()) {
+          context.pop();
+        }
+      });
+
       s.onConnectError((err) => print('❌ Socket connect error: $err'));
       s.onError((err) => print('❌ Socket general error: $err'));
 
@@ -158,24 +169,27 @@ class GuessTheDrawing extends HookWidget {
     }, [address, session?.round]);
 
     return Scaffold(
-        floatingActionButton: FloatingActionButton(
-            onPressed: () async {
-              await FirebaseFirestore.instance
-                  .collection('guess_the_drawing_sessions')
-                  .doc('test-session')
-                  .update({
-                'round': 0,
-                'gameStarted': false,
-                'isComplete': false,
-                'word': '',
-                'guesses': [],
-                'scores': {},
-                'currentDrawerIndex': 0,
-                'updatedAt': FieldValue.serverTimestamp(),
-                'drawer': FieldValue.delete(), // 🔥 KEY FIX
-              });
-            },
-            child: const Icon(FontAwesomeIcons.hourglassStart)),
+        floatingActionButton: Visibility(
+          visible: false,
+          child: FloatingActionButton(
+              onPressed: () async {
+                await FirebaseFirestore.instance
+                    .collection('guess_the_drawing_sessions')
+                    .doc('test-session')
+                    .update({
+                  'round': 0,
+                  'gameStarted': false,
+                  'isComplete': false,
+                  'word': '',
+                  'guesses': [],
+                  'scores': {},
+                  'currentDrawerIndex': 0,
+                  'updatedAt': FieldValue.serverTimestamp(),
+                  'drawer': FieldValue.delete(), // 🔥 KEY FIX
+                });
+              },
+              child: const Icon(FontAwesomeIcons.hourglassStart)),
+        ),
         backgroundColor: Colors.black,
         body: BlocBuilder<GameBloc, GameState>(
           builder: (context, state) {

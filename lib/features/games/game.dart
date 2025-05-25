@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -91,7 +92,7 @@ class Game extends StatelessWidget {
                             final isLive = game['status'] == 'live';
 
                             return InkWell(
-                              onTap: () {
+                              onTap: () async {
                                 if (isLive) {
                                   final wallet = context
                                       .read<PortalBloc>()
@@ -100,6 +101,28 @@ class Game extends StatelessWidget {
                                       .embeddedSolanaWallets
                                       .first
                                       .address;
+
+                                  final doc = await FirebaseFirestore.instance
+                                      .collection('guess_the_drawing_sessions')
+                                      .doc('test-session')
+                                      .get();
+
+                                  final players = List<String>.from(
+                                      doc.data()?['players'] ?? []);
+                                  final isFull = players.length >= 5 &&
+                                      !players.contains(wallet);
+
+                                  if (isFull) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Game is full (5 players max)'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                    return;
+                                  }
+
                                   context.push('${game['route']}/$wallet');
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
