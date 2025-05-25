@@ -166,12 +166,19 @@ class GameRepository {
         wallet: entry.wallet,
       );
 
-      // Delay briefly before advancing round
+      // 🛠️ REFRESH the session from Firestore to get the updated scores
+      final updatedSnapshot =
+          await _guessTheDrawingCollection.doc(sessionId).get();
+      final updatedSession = GuessTheDrawingSession.fromFirestore(
+        sessionId,
+        updatedSnapshot.data()!,
+      );
+
       await Future.delayed(const Duration(seconds: 2));
 
       await advanceGuessDrawingRound(
         sessionId: sessionId,
-        currentSession: currentSession,
+        currentSession: updatedSession,
       );
     }
   }

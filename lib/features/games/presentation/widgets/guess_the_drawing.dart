@@ -556,8 +556,6 @@ class _ChatInput extends HookWidget {
     }
 
     if (isGuess) {
-      socket.emit('send_guess', {'guess': guessWord});
-
       final guessEntry = GuessEntry(
           wallet: wallet, guess: guessWord, timestamp: DateTime.now());
       await context
