@@ -40,7 +40,49 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     on<PortalClearEvent>(_handleClear);
     on<PortalUpdateTierEvent>(_handleUpdateTier);
     on<PortalFetchHoldersCountEvent>(_handleFetchHoldersCount);
+    // on<PortalListenSupportedTokensEvent>((event, emit) async {
+    //   final tokensStream = portalRepository.getSupportedTokens();
+
+    //   await for (final tokens in tokensStream) {
+    //     final defaultToken = tokens.firstWhere(
+    //       (t) => t.ticker.toUpperCase() == 'WAGUS',
+    //       orElse: () => tokens.first,
+    //     );
+
+    //     final user = state.user;
+
+    //     final walletAddress = user?.embeddedSolanaWallets.first.address;
+
+    //     final holdersMap = <String, Holder>{};
+
+    //     if (walletAddress != null) {
+    //       final entries = <MapEntry<String, Holder>>[];
+    //       for (final token in tokens) {
+    //         final holder =
+    //             await _getSolAndTokenBalances(walletAddress, token.address);
+    //         entries.add(MapEntry(token.ticker, holder));
+    //         await Future.delayed(
+    //             const Duration(milliseconds: 200)); // avoid rate limit
+    //       }
+
+    //       holdersMap.addEntries(entries);
+    //     }
+
+    //     emit(state.copyWith(
+    //       supportedTokens: () => tokens,
+    //       selectedToken: () => defaultToken,
+    //       holdersMap: () => holdersMap,
+    //       holder: () => holdersMap[defaultToken.ticker],
+    //     ));
+    //     break; // stop after first emission
+    //   }
+    // });
     on<PortalListenSupportedTokensEvent>((event, emit) async {
+      final user = state.user;
+      if (user == null || user.embeddedSolanaWallets.isEmpty) return;
+
+      final walletAddress = user.embeddedSolanaWallets.first.address;
+
       final tokensStream = portalRepository.getSupportedTokens();
 
       await for (final tokens in tokensStream) {
@@ -49,23 +91,14 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
           orElse: () => tokens.first,
         );
 
-        final user = state.user;
-
-        final walletAddress = user?.embeddedSolanaWallets.first.address;
-
         final holdersMap = <String, Holder>{};
 
-        if (walletAddress != null) {
-          final entries = <MapEntry<String, Holder>>[];
-          for (final token in tokens) {
-            final holder =
-                await _getSolAndTokenBalances(walletAddress, token.address);
-            entries.add(MapEntry(token.ticker, holder));
-            await Future.delayed(
-                const Duration(milliseconds: 200)); // avoid rate limit
-          }
-
-          holdersMap.addEntries(entries);
+        for (final token in tokens) {
+          final holder =
+              await _getSolAndTokenBalances(walletAddress, token.address);
+          holdersMap[token.ticker] = holder;
+          await Future.delayed(
+              const Duration(milliseconds: 200)); // avoid rate limit
         }
 
         emit(state.copyWith(
@@ -74,7 +107,8 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
           holdersMap: () => holdersMap,
           holder: () => holdersMap[defaultToken.ticker],
         ));
-        break; // stop after first emission
+
+        break; // only handle first snapshot
       }
     });
 
@@ -103,13 +137,12 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       PortalInitialEvent event, Emitter<PortalState> emit) async {
     final user = await portalRepository.connect();
 
-    if (!PrivyService().isAuthenticated()) {
+    if (!PrivyService().isAuthenticated() ||
+        user == null ||
+        user.embeddedSolanaWallets.isEmpty) {
       debugPrint('[PortalBloc] Skipped init: user not ready');
       return;
     }
-
-    //final user = await portalRepository.init();
-    if (user == null || user.embeddedSolanaWallets.isEmpty) return;
 
     final address = user.embeddedSolanaWallets.first.address;
     final userDoc = await UserService().getUser(address);
@@ -119,78 +152,31 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       orElse: () => TierStatus.basic,
     );
 
+    final tokensStream = portalRepository.getSupportedTokens();
+    final tokens = await tokensStream.first;
+
+    final defaultToken = tokens.firstWhere(
+      (t) => t.ticker.toUpperCase() == 'WAGUS',
+      orElse: () => tokens.first,
+    );
+
     final holdersMap = <String, Holder>{};
-
-    if (state.supportedTokens.isEmpty) {
-      emit(state.copyWith(
-        user: () => user,
-        holdersMap: () => holdersMap,
-        tierStatus: tierEnum,
-        currentTokenAddress: state.selectedToken.address,
-      ));
-
-      return;
-    } else {
-      emit(state.copyWith(
-        user: () => user,
-        holdersMap: () => holdersMap,
-        tierStatus: tierEnum,
-        currentTokenAddress: state.selectedToken.address,
-      ));
+    for (final token in tokens) {
+      final holder = await _getSolAndTokenBalances(address, token.address);
+      holdersMap[token.ticker] = holder;
+      await Future.delayed(const Duration(milliseconds: 200));
     }
+
+    emit(state.copyWith(
+      user: () => user,
+      tierStatus: tierEnum,
+      supportedTokens: () => tokens,
+      selectedToken: () => defaultToken,
+      holdersMap: () => holdersMap,
+      holder: () => holdersMap[defaultToken.ticker],
+    ));
 
     add(PortalFetchHoldersCountEvent());
-
-    final dio = Dio();
-    final apiKey = dotenv.env['HELIUS_API_KEY'];
-    final url = 'https://mainnet.helius-rpc.com/?api-key=$apiKey';
-    String? cursor;
-    const limit = 5;
-    final accountOwners = <String>[];
-
-    while (accountOwners.length < limit) {
-      final params = {
-        'jsonrpc': '2.0',
-        'id': 'helius-test',
-        'method': 'getTokenAccounts',
-        'params': {
-          'limit': 1000,
-          'mint': state.selectedToken.address,
-          if (cursor != null) 'cursor': cursor,
-        },
-      };
-
-      try {
-        final response = await dio.post(
-          url,
-          data: jsonEncode(params),
-          options: Options(headers: {'Content-Type': 'application/json'}),
-        );
-
-        if (response.statusCode == 200) {
-          final data = response.data;
-          final accounts = data['result']?['token_accounts'] ?? [];
-          if (accounts.isEmpty) break;
-
-          for (var account in accounts) {
-            final owner = account['owner'];
-            if (!accountOwners.contains(owner) &&
-                accountOwners.length < limit) {
-              accountOwners.add(owner);
-            }
-          }
-
-          cursor = data['result']['cursor'] as String?;
-          if (cursor == null) break;
-        } else {
-          break;
-        }
-      } catch (e) {
-        break;
-      }
-    }
-
-    debugPrint('Account owners: $accountOwners');
   }
 
   Future<void> _handleAuthorize(
@@ -217,35 +203,52 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     add(PortalListenSupportedTokensEvent());
 
     if (PrivyService().isAuthenticated()) {
-      add(PortalInitialEvent());
-      add(PortalListenSupportedTokensEvent());
+      if (user.embeddedSolanaWallets.isNotEmpty) {
+        add(PortalInitialEvent());
+        add(PortalListenSupportedTokensEvent());
+      }
     }
   }
 
   Future<void> _handleRefresh(
       PortalRefreshEvent event, Emitter<PortalState> emit) async {
     try {
+      emit(state.copyWith(isRefreshing: true));
       final user = state.user;
       final tokens = state.supportedTokens;
       if (user == null || user.embeddedSolanaWallets.isEmpty || tokens.isEmpty)
         return;
 
       final address = user.embeddedSolanaWallets.first.address;
-      final entries = await Future.wait(tokens.map((token) async {
-        final holder = await _getSolAndTokenBalances(address, token.address);
-        return MapEntry(token.ticker, holder);
-      }));
+      final now = DateTime.now();
+      final holdersMap = <String, Holder>{};
 
-      final holdersMap = Map<String, Holder>.fromEntries(entries);
-      final selectedTicker = state.selectedToken.ticker;
+      for (final token in tokens) {
+        final cacheKey = '$address-${token.address}';
+        final cached = _holderCache[cacheKey];
 
+        if (cached != null && cached.isFresh) {
+          holdersMap[token.ticker] = cached.holder;
+        } else {
+          final fresh = await _getSolAndTokenBalances(address, token.address);
+          holdersMap[token.ticker] = fresh;
+          await Future.delayed(const Duration(milliseconds: 200)); // API safety
+        }
+      }
+
+      final selected = state.selectedToken.ticker;
       emit(state.copyWith(
         holdersMap: () => holdersMap,
-        holder: () => holdersMap[selectedTicker],
+        holder: () => holdersMap[selected],
+        isRefreshing: false,
       ));
     } catch (e) {
       debugPrint('[PortalBloc] Refresh failed: $e');
-      emit(state.copyWith(holder: () => null));
+      emit(state.copyWith(
+        isRefreshing: false,
+        holder: () => null,
+        holdersMap: () => {},
+      ));
     }
   }
 

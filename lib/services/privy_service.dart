@@ -76,19 +76,23 @@ class PrivyService {
 
   Future<bool> logout(BuildContext context) async {
     try {
-      await initialize();
-      await privy.logout();
+      // Don't call initialize again — it revives the session
+      if (_isInitialized && _privyInternal != null) {
+        await _privyInternal!.logout();
+      }
 
+      // Fully clear references
       _isInitialized = false;
+      _privyInternal = null;
 
-      // Reset Bloc state
+      // Also clear Bloc state
       if (context.mounted) {
         context.read<PortalBloc>().add(PortalClearEvent());
       }
 
       return true;
     } catch (e) {
-      debugPrint('Error logging out: $e');
+      debugPrint('Error during logout: $e');
       return false;
     }
   }

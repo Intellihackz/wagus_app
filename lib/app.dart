@@ -19,6 +19,7 @@ import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/features/quest/bloc/quest_bloc.dart';
 import 'package:wagus/features/quest/data/quest_repository.dart';
 import 'package:wagus/router.dart';
+import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/theme/app_palette.dart';
 
 class App extends HookWidget {
@@ -75,12 +76,17 @@ class App extends HookWidget {
                         ..add(HomeListenToRoomsEvent())
                         ..add(HomeListenToGiveawayEvent())),
               BlocProvider<PortalBloc>(
-                  create: (_) => PortalBloc(
-                        portalRepository: context.read<PortalRepository>(),
-                      )
-                        ..add(PortalInitialEvent())
-                        ..add(PortalListenTokenAddressEvent())
-                        ..add(PortalListenSupportedTokensEvent())),
+                create: (_) {
+                  final bloc = PortalBloc(
+                      portalRepository: context.read<PortalRepository>());
+                  if (PrivyService().isAuthenticated()) {
+                    bloc.add(PortalInitialEvent());
+                    bloc.add(PortalListenSupportedTokensEvent());
+                    bloc.add(PortalListenTokenAddressEvent());
+                  }
+                  return bloc;
+                },
+              ),
               BlocProvider<AiBloc>(
                 create: (_) => AiBloc(
                   repository: context.read<AIRepository>(),

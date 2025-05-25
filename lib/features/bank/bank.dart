@@ -22,16 +22,24 @@ class Bank extends HookWidget {
     final rotationController = useAnimationController(
       duration: const Duration(milliseconds: 500),
     );
+
     final rotationAnimation =
         Tween<double>(begin: 0, end: 1).animate(rotationController);
 
-    final amountController = useTextEditingController();
-    final destinationController = useTextEditingController();
+    final isRefreshing =
+        context.select((PortalBloc bloc) => bloc.state.isRefreshing);
 
     useEffect(() {
-      context.read<PortalBloc>().add(PortalRefreshEvent());
+      if (isRefreshing) {
+        rotationController.repeat();
+      } else {
+        rotationController.reset(); // ✅ this resets the rotation cleanly
+      }
       return null;
-    }, []);
+    }, [isRefreshing]);
+
+    final amountController = useTextEditingController();
+    final destinationController = useTextEditingController();
 
     return PopScope(
       onPopInvokedWithResult: (hasPopped, result) async {
@@ -250,8 +258,6 @@ class Bank extends HookWidget {
                                                   turns: rotationAnimation,
                                                   child: GestureDetector(
                                                     onTap: () {
-                                                      rotationController
-                                                          .forward(from: 0);
                                                       context
                                                           .read<PortalBloc>()
                                                           .add(

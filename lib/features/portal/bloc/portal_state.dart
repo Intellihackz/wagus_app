@@ -8,6 +8,7 @@ class PortalState extends Equatable {
   final List<Token> supportedTokens;
   final Token selectedToken;
   final Map<String, Holder>? holdersMap;
+  final bool isRefreshing;
 
   const PortalState({
     this.holdersCount = 0,
@@ -17,6 +18,7 @@ class PortalState extends Equatable {
     this.supportedTokens = const [],
     required this.selectedToken,
     this.holdersMap = const {},
+    this.isRefreshing = false,
   });
 
   PortalState copyWith({
@@ -29,6 +31,7 @@ class PortalState extends Equatable {
     List<Token>? Function()? supportedTokens,
     Token? Function()? selectedToken,
     Map<String, Holder>? Function()? holdersMap,
+    bool? isRefreshing,
   }) {
     return PortalState(
       holdersCount: holdersCount ?? this.holdersCount,
@@ -38,6 +41,7 @@ class PortalState extends Equatable {
       supportedTokens: supportedTokens?.call() ?? this.supportedTokens,
       selectedToken: selectedToken?.call() ?? this.selectedToken,
       holdersMap: holdersMap?.call() ?? this.holdersMap,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
     );
   }
 
@@ -49,7 +53,8 @@ class PortalState extends Equatable {
         tierStatus,
         supportedTokens,
         selectedToken,
-        holdersMap
+        holdersMap,
+        isRefreshing,
       ];
 }
 
