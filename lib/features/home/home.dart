@@ -228,7 +228,15 @@ class Home extends HookWidget {
                                   String getDisplaySender(Message msg) {
                                     if (msg.tier == TierStatus.system)
                                       return '[System]';
-                                    return '${getTierPrefix(msg.tier)}[${msg.sender.substring(0, 3)}..${msg.sender.substring(msg.sender.length - 3)}]';
+
+                                    final displayName = (msg.username
+                                                ?.trim()
+                                                .isNotEmpty ??
+                                            false)
+                                        ? '[${msg.username}]'
+                                        : '[${msg.sender.substring(0, 3)}..${msg.sender.substring(msg.sender.length - 3)}]';
+
+                                    return '${getTierPrefix(msg.tier)}$displayName';
                                   }
 
                                   Color getTierColor(TierStatus tier) {
@@ -342,11 +350,9 @@ class Home extends HookWidget {
                                                                                       ),
                                                                                     ),
                                                                                   ),
-                                                                                  Flexible(
-                                                                                    child: SelectableText(
-                                                                                      message.sender,
-                                                                                      style: TextStyle(color: Colors.white),
-                                                                                    ),
+                                                                                  SelectableText(
+                                                                                    (message.username?.trim().isNotEmpty ?? false) ? message.username! : '${message.sender.substring(0, 4)}...${message.sender.substring(message.sender.length - 4)}',
+                                                                                    style: TextStyle(color: Colors.white),
                                                                                   ),
                                                                                 ],
                                                                               ),
@@ -934,32 +940,38 @@ class _ChatInputBar extends StatelessWidget {
 
                       final caption = controller.text.trim();
 
-                      final message = Message(
-                        text: caption.isNotEmpty ? caption : '[GIF]',
-                        sender: wallet.address,
-                        tier: portalState.tierStatus,
-                        room: selectedRoom,
-                        gifUrl:
-                            gifUrl, // <- add this field to your Message model
-                        solBalance: context
-                            .read<PortalBloc>()
-                            .state
-                            .holder
-                            ?.solanaAmount,
-                        wagBalance: context
-                            .read<PortalBloc>()
-                            .state
-                            .holdersMap?[context
-                                .read<PortalBloc>()
-                                .state
-                                .selectedToken
-                                .ticker]
-                            ?.tokenAmount
-                            .toInt(),
+                      final usernameDoc = await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(wallet.address)
+                          .get();
+                      final username =
+                          usernameDoc.data()?['username'] ?? wallet.address;
 
-                        replyToMessageId: homeState.replyingTo?.id,
-                        replyToText: homeState.replyingTo?.text,
-                      );
+                      final message = Message(
+                          text: caption.isNotEmpty ? caption : '[GIF]',
+                          sender: wallet.address,
+                          tier: portalState.tierStatus,
+                          room: selectedRoom,
+                          gifUrl:
+                              gifUrl, // <- add this field to your Message model
+                          solBalance: context
+                              .read<PortalBloc>()
+                              .state
+                              .holder
+                              ?.solanaAmount,
+                          wagBalance: context
+                              .read<PortalBloc>()
+                              .state
+                              .holdersMap?[context
+                                  .read<PortalBloc>()
+                                  .state
+                                  .selectedToken
+                                  .ticker]
+                              ?.tokenAmount
+                              .toInt(),
+                          replyToMessageId: homeState.replyingTo?.id,
+                          replyToText: homeState.replyingTo?.text,
+                          username: username);
 
                       context.read<HomeBloc>().add(
                             HomeSendMessageEvent(
@@ -1136,6 +1148,19 @@ class _ChatInputBar extends StatelessWidget {
                         return;
                       }
 
+                      final usernameDoc = await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(wallet.address)
+                          .get();
+
+                      final rawUsername = usernameDoc.data()?['username'];
+                      final username = (rawUsername is String &&
+                              rawUsername.trim().isNotEmpty)
+                          ? rawUsername.trim()
+                          : null;
+
+                      print('[debug] username passed into Message: $username');
+
                       // ✅ Always send message (regular or command)
                       context.read<HomeBloc>().add(
                             HomeSendMessageEvent(
@@ -1144,6 +1169,7 @@ class _ChatInputBar extends StatelessWidget {
                                 sender: wallet.address,
                                 tier: tier,
                                 room: selectedRoom,
+                                username: username,
                                 solBalance: context
                                     .read<PortalBloc>()
                                     .state

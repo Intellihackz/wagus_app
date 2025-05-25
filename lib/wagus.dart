@@ -16,6 +16,9 @@ import 'package:wagus/features/quest/presentation/quest.dart';
 import 'package:wagus/services/user_service.dart';
 import 'package:wagus/theme/app_palette.dart';
 
+final StreamController<bool> startupController =
+    StreamController<bool>.broadcast();
+
 class Wagus extends HookWidget {
   const Wagus({super.key});
 
@@ -66,6 +69,8 @@ class Wagus extends HookWidget {
             final user = state.user;
 
             if (user == null) {
+              startupController.add(true);
+
               return Scaffold(
                 backgroundColor: Colors.black,
                 body: Center(
@@ -108,6 +113,8 @@ class Wagus extends HookWidget {
                   ),
                 ),
               );
+            } else {
+              startupController.add(false);
             }
 
             return SafeArea(

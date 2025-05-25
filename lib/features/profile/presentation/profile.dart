@@ -123,12 +123,17 @@ class ProfileScreen extends HookWidget {
                                         ),
                                         onSubmitted: (value) async {
                                           final trimmed = value.trim();
-                                          if (trimmed.length > 8 ||
-                                              trimmed.isEmpty) return;
 
                                           try {
-                                            await UserService()
-                                                .setUsername(address, trimmed);
+                                            await FirebaseFirestore.instance
+                                                .collection('users')
+                                                .doc(address)
+                                                .update({
+                                              'username': trimmed.isEmpty
+                                                  ? FieldValue.delete()
+                                                  : trimmed
+                                            });
+
                                             ScaffoldMessenger.of(context)
                                                 .showSnackBar(
                                               const SnackBar(

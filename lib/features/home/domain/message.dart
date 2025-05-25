@@ -12,6 +12,7 @@ class Message {
   final String? gifUrl;
   final String? replyToMessageId;
   final String? replyToText;
+  final String? username; // ✅ add this
 
   Message({
     required this.sender,
@@ -25,6 +26,7 @@ class Message {
     this.gifUrl,
     this.replyToMessageId,
     this.replyToText,
+    this.username, // ✅ add this
   }) : tier = tier ?? TierStatus.basic;
 
   Message copyWith({
@@ -37,6 +39,7 @@ class Message {
     int? Function()? likes,
     String? Function()? id,
     String? Function()? gifUrl,
+    String? Function()? username, // ✅ add this
   }) {
     return Message(
       sender: sender ?? this.sender,
@@ -48,6 +51,7 @@ class Message {
       likes: likes?.call() ?? this.likes,
       id: id?.call() ?? this.id,
       gifUrl: gifUrl?.call() ?? this.gifUrl,
+      username: username?.call() ?? this.username, // ✅ add this
     );
   }
 }

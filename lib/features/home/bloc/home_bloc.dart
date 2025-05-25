@@ -343,6 +343,7 @@ Type any command to try it out.''',
               gifUrl: msg['gif_url'],
               replyToMessageId: msg['reply_to_id'],
               replyToText: msg['reply_to_text'],
+              username: msg['username'],
             );
           })
           .whereType<Message>()
@@ -388,6 +389,7 @@ Type any command to try it out.''',
                 gifUrl: msg['gif_url'],
                 replyToMessageId: msg['reply_to_id'],
                 replyToText: msg['reply_to_text'],
+                username: msg['username'],
               );
             })
             .whereType<Message>()
@@ -448,6 +450,7 @@ Type any command to try it out.''',
               gifUrl: msg['gif_url'],
               replyToMessageId: msg['reply_to_id'],
               replyToText: msg['reply_to_text'],
+              username: msg['username'],
             );
           })
           .whereType<Message>()
@@ -636,6 +639,7 @@ Type any command to try it out.''',
               gifUrl: msg['gif_url'],
               replyToMessageId: msg['reply_to_id'],
               replyToText: msg['reply_to_text'],
+              username: msg['username'],
             );
           })
           .where((m) => !existingIds.contains(m.id))

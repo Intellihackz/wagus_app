@@ -68,6 +68,7 @@ class HomeRepository {
         'room': message.room,
         'timestamp': FieldValue.serverTimestamp(),
         'likes': 0,
+        'username': message.username,
         if (message.gifUrl != null) 'gif_url': message.gifUrl,
         if (message.replyToMessageId != null)
           'reply_to_id': message.replyToMessageId,
