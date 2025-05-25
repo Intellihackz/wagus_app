@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -336,7 +335,6 @@ class GuessTheDrawing extends HookWidget {
                       MediaQuery.of(context).viewInsets.bottom;
 
                   final drawingHeight = totalHeight * 0.45;
-                  final chatAreaHeight = totalHeight - drawingHeight;
 
                   return Column(
                     children: [
