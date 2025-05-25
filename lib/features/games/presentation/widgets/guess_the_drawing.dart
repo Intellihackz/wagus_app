@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wagus/features/games/bloc/game_bloc.dart';
 import 'package:wagus/features/games/data/game_repository.dart';
 import 'package:wagus/features/games/domain/guess_the_drawing/chat_message_entry.dart';
 import 'package:wagus/features/games/domain/guess_the_drawing/guess_entry.dart';
+import 'package:wagus/features/games/domain/guess_the_drawing/guess_the_drawing_session.dart';
 import 'package:wagus/features/games/game.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
@@ -20,17 +22,37 @@ class GuessTheDrawing extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final strokes = useState<List<Offset?>>([]);
-    final socket = useMemoized(() {
-      final s = IO.io(
-          'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com',
-          <String, dynamic>{
-            'transports': ['websocket'],
-            'autoConnect': false,
-            'query': {'wallet': address},
-          });
+    final session = context.watch<GameBloc>().state.guessTheDrawingSession;
+    final timerSeconds = useState<int>(60);
+    final roundTimer = useState<Timer?>(null);
+    final previousRound = useState<int?>(null);
 
-      s.connect();
+    final strokes = useState<List<Offset?>>([]);
+    final socket = useRef<IO.Socket>(IO.io(
+      'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com',
+      <String, dynamic>{
+        'transports': ['websocket'],
+        'autoConnect': true,
+        'query': {'wallet': address},
+      },
+    ));
+
+    useEffect(() {
+      final s = socket.value;
+
+      if (!s.connected) {
+        s.connect();
+      }
+
+      s.emit('join_game', {'wallet': address});
+
+      s.off('connect');
+      s.off('guess_result');
+      s.off('round_skipped');
+      s.off('player_left');
+      s.off('connect_error');
+      s.off('error');
+
       s.onConnect((_) async {
         print('✅ Socket connected: $address');
         s.emit('join_game', {'wallet': address});
@@ -58,7 +80,27 @@ class GuessTheDrawing extends HookWidget {
       });
 
       s.on('guess_result', (data) {
-        // show success/failure
+        final isCorrect = data['correct'] == true;
+        final guesser = data['guesser'];
+        final message = isCorrect
+            ? '$guesser guessed correctly!'
+            : '$guesser guessed wrong.';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: isCorrect ? Colors.green : Colors.red,
+          ),
+        );
+      });
+
+      s.on('round_skipped', (data) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('⏳ Time’s up! Moving to next round...'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       });
 
       s.on('player_left', (data) {
@@ -70,34 +112,70 @@ class GuessTheDrawing extends HookWidget {
       s.onConnectError((err) => print('❌ Socket connect error: $err'));
       s.onError((err) => print('❌ Socket general error: $err'));
 
-      return s;
-    });
-
-    useEffect(() {
-      final timer = Timer.periodic(const Duration(seconds: 30), (_) {
-        socket.emit('ping_alive', {'wallet': address});
-      });
-
       context
           .read<GameBloc>()
           .add(GameListenGuessDrawingSession('test-session'));
       context.read<GameBloc>().add(GameListenGuessChatMessages('test-session'));
 
+      if (session == null || !session.gameStarted || session.isComplete) {
+        return null;
+      }
+
+      // If the round has changed, reset the timer
+      if (previousRound.value != session.round) {
+        strokes.value = [];
+        previousRound.value = session.round;
+        timerSeconds.value = 60;
+
+        roundTimer.value?.cancel();
+        roundTimer.value = Timer.periodic(const Duration(seconds: 1), (_) {
+          if (timerSeconds.value > 0) {
+            timerSeconds.value--;
+          } else {
+            // Time's up! Emit a timeout event or handle it as needed
+            s.emit('round_timeout', {'wallet': address});
+            roundTimer.value?.cancel();
+          }
+        });
+      }
+
+      final pingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+        s.emit('ping_alive', {'wallet': address});
+      });
+
       final locationSub = locationControler.stream.listen((route) {
         if (!route!.startsWith('/guess-the-drawing')) {
-          socket.disconnect();
+          s.disconnect();
         }
       });
 
       return () {
-        timer.cancel();
+        pingTimer.cancel();
         locationSub.cancel();
-        socket.disconnect();
-        socket.dispose();
+        s.disconnect();
+        s.dispose();
       };
-    }, [address]);
+    }, [address, session?.round]);
 
     return Scaffold(
+        floatingActionButton: FloatingActionButton(
+            onPressed: () async {
+              await FirebaseFirestore.instance
+                  .collection('guess_the_drawing_sessions')
+                  .doc('test-session')
+                  .update({
+                'round': 0,
+                'gameStarted': false,
+                'isComplete': false,
+                'word': '',
+                'guesses': [],
+                'scores': {},
+                'currentDrawerIndex': 0,
+                'updatedAt': FieldValue.serverTimestamp(),
+                'drawer': FieldValue.delete(), // 🔥 KEY FIX
+              });
+            },
+            child: const Icon(FontAwesomeIcons.hourglassStart)),
         backgroundColor: Colors.black,
         body: BlocBuilder<GameBloc, GameState>(
           builder: (context, state) {
@@ -192,11 +270,23 @@ class GuessTheDrawing extends HookWidget {
                     style: const TextStyle(color: Colors.white60),
                   ),
                   const SizedBox(height: 12),
+                  Text(
+                    '⏱ ${timerSeconds.value}s left',
+                    style: const TextStyle(
+                        color: Colors.orangeAccent, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildScoreboard(session.scores),
+                  const SizedBox(height: 8),
                   SizedBox(
                     height: MediaQuery.of(context).size.height * 0.45,
                     child: isDrawer
-                        ? _DrawingCanvas(socket: socket, strokes: strokes)
-                        : _DrawingViewer(socket: socket, strokes: strokes),
+                        ? _DrawingCanvas(socket: socket.value, strokes: strokes)
+                        : _DrawingViewer(
+                            socket: socket.value,
+                            strokes: strokes,
+                            round: session.round,
+                          ),
                   ),
                   const Divider(color: Colors.white24),
                   if (!session.isComplete)
@@ -205,7 +295,7 @@ class GuessTheDrawing extends HookWidget {
                         children: [
                           Expanded(child: ChatMessageList()),
                           if (!isDrawer)
-                            _ChatInput(socket: socket)
+                            _ChatInput(socket: socket.value)
                           else
                             const Padding(
                               padding: EdgeInsets.all(8.0),
@@ -238,21 +328,46 @@ class GuessTheDrawing extends HookWidget {
         .key
         .substring(0, 6);
   }
+
+  Widget _buildScoreboard(Map<String, int> scores) {
+    final sorted = scores.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return Column(
+      children: sorted.map((e) {
+        return Text(
+          '${e.key.substring(0, 4)}: ${e.value} pts',
+          style: const TextStyle(color: Colors.white70),
+        );
+      }).toList(),
+    );
+  }
 }
 
 class _DrawingViewer extends HookWidget {
   final IO.Socket socket;
   final ValueNotifier<List<Offset?>> strokes;
+  final int round;
 
-  const _DrawingViewer({required this.socket, required this.strokes});
+  const _DrawingViewer(
+      {required this.socket, required this.strokes, required this.round});
 
   @override
   Widget build(BuildContext context) {
     useEffect(() {
-      socket.on('new_stroke', (data) {
-        print(
-            "👀 Viewer received stroke: $data"); // 👈 Add this line for logging
+      print("📡 Viewer is setting up listener for round: $round");
 
+      socket.emit('join_game', {
+        'wallet': context
+            .read<PortalBloc>()
+            .state
+            .user!
+            .embeddedSolanaWallets
+            .first
+            .address
+      });
+
+      void handleStroke(data) {
+        print("👀 Viewer received stroke: $data");
         final dx = data['dx'];
         final dy = data['dy'];
 
@@ -269,9 +384,20 @@ class _DrawingViewer extends HookWidget {
             Offset(denormalizedX, denormalizedY)
           ];
         }
-      });
-      return () => socket.off('new_stroke');
-    }, [socket]);
+      }
+
+      socket.off('new_stroke');
+      socket.on('new_stroke', handleStroke);
+
+      // WidgetsBinding.instance.addPostFrameCallback((_) {
+      //   strokes.value = [];
+      // });
+
+      return () {
+        print("🧹 Cleaning up listener for round: $round");
+        socket.off('new_stroke', handleStroke);
+      };
+    }, [round]);
 
     return ValueListenableBuilder<List<Offset?>>(
       valueListenable: strokes,
@@ -317,6 +443,7 @@ class _DrawingCanvas extends HookWidget {
           final normalizedY = clampedDy / box.size.height;
 
           throttle.value = Timer(const Duration(milliseconds: 16), () {
+            print("Drawer stroke emitted: $normalizedX, $normalizedY");
             socket.emit('send_stroke', {'dx': normalizedX, 'dy': normalizedY});
           });
         },

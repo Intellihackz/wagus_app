@@ -204,6 +204,7 @@ class GameRepository {
         'gameStarted': true,
         'round': 1,
         'word': pickWord(),
+        'currentDrawerIndex': 0,
         'scores': {for (var w in mergedPlayers) w: 0},
         'updatedAt': FieldValue.serverTimestamp(),
       });
