@@ -4,11 +4,13 @@ class GuessEntry {
   final String wallet;
   final String guess;
   final DateTime timestamp;
+  final bool isCorrect;
 
   GuessEntry({
     required this.wallet,
     required this.guess,
     required this.timestamp,
+    required this.isCorrect,
   });
 
   factory GuessEntry.fromMap(Map<String, dynamic> data) {
@@ -16,6 +18,7 @@ class GuessEntry {
       wallet: data['wallet'],
       guess: data['guess'],
       timestamp: (data['timestamp'] as Timestamp).toDate(),
+      isCorrect: data['isCorrect'] ?? false,
     );
   }
 
@@ -23,5 +26,6 @@ class GuessEntry {
         'wallet': wallet,
         'guess': guess,
         'timestamp': Timestamp.fromDate(timestamp),
+        'isCorrect': isCorrect,
       };
 }

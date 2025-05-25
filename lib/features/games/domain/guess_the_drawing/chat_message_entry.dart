@@ -4,12 +4,14 @@ class ChatMessageEntry {
   final String wallet;
   final String text;
   final bool isGuess;
+  final bool isCorrect; // 🔥 ADD THIS
   final DateTime timestamp;
 
   ChatMessageEntry({
     required this.wallet,
     required this.text,
     required this.isGuess,
+    required this.isCorrect,
     required this.timestamp,
   });
 
@@ -17,7 +19,8 @@ class ChatMessageEntry {
     return ChatMessageEntry(
       wallet: data['wallet'],
       text: data['text'],
-      isGuess: data['isGuess'],
+      isGuess: data['isGuess'] ?? false,
+      isCorrect: data['isCorrect'] ?? false, // 🔥 fallback false
       timestamp: (data['timestamp'] as Timestamp).toDate(),
     );
   }
@@ -26,6 +29,7 @@ class ChatMessageEntry {
         'wallet': wallet,
         'text': text,
         'isGuess': isGuess,
+        'isCorrect': isCorrect,
         'timestamp': Timestamp.fromDate(timestamp),
       };
 }

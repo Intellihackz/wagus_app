@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:wagus/features/games/domain/guess_the_drawing/chat_message_entry.dart';
 import 'package:wagus/features/games/domain/guess_the_drawing/guess_entry.dart';
 import 'package:wagus/features/games/domain/guess_the_drawing/guess_the_drawing_session.dart';
@@ -136,29 +137,28 @@ class GameRepository {
   }
 
   /// 📝 Guess the Drawing: Submit a guess
-  Future<void> submitGuessToSession(String sessionId, GuessEntry entry) async {
+  Future<bool> submitGuessToSession(String sessionId, GuessEntry entry) async {
     final docRef = _guessTheDrawingCollection.doc(sessionId);
     final snapshot = await docRef.get();
-    if (!snapshot.exists) return;
+    if (!snapshot.exists) return false;
 
     final currentSession =
         GuessTheDrawingSession.fromFirestore(sessionId, snapshot.data()!);
 
     // Prevent drawer from guessing
-    if (entry.wallet == currentSession.drawer) return;
+    if (entry.wallet == currentSession.drawer) return false;
 
     // If someone already guessed correctly, skip further processing
     final alreadyGuessedCorrectly = currentSession.guesses
         .any((g) => g.guess.toLowerCase() == currentSession.word.toLowerCase());
 
-    if (alreadyGuessedCorrectly) return;
+    if (alreadyGuessedCorrectly) return false;
 
     // Add guess to Firestore
     await docRef.update({
       'guesses': FieldValue.arrayUnion([entry.toMap()])
     });
 
-    // If guess is correct, award point and advance round
     if (entry.guess.toLowerCase() == currentSession.word.toLowerCase()) {
       await awardPointToGuesser(
         sessionId: sessionId,
@@ -166,21 +166,24 @@ class GameRepository {
         wallet: entry.wallet,
       );
 
-      // 🛠️ REFRESH the session from Firestore to get the updated scores
-      final updatedSnapshot =
-          await _guessTheDrawingCollection.doc(sessionId).get();
-      final updatedSession = GuessTheDrawingSession.fromFirestore(
-        sessionId,
-        updatedSnapshot.data()!,
+      // 👇 Let the server handle round advancement
+      final socket = IO.io(
+        'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com',
+        <String, dynamic>{
+          'transports': ['websocket'],
+          'autoConnect': false,
+          'query': {'wallet': entry.wallet},
+        },
       );
 
-      await Future.delayed(const Duration(seconds: 2));
+      socket.connect();
+      socket.emit('correct_guess', {'wallet': entry.wallet});
+      socket.disconnect();
 
-      await advanceGuessDrawingRound(
-        sessionId: sessionId,
-        currentSession: updatedSession,
-      );
+      return true;
     }
+
+    return false;
   }
 
   /// 🔁 Guess the Drawing: Update full session
@@ -265,26 +268,29 @@ class GameRepository {
     await updateGuessDrawingSession(sessionId, updatedSession);
   }
 
-  Future<void> advanceGuessDrawingRound({
-    required String sessionId,
-    required GuessTheDrawingSession currentSession,
-  }) async {
-    final nextIndex =
-        (currentSession.currentDrawerIndex + 1) % currentSession.players.length;
-    final nextRound = currentSession.round + 1;
+  // Future<void> advanceGuessDrawingRound({
+  //   required String sessionId,
+  //   required GuessTheDrawingSession currentSession,
+  // }) async {
+  //   final nextIndex =
+  //       (currentSession.currentDrawerIndex + 1) % currentSession.players.length;
+  //   final nextRound = currentSession.round + 1;
 
-    final nextSession = GuessTheDrawingSession(
-      id: sessionId,
-      players: currentSession.players,
-      scores: currentSession.scores,
-      round: nextRound,
-      currentDrawerIndex: nextIndex,
-      word: pickWord(),
-      guesses: [],
-      isComplete: nextRound > 3, // mark complete after 3 rounds
-      gameStarted: currentSession.gameStarted,
-    );
+  //   const roundsPerPlayer = 3;
+  //   final totalRounds = currentSession.players.length * roundsPerPlayer;
 
-    await updateGuessDrawingSession(sessionId, nextSession);
-  }
+  //   final nextSession = GuessTheDrawingSession(
+  //     id: sessionId,
+  //     players: currentSession.players,
+  //     scores: currentSession.scores,
+  //     round: nextRound,
+  //     currentDrawerIndex: nextIndex,
+  //     word: pickWord(),
+  //     guesses: [],
+  //     isComplete: nextRound >= totalRounds,
+  //     gameStarted: currentSession.gameStarted,
+  //   );
+
+  //   await updateGuessDrawingSession(sessionId, nextSession);
+  // }
 }

@@ -170,7 +170,7 @@ class GuessTheDrawing extends HookWidget {
 
     return Scaffold(
         floatingActionButton: Visibility(
-          visible: false,
+          visible: true,
           child: FloatingActionButton(
               onPressed: () async {
                 await FirebaseFirestore.instance
@@ -267,6 +267,21 @@ class GuessTheDrawing extends HookWidget {
               }
             }
 
+            if (session.isComplete) {
+              return SizedBox.expand(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Text(
+                      'Game Over!\nWinner: ${_getWinner(session.scores)}',
+                      style: const TextStyle(color: Colors.white),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              );
+            }
+
             // Game can start
             return SafeArea(
               child: Column(
@@ -319,15 +334,6 @@ class GuessTheDrawing extends HookWidget {
                         ],
                       ),
                     )
-                  else
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Text(
-                        'Game Over!\nWinner: ${_getWinner(session.scores)}',
-                        style: const TextStyle(color: Colors.white),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
                 ],
               ),
             );
@@ -570,11 +576,23 @@ class _ChatInput extends HookWidget {
     }
 
     if (isGuess) {
+      final timestamp = DateTime.now();
+      final isCorrect = guessWord.toLowerCase() == session.word.toLowerCase();
+
       final guessEntry = GuessEntry(
-          wallet: wallet, guess: guessWord, timestamp: DateTime.now());
+        wallet: wallet,
+        guess: guessWord,
+        timestamp: timestamp,
+        isCorrect: isCorrect,
+      );
+
       await context
           .read<GameRepository>()
           .submitGuessToSession(session.id, guessEntry);
+
+      if (isCorrect) {
+        socket.emit('correct_guess', {'wallet': wallet});
+      }
     }
 
     final chatMessage = ChatMessageEntry(
@@ -582,6 +600,8 @@ class _ChatInput extends HookWidget {
       text: guessWord,
       isGuess: isGuess,
       timestamp: DateTime.now(),
+      isCorrect:
+          isGuess && guessWord.toLowerCase() == session.word.toLowerCase(),
     );
 
     await context.read<GameRepository>().sendChatMessage(
@@ -620,14 +640,7 @@ class ChatMessageList extends HookWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       itemBuilder: (context, index) {
         final message = messages[index];
-        final isCorrectGuess = message.isGuess &&
-            message.text.toLowerCase() ==
-                context
-                    .read<GameBloc>()
-                    .state
-                    .guessTheDrawingSession
-                    ?.word
-                    .toLowerCase();
+        final isCorrectGuess = message.isGuess && message.isCorrect;
 
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 2),
