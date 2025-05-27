@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/gestures.dart';
@@ -342,10 +343,26 @@ class Home extends HookWidget {
                                                                                       ),
                                                                                       child: Hero(
                                                                                         tag: 'profile',
-                                                                                        child: CircleAvatar(
-                                                                                          radius: 14, // small & modern
-                                                                                          backgroundImage: AssetImage('assets/icons/avatar.png'),
-                                                                                          backgroundColor: Colors.transparent,
+                                                                                        child: FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                                                                                          future: FirebaseFirestore.instance.collection('users').doc(message.sender).get(),
+                                                                                          builder: (context, initialSnapshot) {
+                                                                                            final initialData = initialSnapshot.data?.data();
+
+                                                                                            return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                                                                                              stream: FirebaseFirestore.instance.collection('users').doc(message.sender).snapshots(),
+                                                                                              builder: (context, liveSnapshot) {
+                                                                                                final liveData = liveSnapshot.data?.data();
+                                                                                                final imageUrl = liveData?['image_url'] ?? initialData?['image_url'];
+
+                                                                                                return CircleAvatar(
+                                                                                                  key: ValueKey(imageUrl),
+                                                                                                  radius: 14,
+                                                                                                  backgroundImage: imageUrl != null ? CachedNetworkImageProvider(imageUrl) : const AssetImage('assets/icons/avatar.png') as ImageProvider,
+                                                                                                  backgroundColor: Colors.transparent,
+                                                                                                );
+                                                                                              },
+                                                                                            );
+                                                                                          },
                                                                                         ),
                                                                                       ),
                                                                                     ),
@@ -506,10 +523,26 @@ class Home extends HookWidget {
                                                                             tag:
                                                                                 'profile',
                                                                             child:
-                                                                                CircleAvatar(
-                                                                              radius: 14, // small & modern
-                                                                              backgroundImage: AssetImage('assets/icons/avatar.png'),
-                                                                              backgroundColor: Colors.transparent,
+                                                                                FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                                                                              future: FirebaseFirestore.instance.collection('users').doc(message.sender).get(),
+                                                                              builder: (context, initialSnapshot) {
+                                                                                final initialData = initialSnapshot.data?.data();
+
+                                                                                return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                                                                                  stream: FirebaseFirestore.instance.collection('users').doc(message.sender).snapshots(),
+                                                                                  builder: (context, liveSnapshot) {
+                                                                                    final liveData = liveSnapshot.data?.data();
+                                                                                    final imageUrl = liveData?['image_url'] ?? initialData?['image_url'];
+
+                                                                                    return CircleAvatar(
+                                                                                      key: ValueKey(imageUrl),
+                                                                                      radius: 14,
+                                                                                      backgroundImage: imageUrl != null ? CachedNetworkImageProvider(imageUrl) : const AssetImage('assets/icons/avatar.png') as ImageProvider,
+                                                                                      backgroundColor: Colors.transparent,
+                                                                                    );
+                                                                                  },
+                                                                                );
+                                                                              },
                                                                             ),
                                                                           ),
                                                                         ),

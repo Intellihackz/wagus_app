@@ -102,12 +102,13 @@ class QuestRepository {
           'claimed_days': FieldValue.arrayUnion([day]),
           'last_claimed': FieldValue.serverTimestamp(),
           'last_login': FieldValue.serverTimestamp(),
+          'rewardNotified':
+              false, // ✅ reset so they can get notified again in 24h
         };
 
         if (day == 7) {
           updates['claimed_days_reset_at'] = FieldValue.serverTimestamp();
 
-          // ✅ Broadcast 7-day streak complete
           await _homeRepository.sendMessage(Message(
             text:
                 '${userWallet.substring(0, 3)}..${userWallet.substring(userWallet.length - 3)} completed all 7 daily rewards! 🎉',

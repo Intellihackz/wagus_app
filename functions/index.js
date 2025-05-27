@@ -26,6 +26,61 @@ const bannedPhrases = [
   "dev is poor",
 ];
 
+export const notifyEligibleRewards = onSchedule(
+  {
+    schedule: "every 5 minutes",
+    timeZone: "America/New_York",
+  },
+  async () => {
+    const db = getFirestore();
+    const now = Date.now();
+
+    const snapshot = await db
+      .collection("users")
+      .where("last_claimed", "<=", new Date(now - 24 * 60 * 60 * 1000)) // 24h
+      .where("rewardNotified", "in", [false, null])
+      .get();
+
+    if (snapshot.empty) {
+      console.log("🟡 No users eligible for reward notifications");
+      return;
+    }
+
+    for (const doc of snapshot.docs) {
+      const user = doc.data();
+      const fcmToken = user.fcmToken;
+      const username = user.username || "user";
+
+      if (!fcmToken) {
+        console.warn(`⚠️ ${doc.id} missing FCM token`);
+        continue;
+      }
+
+      const message = {
+        token: fcmToken,
+        notification: {
+          title: "🎁 Daily Reward Ready!",
+          body: `Hey ${username}, your daily reward is ready to claim.`,
+        },
+        android: { priority: "high" },
+        apns: {
+          headers: { "apns-push-type": "alert", "apns-priority": "10" },
+          payload: { aps: { sound: "default", badge: 1 } },
+        },
+      };
+
+      try {
+        await getMessaging().send(message);
+        console.log(`✅ Sent reward notification to ${doc.id}`);
+        await doc.ref.update({ rewardNotified: true });
+      } catch (err) {
+        console.error(`❌ Failed to notify ${doc.id}`, err);
+      }
+    }
+  }
+);
+
+
 export const moderateChatMessage = onDocumentCreated(
   { document: "chat/{messageId}" },
   async (event) => {
@@ -63,34 +118,6 @@ export const moderateChatMessage = onDocumentCreated(
         });
         console.log(`🚫 ${sender} added to banned_wallets after 3 strikes`);
       }
-    }
-  }
-);
-
-export const dailyRewardNotification = onSchedule(
-  {
-    schedule: "10 11 * * *",
-    timeZone: "America/New_York",
-  },
-  async () => {
-    const message = {
-      topic: "daily_reward",
-      notification: {
-        title: "Daily Reward",
-        body: "🎁 Your daily reward is ready! Open the app to claim it.",
-      },
-      apns: {
-        headers: { "apns-push-type": "alert", "apns-priority": "10" },
-        payload: { aps: { sound: "default", badge: 1 } },
-      },
-      android: { priority: "high" },
-    };
-
-    try {
-      const res = await getMessaging().send(message);
-      console.log(`✅ Sent daily reward: ${res}`);
-    } catch (err) {
-      console.error("❌ Failed to send daily reward:", err);
     }
   }
 );

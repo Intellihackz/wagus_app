@@ -1,9 +1,12 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 import 'package:wagus/features/bank/data/bank_repository.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
@@ -59,13 +62,95 @@ class ProfileScreen extends HookWidget {
                                       : TierStatus.basic.color,
                                   width: 3),
                             ),
-                            child: const Hero(
+                            child: Hero(
                               tag: 'profile',
-                              child: CircleAvatar(
-                                radius: 32,
-                                backgroundImage:
-                                    AssetImage('assets/icons/avatar.png'),
-                                backgroundColor: Colors.transparent,
+                              child: FutureBuilder<
+                                  DocumentSnapshot<Map<String, dynamic>>>(
+                                future: FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(address)
+                                    .get(),
+                                builder: (context, initialSnapshot) {
+                                  final initialData =
+                                      initialSnapshot.data?.data();
+
+                                  return StreamBuilder<
+                                      DocumentSnapshot<Map<String, dynamic>>>(
+                                    stream: UserService.getUserStream(address),
+                                    builder: (context, liveSnapshot) {
+                                      final liveData =
+                                          liveSnapshot.data?.data();
+                                      final imageUrl = liveData?['image_url'] ??
+                                          initialData?['image_url'];
+
+                                      final avatar = CachedNetworkImage(
+                                        key: ValueKey(
+                                            imageUrl), // forces image refresh when changed
+                                        imageUrl: imageUrl ?? '',
+                                        imageBuilder: (context, provider) =>
+                                            CircleAvatar(
+                                          radius: 32,
+                                          backgroundImage: provider,
+                                          backgroundColor: Colors.transparent,
+                                        ),
+                                        placeholder: (context, url) =>
+                                            const CircleAvatar(
+                                          radius: 32,
+                                          backgroundImage: AssetImage(
+                                              'assets/icons/avatar.png'),
+                                          backgroundColor: Colors.transparent,
+                                        ),
+                                        errorWidget: (context, url, error) =>
+                                            const CircleAvatar(
+                                          radius: 32,
+                                          backgroundImage: AssetImage(
+                                              'assets/icons/avatar.png'),
+                                          backgroundColor: Colors.transparent,
+                                        ),
+                                      );
+
+                                      if (!isCurrentUser) return avatar;
+
+                                      return GestureDetector(
+                                        onTap: () async {
+                                          final picker = ImagePicker();
+                                          final picked = await picker.pickImage(
+                                              source: ImageSource.gallery,
+                                              imageQuality: 75);
+
+                                          if (picked != null) {
+                                            try {
+                                              final ref = FirebaseStorage
+                                                  .instance
+                                                  .ref()
+                                                  .child('user_images')
+                                                  .child('$address.jpg');
+
+                                              await ref.putData(
+                                                  await picked.readAsBytes());
+
+                                              final url =
+                                                  await ref.getDownloadURL();
+
+                                              await FirebaseFirestore.instance
+                                                  .collection('users')
+                                                  .doc(address)
+                                                  .update({'image_url': url});
+                                            } catch (e) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                const SnackBar(
+                                                    content: Text(
+                                                        'Failed to upload image')),
+                                              );
+                                            }
+                                          }
+                                        },
+                                        child: avatar,
+                                      );
+                                    },
+                                  );
+                                },
                               ),
                             ),
                           );
@@ -154,6 +239,26 @@ class ProfileScreen extends HookWidget {
                                   ),
                                   const SizedBox(height: 12),
                                 ],
+                              ),
+                            );
+                          },
+                        )
+                      else
+                        StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                          stream: UserService.getUserStream(address),
+                          builder: (context, snapshot) {
+                            final username =
+                                snapshot.data?.data()?['username'] ?? '';
+                            if (username.isEmpty) return const SizedBox();
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8, bottom: 8),
+                              child: Text(
+                                username,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             );
                           },
@@ -554,17 +659,19 @@ class ProfileScreen extends HookWidget {
   Color _colorForToken(String ticker) {
     switch (ticker.toUpperCase()) {
       case 'WAGUS':
-        return const Color.fromARGB(255, 126, 129, 130); // Light blue
+        return const Color.fromARGB(255, 106, 185, 212); // Light blue
+      case 'SUGAW':
+        return const Color.fromARGB(255, 255, 0, 0); // Yellow
       case 'SOL':
         return const Color(0xFFFFA726); // Orange
       case 'LUX':
-        return const Color.fromARGB(255, 155, 50, 50); // Teal
+        return const Color.fromARGB(255, 154, 61, 61); // Teal
       case 'BONK':
-        return const Color.fromARGB(255, 184, 195, 28); // Pink
+        return const Color.fromARGB(255, 247, 255, 129); // Pink
       case 'BUCKAZOIDS':
         return const Color.fromARGB(255, 241, 176, 24); // Purple
       case 'PAWS':
-        return const Color.fromARGB(255, 241, 248, 241); // Green
+        return const Color.fromARGB(255, 44, 44, 44); // Green
       default:
         return const Color(0xFF757575); // Grey for unknowns
     }

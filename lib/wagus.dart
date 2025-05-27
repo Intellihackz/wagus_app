@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -205,14 +207,59 @@ class Wagus extends HookWidget {
                                   ),
                                 ),
                                 child: Hero(
-                                  tag: 'profile',
-                                  child: CircleAvatar(
-                                    radius: 14, // small & modern
-                                    backgroundImage:
-                                        AssetImage('assets/icons/avatar.png'),
-                                    backgroundColor: Colors.transparent,
-                                  ),
-                                ),
+                                    tag: 'profile',
+                                    child: FutureBuilder<
+                                        DocumentSnapshot<Map<String, dynamic>>>(
+                                      future: FirebaseFirestore.instance
+                                          .collection('users')
+                                          .doc(context
+                                              .read<PortalBloc>()
+                                              .state
+                                              .user
+                                              ?.embeddedSolanaWallets
+                                              .firstOrNull!
+                                              .address)
+                                          .get(),
+                                      builder: (context, initialSnapshot) {
+                                        final initialData =
+                                            initialSnapshot.data?.data();
+
+                                        return StreamBuilder<
+                                            DocumentSnapshot<
+                                                Map<String, dynamic>>>(
+                                          stream: FirebaseFirestore.instance
+                                              .collection('users')
+                                              .doc(context
+                                                  .read<PortalBloc>()
+                                                  .state
+                                                  .user
+                                                  ?.embeddedSolanaWallets
+                                                  .firstOrNull!
+                                                  .address)
+                                              .snapshots(),
+                                          builder: (context, liveSnapshot) {
+                                            final liveData =
+                                                liveSnapshot.data?.data();
+                                            final imageUrl =
+                                                liveData?['image_url'] ??
+                                                    initialData?['image_url'];
+
+                                            return CircleAvatar(
+                                              key: ValueKey(imageUrl),
+                                              radius: 14,
+                                              backgroundImage: imageUrl != null
+                                                  ? CachedNetworkImageProvider(
+                                                      imageUrl)
+                                                  : const AssetImage(
+                                                          'assets/icons/avatar.png')
+                                                      as ImageProvider,
+                                              backgroundColor:
+                                                  Colors.transparent,
+                                            );
+                                          },
+                                        );
+                                      },
+                                    )),
                               ),
                             ),
                           ],

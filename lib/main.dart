@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_app_badge/flutter_app_badge.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:wagus/app.dart';
@@ -47,8 +49,19 @@ Future<void> main() async {
   _postBootAsync();
 }
 
+Future<void> _tryRemoveAppBadge() async {
+  try {
+    await FlutterAppBadge.count(0);
+    print('✅ App badge removed successfully');
+  } catch (e) {
+    print('⚠️ Failed to remove app badge: $e');
+  }
+}
+
 Future<void> _postBootAsync() async {
   try {
+    await _tryRemoveAppBadge();
+
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     await _requestNotificationPermission();
 
@@ -63,7 +76,6 @@ Future<void> _postBootAsync() async {
     final token = await FirebaseMessaging.instance.getToken();
     print('📲 FCM Token: $token');
 
-    await FirebaseMessaging.instance.subscribeToTopic('daily_reward');
     await FirebaseMessaging.instance.subscribeToTopic('global_users');
 
     final privyUser = await PrivyService().initialize();
@@ -75,6 +87,13 @@ Future<void> _postBootAsync() async {
       await UserService().setUserOnline(wallet);
     } else {
       print("⚠️ No wallet found, skipping lifecycle observer.");
+    }
+
+    if (wallet != null && token != null) {
+      // Save FCM token to Firestore under user's doc
+      await FirebaseFirestore.instance.collection('users').doc(wallet).set({
+        'fcmToken': token,
+      }, SetOptions(merge: true));
     }
   } catch (e, st) {
     print('🛑 Startup error: $e');
