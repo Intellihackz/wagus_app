@@ -8,11 +8,12 @@ class Message {
   final double? solBalance;
   final int? wagBalance;
   final int? likes;
+  final List<String>? likedBy; // ✅ add this line
   final String? id;
   final String? gifUrl;
   final String? replyToMessageId;
   final String? replyToText;
-  final String? username; // ✅ add this
+  final String? username;
 
   Message({
     required this.sender,
@@ -20,13 +21,14 @@ class Message {
     required this.room,
     this.id,
     this.likes,
+    required this.likedBy, // ✅ add this
     TierStatus? tier,
     this.solBalance,
     this.wagBalance,
     this.gifUrl,
     this.replyToMessageId,
     this.replyToText,
-    this.username, // ✅ add this
+    this.username,
   }) : tier = tier ?? TierStatus.basic;
 
   Message copyWith({
@@ -37,9 +39,10 @@ class Message {
     double? Function()? solBalance,
     int? Function()? wagBalance,
     int? Function()? likes,
+    List<String>? Function()? likedBy, // ✅ add this
     String? Function()? id,
     String? Function()? gifUrl,
-    String? Function()? username, // ✅ add this
+    String? Function()? username,
   }) {
     return Message(
       sender: sender ?? this.sender,
@@ -49,9 +52,10 @@ class Message {
       solBalance: solBalance?.call() ?? this.solBalance,
       wagBalance: wagBalance?.call() ?? this.wagBalance,
       likes: likes?.call() ?? this.likes,
+      likedBy: likedBy?.call() ?? this.likedBy, // ✅
       id: id?.call() ?? this.id,
       gifUrl: gifUrl?.call() ?? this.gifUrl,
-      username: username?.call() ?? this.username, // ✅ add this
+      username: username?.call() ?? this.username,
     );
   }
 }

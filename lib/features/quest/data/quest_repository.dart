@@ -115,6 +115,7 @@ class QuestRepository {
             sender: userWallet,
             tier: TierStatus.system,
             room: 'General',
+            likedBy: [],
           ));
         } else {
           // ✅ Broadcast regular daily reward claim
@@ -124,6 +125,7 @@ class QuestRepository {
             sender: userWallet,
             tier: TierStatus.system,
             room: 'General',
+            likedBy: [],
           ));
         }
 

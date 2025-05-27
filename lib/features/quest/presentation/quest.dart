@@ -145,12 +145,33 @@ class DailyRewardsSheet extends StatelessWidget {
             ),
           );
         } else if (state.errorMessage != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Something went wrong'),
-              backgroundColor: Colors.red,
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.canPop()) {
+              context.pop();
+            }
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: Colors.red,
+            content: const Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: '⚠️ Something went wrong.\n\n'),
+                  TextSpan(
+                    text: 'Check the following:\n',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(text: '• Do you hold at least 1 WAGUS?\n'),
+                  TextSpan(
+                      text: '• Are you on a different account on same IP?\n'),
+                  TextSpan(
+                      text: '• Have 24 hours passed since your last claim?\n'),
+                  TextSpan(text: '• Is your internet connection stable?\n'),
+                  TextSpan(text: '• Has your rent been paid already?\n'),
+                ],
+              ),
             ),
-          );
+          ));
         }
       },
       builder: (context, state) {

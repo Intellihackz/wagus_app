@@ -12,6 +12,7 @@ import 'package:gif_view/gif_view.dart';
 import 'package:giphy_picker/giphy_picker.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wagus/features/bank/data/bank_repository.dart';
 import 'package:wagus/features/home/bloc/home_bloc.dart';
 import 'package:wagus/features/home/domain/chat_command_parser.dart';
@@ -32,6 +33,97 @@ class Home extends HookWidget {
 
     final scrollController = useScrollController();
     final showScrollToBottom = useState(false);
+
+    final whatsNew = useState<String?>(null);
+    final shouldShowWhatsNew = useState(false);
+
+    useEffect(() {
+      final prefsFuture = SharedPreferences.getInstance();
+
+      final subscription = FirebaseFirestore.instance
+          .collection('whats_new')
+          .doc('qWkFgEOENIbgI2eRH62u')
+          .snapshots()
+          .listen((snapshot) async {
+        final data = snapshot.data();
+        final newId = data?['id'];
+        final message = data?['message'];
+
+        print('[WHATS_NEW] Snapshot received: ${snapshot.data()}');
+
+        if (newId != null && message != null) {
+          final prefs = await prefsFuture;
+          final lastSeenId = prefs.getString('last_whats_new_id');
+
+          if (lastSeenId != newId) {
+            whatsNew.value = message;
+            shouldShowWhatsNew.value = true;
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              showDialog(
+                context: context,
+                barrierDismissible: true,
+                builder: (_) => AlertDialog(
+                  backgroundColor: Colors.orange[900],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  elevation: 8,
+                  titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+                  contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  actionsPadding: const EdgeInsets.only(bottom: 16, right: 16),
+                  title: const Text(
+                    '🚀 What’s New',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                  content: Text(
+                    message,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      height: 1.4,
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        textStyle: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop('DISMISSED');
+                      },
+                      child: const Text('GOT IT'),
+                    ),
+                  ],
+                ),
+              ).then((_) async {
+                // This runs regardless of dismiss reason
+                final snapshot = await FirebaseFirestore.instance
+                    .collection('whats_new')
+                    .doc('qWkFgEOENIbgI2eRH62u')
+                    .get();
+                final id = snapshot.data()?['id'];
+                if (id != null) {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString('last_whats_new_id', id);
+                }
+                shouldShowWhatsNew.value = false;
+              });
+            });
+          }
+        }
+      });
+
+      return () => subscription.cancel();
+    }, []);
 
     useAsyncEffect(
         effect: () async {
@@ -106,6 +198,7 @@ class Home extends HookWidget {
                             sender: 'System',
                             tier: TierStatus.system,
                             room: selectedRoom,
+                            likedBy: [],
                           ),
                           currentTokenAddress: '',
                           ticker: selectedToken.ticker,
@@ -440,12 +533,36 @@ class Home extends HookWidget {
                                                                           onTap:
                                                                               () async {
                                                                             final docId =
-                                                                                message.id; // Ensure Message class has `id`
+                                                                                message.id;
                                                                             final docRef =
                                                                                 FirebaseFirestore.instance.collection('chat').doc(docId);
-                                                                            await docRef.update({
-                                                                              'likes': FieldValue.increment(1)
-                                                                            });
+                                                                            final userWallet =
+                                                                                portalState.user!.embeddedSolanaWallets.first.address;
+
+                                                                            try {
+                                                                              final snapshot = await docRef.get();
+                                                                              final data = snapshot.data();
+
+                                                                              final List likedBy = List.from(data?['likedBy'] ?? []);
+
+                                                                              if (!likedBy.contains(userWallet)) {
+                                                                                await docRef.update({
+                                                                                  'likes': FieldValue.increment(1),
+                                                                                  'likedBy': FieldValue.arrayUnion([
+                                                                                    userWallet
+                                                                                  ])
+                                                                                });
+                                                                              } else {
+                                                                                await docRef.update({
+                                                                                  'likes': FieldValue.increment(-1),
+                                                                                  'likedBy': FieldValue.arrayRemove([
+                                                                                    userWallet
+                                                                                  ])
+                                                                                });
+                                                                              }
+                                                                            } catch (e) {
+                                                                              debugPrint('Failed to like message: $e');
+                                                                            }
                                                                           },
                                                                           child: Icon(
                                                                               Icons.thumb_up_alt_outlined,
@@ -977,34 +1094,39 @@ class _ChatInputBar extends StatelessWidget {
                           .collection('users')
                           .doc(wallet.address)
                           .get();
-                      final username =
-                          usernameDoc.data()?['username'] ?? wallet.address;
+
+                      final rawUsername = usernameDoc.data()?['username'];
+                      final username = (rawUsername is String &&
+                              rawUsername.trim().isNotEmpty)
+                          ? rawUsername.trim()
+                          : null;
 
                       final message = Message(
-                          text: caption.isNotEmpty ? caption : '[GIF]',
-                          sender: wallet.address,
-                          tier: portalState.tierStatus,
-                          room: selectedRoom,
-                          gifUrl:
-                              gifUrl, // <- add this field to your Message model
-                          solBalance: context
-                              .read<PortalBloc>()
-                              .state
-                              .holder
-                              ?.solanaAmount,
-                          wagBalance: context
-                              .read<PortalBloc>()
-                              .state
-                              .holdersMap?[context
-                                  .read<PortalBloc>()
-                                  .state
-                                  .selectedToken
-                                  .ticker]
-                              ?.tokenAmount
-                              .toInt(),
-                          replyToMessageId: homeState.replyingTo?.id,
-                          replyToText: homeState.replyingTo?.text,
-                          username: username);
+                        text: caption.isNotEmpty ? caption : '[GIF]',
+                        sender: wallet.address,
+                        tier: portalState.tierStatus,
+                        room: selectedRoom,
+                        gifUrl:
+                            gifUrl, // <- add this field to your Message model
+                        solBalance: context
+                            .read<PortalBloc>()
+                            .state
+                            .holder
+                            ?.solanaAmount,
+                        wagBalance: context
+                            .read<PortalBloc>()
+                            .state
+                            .holdersMap?[context
+                                .read<PortalBloc>()
+                                .state
+                                .selectedToken
+                                .ticker]
+                            ?.tokenAmount
+                            .toInt(),
+                        replyToMessageId: homeState.replyingTo?.id,
+                        replyToText: homeState.replyingTo?.text,
+                        username: username, likedBy: [],
+                      );
 
                       context.read<HomeBloc>().add(
                             HomeSendMessageEvent(
@@ -1132,6 +1254,7 @@ class _ChatInputBar extends StatelessWidget {
                                   sender: 'System',
                                   tier: TierStatus.system,
                                   room: 'General',
+                                  likedBy: [],
                                 );
 
                                 context
@@ -1220,6 +1343,7 @@ class _ChatInputBar extends StatelessWidget {
                                     .toInt(),
                                 replyToMessageId: homeState.replyingTo?.id,
                                 replyToText: homeState.replyingTo?.text,
+                                likedBy: [],
                               ),
                               currentTokenAddress: context
                                   .read<PortalBloc>()

@@ -219,6 +219,7 @@ class IncubatorBloc extends Bloc<IncubatorEvent, IncubatorState> {
           sender: 'System',
           tier: TierStatus.system,
           room: 'General',
+          likedBy: [],
         );
 
         await homeRepository.sendMessage(message);

@@ -344,6 +344,7 @@ Type any command to try it out.''',
               replyToMessageId: msg['reply_to_id'],
               replyToText: msg['reply_to_text'],
               username: msg['username'],
+              likedBy: List<String>.from(msg['liked_by'] ?? []), // ✅ add this
             );
           })
           .whereType<Message>()
@@ -390,6 +391,7 @@ Type any command to try it out.''',
                 replyToMessageId: msg['reply_to_id'],
                 replyToText: msg['reply_to_text'],
                 username: msg['username'],
+                likedBy: List<String>.from(msg['liked_by'] ?? []), // ✅ add this
               );
             })
             .whereType<Message>()
@@ -451,6 +453,7 @@ Type any command to try it out.''',
               replyToMessageId: msg['reply_to_id'],
               replyToText: msg['reply_to_text'],
               username: msg['username'],
+              likedBy: List<String>.from(msg['liked_by'] ?? []), // ✅ add this
             );
           })
           .whereType<Message>()
@@ -640,6 +643,7 @@ Type any command to try it out.''',
               replyToMessageId: msg['reply_to_id'],
               replyToText: msg['reply_to_text'],
               username: msg['username'],
+              likedBy: List<String>.from(msg['liked_by'] ?? []), // ✅ add this
             );
           })
           .where((m) => !existingIds.contains(m.id))

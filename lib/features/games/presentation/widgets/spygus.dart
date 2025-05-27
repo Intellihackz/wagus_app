@@ -111,6 +111,7 @@ class Spygus extends HookWidget {
               sender: 'System',
               tier: TierStatus.system,
               room: 'General',
+              likedBy: [],
             );
 
             await homeRepo.sendMessage(message);
