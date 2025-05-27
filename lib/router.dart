@@ -7,6 +7,7 @@ import 'package:wagus/features/ai/ai_tools/ai_tokenomics.dart';
 import 'package:wagus/features/ai/ai_tools/ai_tools.dart';
 import 'package:wagus/features/auth/login_screen.dart';
 import 'package:wagus/features/games/presentation/widgets/guess_the_drawing.dart';
+import 'package:wagus/features/games/presentation/widgets/guess_the_drawing_session_list.dart';
 import 'package:wagus/features/games/presentation/widgets/spygus.dart';
 import 'package:wagus/features/incubator/project_interface.dart';
 import 'package:wagus/features/portal/portal.dart';
@@ -70,11 +71,27 @@ final GoRouter appRouter = GoRouter(
       },
     ),
     GoRoute(
-        path: '$guessTheDrawing/:walletAddress',
-        builder: (context, state) {
-          final walletAddress = state.pathParameters['walletAddress']!;
-          return GuessTheDrawing(address: walletAddress);
-        }),
+      path: '$guessTheDrawing/sessions/:walletAddress',
+      builder: (context, state) {
+        final walletAddress = state.pathParameters['walletAddress']!;
+        return GuessTheDrawingSessionList(walletAddress: walletAddress);
+      },
+    ),
+    GoRoute(
+      path: '$guessTheDrawing/:walletAddress/:sessionId',
+      builder: (context, state) {
+        final walletAddress = state.pathParameters['walletAddress']!;
+        final sessionId = state.pathParameters['sessionId']!;
+        return GuessTheDrawing(address: walletAddress, sessionId: sessionId);
+      },
+    ),
+    GoRoute(
+      path: '$guessTheDrawing/:walletAddress',
+      builder: (context, state) {
+        final walletAddress = state.pathParameters['walletAddress']!;
+        return GuessTheDrawingSessionList(walletAddress: walletAddress);
+      },
+    ),
     GoRoute(
       path: aiImageGeneration,
       builder: (context, state) => const AIImageGeneration(),

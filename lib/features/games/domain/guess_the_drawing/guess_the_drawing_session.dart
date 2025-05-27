@@ -11,6 +11,7 @@ class GuessTheDrawingSession {
   final List<GuessEntry> guesses;
   final bool isComplete;
   final bool gameStarted; // 🔥 New field
+  final Timestamp? roundStartedAt;
 
   GuessTheDrawingSession({
     required this.id,
@@ -22,6 +23,7 @@ class GuessTheDrawingSession {
     required this.guesses,
     required this.isComplete,
     required this.gameStarted, // 🔥 New field
+    this.roundStartedAt,
   });
 
   GuessTheDrawingSession nextRound(String newWord) {
@@ -37,6 +39,7 @@ class GuessTheDrawingSession {
       guesses: [],
       isComplete: false,
       gameStarted: true, // stay true
+      roundStartedAt: Timestamp.now(),
     );
   }
 
@@ -59,6 +62,7 @@ class GuessTheDrawingSession {
           [],
       isComplete: data['isComplete'] ?? false,
       gameStarted: data['gameStarted'] ?? false, // 🔥 Add fallback
+      roundStartedAt: data['roundStartedAt'],
     );
   }
 
@@ -72,5 +76,6 @@ class GuessTheDrawingSession {
         'isComplete': isComplete,
         'gameStarted': gameStarted, // 🔥 Include this
         'updatedAt': FieldValue.serverTimestamp(),
+        'roundStartedAt': roundStartedAt,
       };
 }

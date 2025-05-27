@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,16 +16,20 @@ import 'package:wagus/router.dart';
 import 'package:wagus/theme/app_palette.dart';
 
 class GuessTheDrawing extends HookWidget {
-  const GuessTheDrawing({super.key, required this.address});
+  const GuessTheDrawing(
+      {super.key, required this.address, required this.sessionId});
 
   final String address;
+  final String sessionId;
 
   @override
   Widget build(BuildContext context) {
     final session = context.watch<GameBloc>().state.guessTheDrawingSession;
-    final timerSeconds = useState<int>(60);
+    final timerSeconds = useRef<int>(60); // ⬅️ this holds the value
+    final timerUiSeconds = useState<int>(60); // ⬅️ this triggers rebuild
+
     final roundTimer = useState<Timer?>(null);
-    final previousRound = useState<int?>(null);
+    final previousRound = useRef<int?>(null);
     final alreadyHandledRound = useRef<bool>(false);
 
     final strokes = useState<List<Offset?>>([]);
@@ -37,6 +42,64 @@ class GuessTheDrawing extends HookWidget {
       },
     ));
 
+    final currentRound = session?.round;
+    final hasStartedTimer = useRef<bool>(false);
+
+    useEffect(() {
+      print(
+          '[TIMER_EFFECT] Round: $currentRound | Prev: ${previousRound.value}');
+
+      // Exit early if invalid session
+      if (session == null || !session.gameStarted || session.isComplete) {
+        return null;
+      }
+
+      // If round is the same, do nothing
+      if (previousRound.value == currentRound && hasStartedTimer.value) {
+        print('🛑 Already handled this round');
+        return null;
+      }
+
+      // Handle new round
+      print('✅ Handling new round $currentRound');
+      previousRound.value = currentRound;
+      hasStartedTimer.value = true;
+
+      roundTimer.value?.cancel();
+      alreadyHandledRound.value = false;
+      strokes.value = [];
+
+      final roundStarted = session.roundStartedAt?.toDate();
+      final elapsed = roundStarted != null
+          ? DateTime.now().difference(roundStarted).inMilliseconds
+          : 0;
+
+      final remaining = (60000 - elapsed).clamp(0, 60000);
+      timerSeconds.value = (remaining / 1000).ceil();
+      timerUiSeconds.value = timerSeconds.value;
+      print('⏱ Initial time: ${timerUiSeconds.value}s');
+
+      roundTimer.value = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (timerSeconds.value > 0) {
+          timerSeconds.value--;
+          timerUiSeconds.value = timerSeconds.value;
+          print('⏳ Timer tick: ${timerUiSeconds.value}');
+        } else {
+          print('⌛ Time expired, emitting round_timeout');
+          socket.value.emit('round_timeout', {
+            'wallet': address,
+            'sessionId': sessionId,
+          });
+          roundTimer.value?.cancel();
+        }
+      });
+
+      return () {
+        print('🧹 useEffect cleanup — but only runs on new effect call');
+        // Don't cancel here — only cleanup if round actually changes next render
+      };
+    }, [currentRound]);
+
     useEffect(() {
       final s = socket.value;
 
@@ -44,7 +107,7 @@ class GuessTheDrawing extends HookWidget {
         s.connect();
       }
 
-      s.emit('join_game', {'wallet': address});
+      // s.emit('join_game', {'wallet': address, 'sessionId': sessionId});
 
       s.off('connect');
       s.off('guess_result');
@@ -55,27 +118,22 @@ class GuessTheDrawing extends HookWidget {
 
       s.onConnect((_) async {
         print('✅ Socket connected: $address');
-        s.emit('join_game', {'wallet': address});
-
         final sessionRef = FirebaseFirestore.instance
             .collection('guess_the_drawing_sessions')
-            .doc('test-session');
-
+            .doc(sessionId);
         final doc = await sessionRef.get();
-        if (!doc.exists) {
-          await sessionRef.set({
-            'players': [],
-            'lastSeen': {},
-            'guesses': [],
-            'scores': {},
-            'round': 0,
-            'word': '',
-            'currentDrawerIndex': 0,
-            'isComplete': false,
-            'drawer': address,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-          print('✅ test-session initialized');
+
+        if (doc.exists) {
+          s.emit('join_game', {'wallet': address, 'sessionId': sessionId});
+        } else {
+          print('⚠️ Session doc not found client-side, delaying join_game...');
+          await Future.delayed(const Duration(milliseconds: 500));
+          final retry = await sessionRef.get();
+          if (retry.exists) {
+            s.emit('join_game', {'wallet': address, 'sessionId': sessionId});
+          } else {
+            print("❌ Session doc still missing after retry");
+          }
         }
       });
 
@@ -115,9 +173,11 @@ class GuessTheDrawing extends HookWidget {
 
       s.on('join_rejected', (data) {
         final reason = data['reason'] ?? 'Join rejected';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(reason), backgroundColor: Colors.red),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(reason), backgroundColor: Colors.red),
+          );
+        });
         s.disconnect();
 
         if (context.canPop()) {
@@ -145,42 +205,26 @@ class GuessTheDrawing extends HookWidget {
               backgroundColor: Colors.green,
             ),
           );
+        } else if (reason == 'forfeit') {
+          final winner = data['remainingPlayer'] ?? 'someone';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('🏆 $winner wins by default — opponent left!'),
+              backgroundColor: Colors.orange,
+            ),
+          );
         }
       });
 
       s.onConnectError((err) => print('❌ Socket connect error: $err'));
       s.onError((err) => print('❌ Socket general error: $err'));
 
-      context
-          .read<GameBloc>()
-          .add(GameListenGuessDrawingSession('test-session'));
-      context.read<GameBloc>().add(GameListenGuessChatMessages('test-session'));
-
-      if (session == null || !session.gameStarted || session.isComplete) {
-        return null;
-      }
-
-      // If the round has changed, reset the timer
-      if (previousRound.value != session.round) {
-        alreadyHandledRound.value = false;
-        strokes.value = [];
-        previousRound.value = session.round;
-        timerSeconds.value = 60;
-
-        roundTimer.value?.cancel();
-        roundTimer.value = Timer.periodic(const Duration(seconds: 1), (_) {
-          if (timerSeconds.value > 0) {
-            timerSeconds.value--;
-          } else {
-            // Time's up! Emit a timeout event or handle it as needed
-            s.emit('round_timeout', {'wallet': address});
-            roundTimer.value?.cancel();
-          }
-        });
-      }
+      context.read<GameBloc>().add(GameListenGuessDrawingSession(sessionId));
+      context.read<GameBloc>().add(GameListenGuessChatMessages(sessionId));
 
       final pingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-        s.emit('ping_alive', {'wallet': address});
+        s.emit('ping_alive',
+            {'wallet': address, 'sessionId': sessionId}); // ✅ ADD sessionId
       });
 
       final locationSub = locationControler.stream.listen((route) {
@@ -195,215 +239,204 @@ class GuessTheDrawing extends HookWidget {
         s.disconnect();
         s.dispose();
       };
-    }, [address, session?.round]);
+    }, [address]);
 
     return Scaffold(
-        floatingActionButton: Visibility(
-          visible: true,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              FloatingActionButton.extended(
-                heroTag: 'reset',
-                backgroundColor: Colors.redAccent,
-                onPressed: () async {
-                  await FirebaseFirestore.instance
-                      .collection('guess_the_drawing_sessions')
-                      .doc('test-session')
-                      .update({
-                    'round': 0,
-                    'gameStarted': false,
-                    'isComplete': false,
-                    'word': '',
-                    'guesses': [],
-                    'scores': {},
-                    'currentDrawerIndex': 0,
-                    'updatedAt': FieldValue.serverTimestamp(),
-                    'drawer': FieldValue.delete(),
-                  });
-                },
-                label: const Text("Reset"),
-                icon: const Icon(Icons.restart_alt),
-              ),
-              const SizedBox(height: 12),
-              FloatingActionButton.extended(
-                heroTag: 'start',
-                backgroundColor: Colors.green,
-                onPressed: () {
-                  if (session == null) return;
-
-                  context.read<GameRepository>().startGuessDrawingGame(
-                        sessionId: 'test-session',
-                        playerWallets: session.players.isEmpty
-                            ? [address]
-                            : session.players,
-                      );
-                },
-                label: const Text("Force Start"),
-                icon: const Icon(Icons.play_arrow),
-              ),
-            ],
-          ),
-        ),
-        backgroundColor: Colors.black,
-        body: BlocBuilder<GameBloc, GameState>(
-          builder: (context, state) {
-            final session = state.guessTheDrawingSession;
-
-            if (session == null) {
-              return Center(
-                child: ElevatedButton(
-                  onPressed: () async {
-                    // Temporary debug start
-                    await context.read<GameRepository>().startGuessDrawingGame(
-                      sessionId: 'test-session',
-                      playerWallets: [
-                        address
-                      ], // force your own wallet as the player
-                    );
-                  },
-                  child: const Text('Force Start Game'),
-                ),
-              );
-            }
-
-            final hasNotStarted = !session.gameStarted;
-            final hasEnoughPlayers = session.players.length >= 3;
-
-            final wallet = context
-                .read<PortalBloc>()
-                .state
-                .user!
-                .embeddedSolanaWallets
-                .first
-                .address;
-
-            final isDrawer = session.drawer == wallet;
-
-            if (hasNotStarted) {
-              if (!hasEnoughPlayers) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '${session.players.length} joined • Not enough players yet',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ],
-                  ),
-                );
-              } else {
-                return Center(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      context.read<GameRepository>().startGuessDrawingGame(
-                            sessionId: 'test-session',
-                            playerWallets: session.players.isEmpty
-                                ? [address]
-                                : session.players,
-                          );
-                    },
-                    child: const Text('🧪 Start Game'),
-                  ),
-                );
-              }
-            }
-
-            if (session.isComplete) {
-              return SizedBox.expand(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Text(
-                      'Game Over!\nWinner: ${_getWinner(session.scores)}',
-                      style: const TextStyle(color: Colors.white),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            // Game can start
-            return SafeArea(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final totalHeight = constraints.maxHeight;
-                  final keyboardHeight =
-                      MediaQuery.of(context).viewInsets.bottom;
-
-                  final drawingHeight = totalHeight * 0.45;
-
-                  return Column(
-                    children: [
-                      const SizedBox(height: 12),
-                      Text(
-                        isDrawer
-                            ? 'Draw this: ${session.word}'
-                            : 'Guess the word!',
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 18),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        session.drawer.isNotEmpty
-                            ? 'Round ${session.round} • Drawer: ${session.drawer.substring(0, 6)}...'
-                            : 'Round ${session.round} • Waiting for drawer...',
-                        style: const TextStyle(color: Colors.white60),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '⏱ ${timerSeconds.value}s left',
-                        style: const TextStyle(
-                            color: Colors.orangeAccent, fontSize: 16),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildScoreboard(session.scores),
-                      const SizedBox(height: 8),
-
-                      // Drawing canvas
-                      SizedBox(
-                        height: drawingHeight,
-                        child: isDrawer
-                            ? _DrawingCanvas(
-                                socket: socket.value, strokes: strokes)
-                            : _DrawingViewer(
-                                socket: socket.value,
-                                strokes: strokes,
-                                round: session.round,
-                              ),
-                      ),
-                      const Divider(color: Colors.white24),
-
-                      // Chat area
-                      Expanded(
-                        child: Column(
-                          children: [
-                            const Expanded(child: ChatMessageList()),
-                            if (!isDrawer)
-                              _ChatInput(socket: socket.value)
-                            else
-                              const Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: Text('Waiting for guesses...',
-                                    style: TextStyle(color: Colors.white38)),
-                              ),
-                            // Padding for keyboard so input doesn't get covered
-                            SizedBox(
-                                height:
-                                    keyboardHeight > 0 ? keyboardHeight : 0),
-                          ],
+        appBar: AppBar(
+          title: const Text('Guess the Drawing'),
+          centerTitle: true,
+          backgroundColor: Colors.white,
+          actions: [
+            // info icon to show game rules. show dialog explaining the game
+            IconButton(
+              icon: const Icon(FontAwesomeIcons.info, color: Colors.black),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: Text('Game Rules',
+                          style: TextStyle(
+                            color: context.appColors.contrastDark,
+                          )),
+                      content: Text(
+                        'Guess the Drawing is a multiplayer game where one player draws a word and others try to guess it. '
+                        'The drawer has 60 seconds to draw while others can submit guesses using the input box. '
+                        'Correct guesses earn points, and the player with the most points at the end wins.',
+                        style: TextStyle(
+                          color: context.appColors.contrastDark,
                         ),
                       ),
-                    ],
+                      actions: [
+                        TextButton(
+                          onPressed: () => context.pop(),
+                          child: const Text('Got it!'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+        backgroundColor: Colors.black,
+        body: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('guess_the_drawing_sessions')
+                .orderBy('updatedAt', descending: true)
+                .snapshots(),
+            builder: (context, snapshot) {
+              return BlocBuilder<GameBloc, GameState>(
+                builder: (context, state) {
+                  final session = state.guessTheDrawingSession;
+
+                  if (session == null) {
+                    return const Center(
+                      child: Text(
+                        'No active session found',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    );
+                  }
+
+                  final hasNotStarted = !session.gameStarted;
+                  final hasEnoughPlayers = session.players.length >= 3;
+
+                  final wallet = context
+                      .read<PortalBloc>()
+                      .state
+                      .user!
+                      .embeddedSolanaWallets
+                      .first
+                      .address;
+
+                  final isDrawer = session.drawer == wallet;
+
+                  if (hasNotStarted) {
+                    if (!hasEnoughPlayers) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              '${session.players.length} joined • Not enough players yet',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(height: 8),
+                            ElevatedButton(
+                              onPressed: () {
+                                context
+                                    .read<GameRepository>()
+                                    .startGuessDrawingGame(
+                                        sessionId: sessionId,
+                                        playerWallets: session.players);
+                              },
+                              child: const Text('Start Game'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  }
+
+                  if (session.isComplete) {
+                    return SizedBox.expand(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Text(
+                            'Game Over!\nWinner: ${_getWinner(session.scores)}',
+                            style: const TextStyle(color: Colors.white),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  // Game can start
+                  return SafeArea(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final totalHeight = constraints.maxHeight;
+                        final keyboardHeight =
+                            MediaQuery.of(context).viewInsets.bottom;
+
+                        final drawingHeight = totalHeight * 0.35;
+
+                        return Column(
+                          children: [
+                            const SizedBox(height: 12),
+                            Text(
+                              isDrawer
+                                  ? 'Draw this: ${session.word}'
+                                  : 'Guess the word!',
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 18),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              session.drawer.isNotEmpty
+                                  ? 'Round ${session.round} • Drawer: ${session.drawer.substring(0, 6)}...'
+                                  : 'Round ${session.round} • Waiting for drawer...',
+                              style: const TextStyle(color: Colors.white60),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              '⏱ ${timerUiSeconds.value}s left',
+                              style: const TextStyle(
+                                  color: Colors.orangeAccent, fontSize: 16),
+                            ),
+
+                            const SizedBox(height: 12),
+                            _buildScoreboard(session.scores),
+                            const SizedBox(height: 8),
+
+                            // Drawing canvas
+                            SizedBox(
+                              height: drawingHeight,
+                              child: isDrawer
+                                  ? _DrawingCanvas(
+                                      socket: socket.value, strokes: strokes)
+                                  : _DrawingViewer(
+                                      socket: socket.value,
+                                      strokes: strokes,
+                                      round: session.round,
+                                    ),
+                            ),
+                            const Divider(color: Colors.white24),
+
+                            // Chat area
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  const Expanded(child: ChatMessageList()),
+                                  if (!isDrawer)
+                                    _ChatInput(socket: socket.value)
+                                  else
+                                    const Padding(
+                                      padding: EdgeInsets.all(8.0),
+                                      child: Text('Waiting for guesses...',
+                                          style:
+                                              TextStyle(color: Colors.white38)),
+                                    ),
+                                  // Padding for keyboard so input doesn't get covered
+                                  SizedBox(
+                                      height: keyboardHeight > 0
+                                          ? keyboardHeight
+                                          : 0),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   );
                 },
-              ),
-            );
-          },
-        ));
+              );
+            }));
   }
 
   String _getWinner(Map<String, int> scores) {
@@ -417,13 +450,21 @@ class GuessTheDrawing extends HookWidget {
   Widget _buildScoreboard(Map<String, int> scores) {
     final sorted = scores.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    return Column(
-      children: sorted.map((e) {
-        return Text(
-          '${e.key.substring(0, 4)}: ${e.value} pts',
-          style: const TextStyle(color: Colors.white70),
+    return Wrap(
+      children: List.generate(sorted.length, (index) {
+        return Container(
+          padding: const EdgeInsets.all(4),
+          child: Column(
+            children: [
+              Text(
+                '${sorted[index].key.substring(0, 4)}: ${sorted[index].value} pts',
+                style: const TextStyle(color: Colors.white70),
+              ),
+              if (index < sorted.length - 1) const Divider(),
+            ],
+          ),
         );
-      }).toList(),
+      }),
     );
   }
 }
@@ -441,15 +482,15 @@ class _DrawingViewer extends HookWidget {
     useEffect(() {
       print("📡 Viewer is setting up listener for round: $round");
 
-      socket.emit('join_game', {
-        'wallet': context
-            .read<PortalBloc>()
-            .state
-            .user!
-            .embeddedSolanaWallets
-            .first
-            .address
-      });
+      // socket.emit('join_game', {
+      //   'wallet': context
+      //       .read<PortalBloc>()
+      //       .state
+      //       .user!
+      //       .embeddedSolanaWallets
+      //       .first
+      //       .address
+      // });
 
       void handleStroke(data) {
         print("👀 Viewer received stroke: $data");
@@ -662,7 +703,10 @@ class _ChatInput extends HookWidget {
           .submitGuessToSession(session.id, guessEntry);
 
       if (isCorrect) {
-        socket.emit('correct_guess', {'wallet': wallet});
+        socket.emit('correct_guess', {
+          'wallet': wallet,
+          'sessionId': session.id, // ✅ pass sessionId here
+        });
       }
     }
 

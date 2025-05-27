@@ -237,6 +237,31 @@ class GameRepository {
     }
   }
 
+  Future<String> createNewGuessDrawingSession({required String wallet}) async {
+    final docRef = _guessTheDrawingCollection.doc(); // auto-ID
+    final sessionId = docRef.id;
+
+    final session = GuessTheDrawingSession(
+      id: sessionId,
+      players: [wallet],
+      scores: {wallet: 0},
+      round: 0,
+      currentDrawerIndex: 0,
+      word: '',
+      guesses: [],
+      isComplete: false,
+      gameStarted: false,
+    );
+
+    await docRef.set({
+      ...session.toMap(),
+      'drawer': '',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    return sessionId;
+  }
+
   /// Simple hardcoded word list for now
   String pickWord() {
     final words = ['apple', 'sun', 'car', 'house', 'tree', 'phone'];

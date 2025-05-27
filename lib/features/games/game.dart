@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -102,28 +101,18 @@ class Game extends StatelessWidget {
                                       .first
                                       .address;
 
-                                  final doc = await FirebaseFirestore.instance
-                                      .collection('guess_the_drawing_sessions')
-                                      .doc('test-session')
-                                      .get();
-
-                                  final players = List<String>.from(
-                                      doc.data()?['players'] ?? []);
-                                  final isFull = players.length >= 5 &&
-                                      !players.contains(wallet);
-
-                                  if (isFull) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            'Game is full (5 players max)'),
-                                        backgroundColor: Colors.red,
-                                      ),
+                                  if ((game['route'] as String)
+                                      .contains(spygus)) {
+                                    context.push(
+                                      '${game['route']}/$wallet',
                                     );
-                                    return;
                                   }
 
-                                  context.push('${game['route']}/$wallet');
+                                  if ((game['route'] as String)
+                                      .contains(guessTheDrawing)) {
+                                    context.push(
+                                        '/guess-the-drawing/sessions/$wallet');
+                                  }
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
