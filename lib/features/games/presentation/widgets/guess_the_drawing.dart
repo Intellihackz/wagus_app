@@ -501,8 +501,9 @@ class _DrawingViewer extends HookWidget {
           strokes.value = [...strokes.value, null];
         } else {
           final size = MediaQuery.of(context).size;
-          final canvasHeight = size.height * 0.45;
-          final denormalizedX = dx * size.width;
+          final canvasHeight = data['canvasHeight'] ?? size.height * 0.35;
+          final canvasWidth = data['canvasWidth'] ?? size.width;
+          final denormalizedX = dx * canvasWidth;
           final denormalizedY = dy * canvasHeight;
 
           strokes.value = [
@@ -570,7 +571,12 @@ class _DrawingCanvas extends HookWidget {
 
           throttle.value = Timer(const Duration(milliseconds: 16), () {
             print("Drawer stroke emitted: $normalizedX, $normalizedY");
-            socket.emit('send_stroke', {'dx': normalizedX, 'dy': normalizedY});
+            socket.emit('send_stroke', {
+              'dx': normalizedX,
+              'dy': normalizedY,
+              'canvasHeight': box.size.height,
+              'canvasWidth': box.size.width,
+            });
           });
         },
         child: ValueListenableBuilder<List<Offset?>>(
