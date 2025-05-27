@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:privy_flutter/privy_flutter.dart';
@@ -30,6 +31,114 @@ class ProfileScreen extends HookWidget {
       builder: (context, user) {
         final isCurrentUser =
             user?.embeddedSolanaWallets.first.address == address;
+
+        void showFaqBottomSheet(BuildContext context) {
+          showModalBottomSheet(
+            context: context,
+            backgroundColor: Colors.black,
+            isScrollControlled: true,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            builder: (context) {
+              final faqItems = <Map<String, String>>[
+                {
+                  'title': 'Can’t send tokens?',
+                  'content': '- Session expired: log out and back in\n'
+                      '- Not enough SOL for fees\n'
+                      '- Need extra rent to create token account',
+                },
+                {
+                  'title': 'Daily Claim Issues',
+                  'content': '- Hold at least 1 WAGUS (subject to change)\n'
+                      '- Claiming from same IP twice causes issues\n'
+                      '- Must wait 24 hours between claims\n'
+                      '- If you got free rent before, no more free rent again',
+                },
+                {
+                  'title': 'Withdraw issues?',
+                  'content':
+                      'Same reasons as sending errors (session, sol, rent)',
+                },
+                {
+                  'title': 'How to become red (Adventurer)?',
+                  'content':
+                      'Pay \$3.50 worth of any token of your choice — select it in the Bank screen.',
+                },
+                {
+                  'title': 'Can I export my keys?',
+                  'content':
+                      'Not yet. I need to upgrade to the Privy Pro plan for that. I’m on the Starter plan.',
+                },
+                {
+                  'title': 'Is there a website?',
+                  'content':
+                      'Yes — it’s in development. It’ll offer similar features, even more that didn’t pass mobile app compliance.',
+                },
+                {
+                  'title': 'Other Tips',
+                  'content': 'Ensure your internet is stable.',
+                },
+              ];
+
+              return DraggableScrollableSheet(
+                expand: false,
+                initialChildSize: 0.75,
+                maxChildSize: 0.95,
+                minChildSize: 0.3,
+                builder: (context, scrollController) => ListView.builder(
+                  controller: scrollController,
+                  itemCount: faqItems.length + 1,
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      );
+                    }
+
+                    final faq = faqItems[index - 1];
+
+                    return Theme(
+                      data: ThemeData()
+                          .copyWith(dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        tilePadding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        collapsedIconColor: Colors.white54,
+                        iconColor: Colors.white,
+                        title: Text(
+                          faq['title']!,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              faq['content']!,
+                              style: const TextStyle(color: Colors.white70),
+                            ),
+                          )
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          );
+        }
 
         return Scaffold(
           backgroundColor: Colors.black,
@@ -334,6 +443,11 @@ class ProfileScreen extends HookWidget {
                 const SizedBox(height: 32),
                 if (isCurrentUser) ...[
                   _buildSectionTitle('Account'),
+                  _buildTile(
+                    icon: FontAwesomeIcons.question,
+                    label: 'FAQ',
+                    onTap: () => showFaqBottomSheet(context),
+                  ),
                   BlocSelector<PortalBloc, PortalState, String>(
                     selector: (state) {
                       return state.user?.embeddedSolanaWallets.first.address ??
