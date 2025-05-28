@@ -12,6 +12,11 @@ class GameState extends Equatable {
   List<Object?> get props =>
       [spygusGameData, guessTheDrawingSession, chatMessages];
 
+  GameState.empty()
+      : spygusGameData = null,
+        guessTheDrawingSession = null,
+        chatMessages = [];
+
   GameState copyWith({
     SpygusGameData? Function()? spygusGameData,
     GuessTheDrawingSession? Function()? guessTheDrawingSession,

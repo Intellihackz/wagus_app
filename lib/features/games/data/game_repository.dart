@@ -167,12 +167,8 @@ class GameRepository {
         wallet: entry.wallet,
       );
 
-      // 👇 Let the server handle round advancemen
-
-      socket.connect();
       socket.emit(
           'correct_guess', {'wallet': entry.wallet, 'sessionId': sessionId});
-      socket.disconnect();
 
       return true;
     }

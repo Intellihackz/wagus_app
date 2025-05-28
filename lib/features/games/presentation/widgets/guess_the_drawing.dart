@@ -31,7 +31,7 @@ class GuessTheDrawing extends HookWidget {
 
     final roundTimer = useState<Timer?>(null);
     final previousRound = useRef<int?>(null);
-    final alreadyHandledRound = useRef<bool>(false);
+    final alreadyHandledRound = useState<bool>(false);
 
     final strokes = useState<List<Offset?>>([]);
     final socketService = useRef<SocketService>(SocketService());
@@ -39,35 +39,46 @@ class GuessTheDrawing extends HookWidget {
     final currentRound = session?.round;
     final hasStartedTimer = useRef<bool>(false);
 
+    final isDrawing = useState(false);
+
     void showMessage(String message, Color color) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), backgroundColor: color),
       );
     }
 
-    useEffect(() {
-      print(
-          '[TIMER_EFFECT] Round: $currentRound | Prev: ${previousRound.value}');
+    final currentDrawer = session?.drawer;
 
+    final previousTurnKey = useRef<String?>(null);
+    final currentTurnKey = '${session?.round}_${session?.drawer}';
+
+    useEffect(() {
       // Exit early if invalid session
       if (session == null || !session.gameStarted || session.isComplete) {
         return null;
       }
+      print(
+          '[TIMER_EFFECT] Round: $currentRound | Prev: ${previousRound.value}');
+
+      strokes.value = []; // Reset strokes for new round
 
       // If round is the same, do nothing
-      if (previousRound.value == currentRound && hasStartedTimer.value) {
-        print('🛑 Already handled this round');
+      if (previousTurnKey.value == currentTurnKey && hasStartedTimer.value) {
+        print('🛑 Already handled this turn');
         return null;
       }
 
       // Handle new round
       print('✅ Handling new round $currentRound');
-      previousRound.value = currentRound;
+
+      print('✅ Handling new turn $currentTurnKey');
+      previousTurnKey.value = currentTurnKey;
       hasStartedTimer.value = true;
 
       roundTimer.value?.cancel();
       alreadyHandledRound.value = false;
-      strokes.value = [];
+
+      strokes.value = []; // Reset strokes for new turn
 
       final roundStarted = session.roundStartedAt?.toDate();
       final elapsed = roundStarted != null
@@ -98,7 +109,7 @@ class GuessTheDrawing extends HookWidget {
         print('🧹 useEffect cleanup — but only runs on new effect call');
         // Don't cancel here — only cleanup if round actually changes next render
       };
-    }, [currentRound]);
+    }, [currentTurnKey]);
 
     useEffect(() {
       socketService.value.init(
@@ -111,69 +122,8 @@ class GuessTheDrawing extends HookWidget {
               context.pop();
             }
           },
-          locationStream: locationControler.stream);
-
-      // if (!s.connected) {
-      //   s.connect();
-      // }
-
-      // s.emit('join_game', {'wallet': address, 'sessionId': sessionId});
-
-      // s.off('connect');
-      // s.off('guess_result');
-      // s.off('round_skipped');
-      // s.off('player_left');
-      // s.off('connect_error');
-      // s.off('error');
-
-      // s.onConnect((_) async {
-      //   print('✅ Socket connected: $address');
-      //   final sessionRef = FirebaseFirestore.instance
-      //       .collection('guess_the_drawing_sessions')
-      //       .doc(sessionId);
-      //   final doc = await sessionRef.get();
-
-      //   if (doc.exists) {
-      //     s.emit('join_game', {'wallet': address, 'sessionId': sessionId});
-      //   } else {
-      //     print('⚠️ Session doc not found client-side, delaying join_game...');
-      //     await Future.delayed(const Duration(milliseconds: 500));
-      //     final retry = await sessionRef.get();
-      //     if (retry.exists) {
-      //       s.emit('join_game', {'wallet': address, 'sessionId': sessionId});
-      //     } else {
-      //       print("❌ Session doc still missing after retry");
-      //     }
-      //   }
-      // });
-
-      // s.on('guess_result', (data) {
-      //   alreadyHandledRound.value = true;
-      //   final isCorrect = data['correct'] == true;
-      //   final guesser = data['guesser'];
-      //   final message = isCorrect
-      //       ? '$guesser guessed correctly!'
-      //       : '$guesser guessed wrong.';
-
-      //   ScaffoldMessenger.of(context).showSnackBar(
-      //     SnackBar(
-      //       content: Text(message),
-      //       backgroundColor: isCorrect ? Colors.green : Colors.red,
-      //     ),
-      //   );
-      // });
-
-      // s.on('round_skipped', (data) {
-      //   if (alreadyHandledRound.value) return;
-      //   if (data['reason'] == 'correct')
-      //     return; // ✅ ignore if it’s due to correct
-      //   ScaffoldMessenger.of(context).showSnackBar(
-      //     SnackBar(
-      //       content: Text('⏳ Time’s up! Moving to next round...'),
-      //       backgroundColor: Colors.redAccent,
-      //     ),
-      //   );
-      // });
+          locationStream: locationControler.stream,
+          alreadyHandledRound: alreadyHandledRound);
 
       // s.on('player_left', (data) {
       //   // data is a list of removed wallet addresses
@@ -189,69 +139,6 @@ class GuessTheDrawing extends HookWidget {
       //     );
       //   });
       //   s.disconnect();
-
-      //   if (context.canPop()) {
-      //     context.pop();
-      //   }
-      // });
-
-      // // ✅ UPDATED CLIENT PATCH
-
-      // s.on('round_advanced', (data) {
-      //   alreadyHandledRound.value = false; // ✅ always reset to allow next round
-
-      //   final reason = data['reason'];
-      //   final sessionRef = FirebaseFirestore.instance
-      //       .collection('guess_the_drawing_sessions')
-      //       .doc(sessionId);
-
-      //   sessionRef.get().then((doc) {
-      //     if (!doc.exists) return;
-
-      //     final data = doc.data();
-      //     final newDrawer = data?['drawer'] ?? '';
-      //     final roundNum = data?['round'];
-
-      //     final isMe = newDrawer == address;
-      //     final message = reason == 'correct_guess'
-      //         ? '✅ Correct guess! Round $roundNum, ${isMe ? 'you draw' : 'guess'}'
-      //         : reason == 'timeout'
-      //             ? '⏳ Time’s up! Round $roundNum, ${isMe ? 'you draw' : 'guess'}'
-      //             : reason == 'forfeit'
-      //                 ? '🏆 ${data?['remainingPlayer'] ?? 'someone'} wins by default'
-      //                 : null;
-
-      //     if (message != null) {
-      //       ScaffoldMessenger.of(context).showSnackBar(
-      //         SnackBar(
-      //           content: Text(message),
-      //           backgroundColor: reason == 'forfeit'
-      //               ? Colors.orange
-      //               : reason == 'correct_guess'
-      //                   ? Colors.green
-      //                   : Colors.redAccent,
-      //         ),
-      //       );
-      //     }
-      //   });
-      // });
-
-      // s.onConnectError((err) => print('❌ Socket connect error: $err'));
-      // s.onError((err) => print('❌ Socket general error: $err'));
-
-      // context.read<GameBloc>().add(GameListenGuessDrawingSession(sessionId));
-      // context.read<GameBloc>().add(GameListenGuessChatMessages(sessionId));
-
-      // final pingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      //   s.emit('ping_alive',
-      //       {'wallet': address, 'sessionId': sessionId}); // ✅ ADD sessionId
-      // });
-
-      // final locationSub = locationControler.stream.listen((route) {
-      //   if (!route!.startsWith('/guess-the-drawing')) {
-      //     s.disconnect();
-      //   }
-      // });
 
       return () {
         // pingTimer.cancel();
@@ -388,83 +275,74 @@ class GuessTheDrawing extends HookWidget {
 
                   // Game can start
                   return SafeArea(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final totalHeight = constraints.maxHeight;
-                        final keyboardHeight =
-                            MediaQuery.of(context).viewInsets.bottom;
-
-                        final drawingHeight = totalHeight * 0.35;
-
-                        return Column(
-                          children: [
-                            const SizedBox(height: 12),
-                            Text(
-                              isDrawer
-                                  ? 'Draw this: ${session.word}'
-                                  : 'Guess the word!',
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 18),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              session.drawer.isNotEmpty
-                                  ? 'Round ${session.round} • Drawer: ${session.drawer.substring(0, 6)}...'
-                                  : 'Round ${session.round} • Waiting for drawer...',
-                              style: const TextStyle(color: Colors.white60),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              '⏱ ${timerUiSeconds.value}s left',
-                              style: const TextStyle(
-                                  color: Colors.orangeAccent, fontSize: 16),
-                            ),
-
-                            const SizedBox(height: 12),
-                            _buildScoreboard(session.scores),
-                            const SizedBox(height: 8),
-
-                            // Drawing canvas
-                            SizedBox(
-                              height: drawingHeight,
-                              child: isDrawer
-                                  ? _DrawingCanvas(
-                                      socket: socketService.value.socket,
-                                      strokes: strokes)
-                                  : _DrawingViewer(
-                                      socket: socketService.value.socket,
-                                      strokes: strokes,
-                                      round: session.round,
-                                    ),
-                            ),
-                            const Divider(color: Colors.white24),
-
-                            // Chat area
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  const Expanded(child: ChatMessageList()),
-                                  if (!isDrawer)
-                                    _ChatInput(
-                                        socket: socketService.value.socket)
-                                  else
-                                    const Padding(
-                                      padding: EdgeInsets.all(8.0),
-                                      child: Text('Waiting for guesses...',
-                                          style:
-                                              TextStyle(color: Colors.white38)),
-                                    ),
-                                  // Padding for keyboard so input doesn't get covered
-                                  SizedBox(
-                                      height: keyboardHeight > 0
-                                          ? keyboardHeight
-                                          : 0),
-                                ],
+                    child: Column(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 12),
+                              Text(
+                                isDrawer
+                                    ? 'Draw this: ${session.word}'
+                                    : 'Guess the word!',
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 18),
                               ),
-                            ),
-                          ],
-                        );
-                      },
+                              const SizedBox(height: 6),
+                              Text(
+                                session.drawer.isNotEmpty
+                                    ? 'Round ${session.round} • Drawer: ${session.drawer.substring(0, 6)}...'
+                                    : 'Round ${session.round} • Waiting for drawer...',
+                                style: const TextStyle(color: Colors.white60),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                '⏱ ${timerUiSeconds.value}s left',
+                                style: const TextStyle(
+                                    color: Colors.orangeAccent, fontSize: 16),
+                              ),
+                              const SizedBox(height: 12),
+                              _buildScoreboard(session.scores),
+                              const SizedBox(height: 8),
+                              Expanded(
+                                child: isDrawer
+                                    ? _DrawingCanvas(
+                                        socket: socketService.value.socket,
+                                        strokes: strokes,
+                                        isDrawing: isDrawing,
+                                      )
+                                    : _DrawingViewer(
+                                        socket: socketService.value.socket,
+                                        strokes: strokes,
+                                        round: session.round,
+                                        isDrawing: isDrawing,
+                                      ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Divider(color: Colors.white24),
+                        Expanded(
+                          flex: 1,
+                          child: ChatMessageList(isDrawing: isDrawing),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(context).viewInsets.bottom,
+                          ),
+                          child: !isDrawer
+                              ? _ChatInput(socket: socketService.value.socket)
+                              : const Padding(
+                                  padding: EdgeInsets.all(8.0),
+                                  child: Text(
+                                    'Waiting for guesses...',
+                                    style: TextStyle(color: Colors.white38),
+                                  ),
+                                ),
+                        ),
+                      ],
                     ),
                   );
                 },
@@ -506,24 +384,18 @@ class _DrawingViewer extends HookWidget {
   final IO.Socket socket;
   final ValueNotifier<List<Offset?>> strokes;
   final int round;
+  final ValueNotifier<bool> isDrawing;
 
   const _DrawingViewer(
-      {required this.socket, required this.strokes, required this.round});
+      {required this.socket,
+      required this.strokes,
+      required this.round,
+      required this.isDrawing});
 
   @override
   Widget build(BuildContext context) {
     useEffect(() {
       print("📡 Viewer is setting up listener for round: $round");
-
-      // socket.emit('join_game', {
-      //   'wallet': context
-      //       .read<PortalBloc>()
-      //       .state
-      //       .user!
-      //       .embeddedSolanaWallets
-      //       .first
-      //       .address
-      // });
 
       void handleStroke(data) {
         print("👀 Viewer received stroke: $data");
@@ -549,10 +421,6 @@ class _DrawingViewer extends HookWidget {
       socket.off('new_stroke');
       socket.on('new_stroke', handleStroke);
 
-      // WidgetsBinding.instance.addPostFrameCallback((_) {
-      //   strokes.value = [];
-      // });
-
       return () {
         print("🧹 Cleaning up listener for round: $round");
         socket.off('new_stroke', handleStroke);
@@ -574,7 +442,9 @@ class _DrawingViewer extends HookWidget {
 class _DrawingCanvas extends HookWidget {
   final IO.Socket socket;
   final ValueNotifier<List<Offset?>> strokes;
-  const _DrawingCanvas({required this.socket, required this.strokes});
+  final ValueNotifier<bool> isDrawing;
+  const _DrawingCanvas(
+      {required this.socket, required this.strokes, required this.isDrawing});
 
   @override
   Widget build(BuildContext context) {
@@ -582,11 +452,13 @@ class _DrawingCanvas extends HookWidget {
 
     return GestureDetector(
         onPanStart: (_) {
+          isDrawing.value = true;
           strokes.value = [...strokes.value, null]; // null separates new stroke
           socket.emit(
               'send_stroke', {'dx': null, 'dy': null}); // signal new stroke
         },
         onPanUpdate: (details) {
+          isDrawing.value = false;
           final box = context.findRenderObject() as RenderBox;
           final local = box.globalToLocal(details.globalPosition);
 
@@ -768,7 +640,8 @@ class _ChatInput extends HookWidget {
 }
 
 class ChatMessageList extends HookWidget {
-  const ChatMessageList({super.key});
+  final ValueNotifier<bool> isDrawing;
+  const ChatMessageList({super.key, required this.isDrawing});
 
   @override
   Widget build(BuildContext context) {
@@ -789,6 +662,7 @@ class ChatMessageList extends HookWidget {
     }, [messages.length]);
 
     return ListView.builder(
+      physics: isDrawing.value ? const NeverScrollableScrollPhysics() : null,
       itemCount: messages.length,
       reverse: true,
       padding: const EdgeInsets.symmetric(horizontal: 12),
