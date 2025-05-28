@@ -107,4 +107,16 @@ class UserService {
       'username': username,
     }, SetOptions(merge: true));
   }
+
+  Future<String> getDisplayName(String walletAddress) async {
+    final doc = await usersCollection.doc(walletAddress).get();
+    final data = doc.data();
+    final username = data?['username'];
+
+    if (username != null && username.toString().trim().isNotEmpty) {
+      return username;
+    }
+
+    return '${walletAddress.substring(0, 6)}...';
+  }
 }

@@ -14,6 +14,7 @@ import 'package:wagus/features/games/domain/guess_the_drawing/guess_entry.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/services/socket_service.dart';
+import 'package:wagus/services/user_service.dart';
 import 'package:wagus/theme/app_palette.dart';
 
 class GuessTheDrawing extends HookWidget {
@@ -46,8 +47,6 @@ class GuessTheDrawing extends HookWidget {
         SnackBar(content: Text(message), backgroundColor: color),
       );
     }
-
-    final currentDrawer = session?.drawer;
 
     final previousTurnKey = useRef<String?>(null);
     final currentTurnKey = '${session?.round}_${session?.drawer}';
@@ -259,17 +258,60 @@ class GuessTheDrawing extends HookWidget {
                   }
 
                   if (session.isComplete) {
-                    return SizedBox.expand(
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Text(
-                            'Game Over!\nWinner: ${_getWinner(session.scores)}',
-                            style: const TextStyle(color: Colors.white),
-                            textAlign: TextAlign.center,
+                    final winnerKey = _getWinner(session.scores);
+                    final winnerScore = session.scores[winnerKey] ?? 0;
+
+                    return FutureBuilder<String>(
+                      future: UserService().getDisplayName(winnerKey),
+                      builder: (context, snapshot) {
+                        final winnerName = snapshot.data ?? winnerKey;
+
+                        return SizedBox.expand(
+                          child: Container(
+                            padding: const EdgeInsets.all(24),
+                            alignment: Alignment.center,
+                            color: Colors.black,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.emoji_events,
+                                    size: 64, color: Colors.amber),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  '🏆 Winner!',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  winnerName,
+                                  style: const TextStyle(
+                                    color: Colors.greenAccent,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '$winnerScore Points',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                ElevatedButton(
+                                  onPressed: () => context.pop(),
+                                  child: const Text('Back to Home'),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     );
                   }
 
@@ -352,10 +394,7 @@ class GuessTheDrawing extends HookWidget {
 
   String _getWinner(Map<String, int> scores) {
     if (scores.isEmpty) return 'Nobody';
-    return scores.entries
-        .reduce((a, b) => a.value >= b.value ? a : b)
-        .key
-        .substring(0, 6);
+    return scores.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
   }
 
   Widget _buildScoreboard(Map<String, int> scores) {
