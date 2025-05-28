@@ -25,6 +25,17 @@ class SocketService {
 
   bool _initialized = false;
 
+  DateTime? _lastMessageTime;
+
+  void _safeMessage(String msg, Color color) {
+    final now = DateTime.now();
+    if (_lastMessageTime == null ||
+        now.difference(_lastMessageTime!) > const Duration(seconds: 2)) {
+      _lastMessageTime = now;
+      _onMessage(msg, color); // ✅ correct call
+    }
+  }
+
   void init({
     required String wallet,
     required String sessionId,
@@ -84,7 +95,7 @@ class SocketService {
           _socket
               .emit('join_game', {'wallet': _wallet, 'sessionId': _sessionId});
         } else {
-          _onMessage("❌ Session doc still missing", Colors.red);
+          _safeMessage("❌ Session doc still missing", Colors.red);
         }
       }
     });
@@ -103,7 +114,7 @@ class SocketService {
       alreadyHandledRound.value = true;
       final isCorrect = data['correct'] == true;
       final guesser = data['guesser'];
-      _onMessage(
+      _safeMessage(
         isCorrect ? '$guesser guessed correctly!' : '$guesser guessed wrong.',
         isCorrect ? Colors.green : Colors.red,
       );
@@ -111,12 +122,12 @@ class SocketService {
 
     _socket.on('round_skipped', (data) {
       if (data['reason'] == 'correct') return;
-      _onMessage('⏳ Time’s up! Moving to next round...', Colors.redAccent);
+      _safeMessage('⏳ Time’s up! Moving to next round...', Colors.redAccent);
     });
 
     _socket.on('join_rejected', (data) {
       final reason = data['reason'] ?? 'Join rejected';
-      _onMessage(reason, Colors.red);
+      _safeMessage(reason, Colors.red);
       _onReject();
       _socket.disconnect();
     });
@@ -147,7 +158,7 @@ class SocketService {
       }
 
       if (msg != null) {
-        _onMessage(
+        _safeMessage(
             msg,
             reason == 'forfeit'
                 ? Colors.orange

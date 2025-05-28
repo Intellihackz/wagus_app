@@ -181,10 +181,25 @@ class GuessTheDrawingSessionList extends StatelessWidget {
                         ),
                       ),
                       ElevatedButton(
-                          onPressed: isFull && !players.contains(walletAddress)
-                              ? null
-                              : () => context.push(
-                                  '/guess-the-drawing/$walletAddress/$sessionId'),
+                          onPressed: () {
+                            final bool isParticipant =
+                                players.contains(walletAddress);
+                            final bool canJoin =
+                                !data['gameStarted'] && !data['isComplete'];
+
+                            if (isParticipant || canJoin) {
+                              context.push(
+                                  '/guess-the-drawing/$walletAddress/$sessionId');
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content:
+                                      Text('You are not part of this game.'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor:
                                 isFull ? Colors.grey : Colors.green,

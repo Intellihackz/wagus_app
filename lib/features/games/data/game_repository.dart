@@ -215,7 +215,7 @@ class GameRepository {
         scores: {for (var w in playerWallets) w: 0},
         round: 1,
         currentDrawerIndex: 0,
-        word: pickWord(),
+        word: await pickWord(),
         guesses: [],
         isComplete: false,
         gameStarted: true,
@@ -253,8 +253,18 @@ class GameRepository {
   }
 
   /// Simple hardcoded word list for now
-  String pickWord() {
-    final words = ['apple', 'sun', 'car', 'house', 'tree', 'phone'];
+  Future<String> pickWord() async {
+    final doc = await FirebaseFirestore.instance
+        .collection('drawing_words')
+        .doc('word_list')
+        .get();
+
+    final List<dynamic>? rawWords = doc.data()?['words'];
+    if (rawWords == null || rawWords.isEmpty) {
+      return 'apple'; // fallback
+    }
+
+    final words = List<String>.from(rawWords);
     words.shuffle();
     return words.first;
   }

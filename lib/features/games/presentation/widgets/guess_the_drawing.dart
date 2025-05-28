@@ -400,21 +400,31 @@ class GuessTheDrawing extends HookWidget {
   Widget _buildScoreboard(Map<String, int> scores) {
     final sorted = scores.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    return Wrap(
-      children: List.generate(sorted.length, (index) {
-        return Container(
-          padding: const EdgeInsets.all(4),
-          child: Column(
-            children: [
-              Text(
-                '${sorted[index].key.substring(0, 4)}: ${sorted[index].value} pts',
-                style: const TextStyle(color: Colors.white70),
+
+    return SizedBox(
+      height: 60,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: List.generate(sorted.length, (index) {
+            final walletShort = sorted[index].key.substring(0, 4);
+            final score = sorted[index].value;
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white12,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white30),
               ),
-              if (index < sorted.length - 1) const Divider(),
-            ],
-          ),
-        );
-      }),
+              child: Text(
+                '$walletShort: $score pts',
+                style: const TextStyle(color: Colors.white),
+              ),
+            );
+          }),
+        ),
+      ),
     );
   }
 }
