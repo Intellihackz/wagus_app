@@ -137,7 +137,8 @@ class GameRepository {
   }
 
   /// 📝 Guess the Drawing: Submit a guess
-  Future<bool> submitGuessToSession(String sessionId, GuessEntry entry) async {
+  Future<bool> submitGuessToSession(
+      String sessionId, GuessEntry entry, IO.Socket socket) async {
     final docRef = _guessTheDrawingCollection.doc(sessionId);
     final snapshot = await docRef.get();
     if (!snapshot.exists) return false;
@@ -166,18 +167,11 @@ class GameRepository {
         wallet: entry.wallet,
       );
 
-      // 👇 Let the server handle round advancement
-      final socket = IO.io(
-        'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com',
-        <String, dynamic>{
-          'transports': ['websocket'],
-          'autoConnect': false,
-          'query': {'wallet': entry.wallet},
-        },
-      );
+      // 👇 Let the server handle round advancemen
 
       socket.connect();
-      socket.emit('correct_guess', {'wallet': entry.wallet});
+      socket.emit(
+          'correct_guess', {'wallet': entry.wallet, 'sessionId': sessionId});
       socket.disconnect();
 
       return true;
@@ -292,30 +286,4 @@ class GameRepository {
 
     await updateGuessDrawingSession(sessionId, updatedSession);
   }
-
-  // Future<void> advanceGuessDrawingRound({
-  //   required String sessionId,
-  //   required GuessTheDrawingSession currentSession,
-  // }) async {
-  //   final nextIndex =
-  //       (currentSession.currentDrawerIndex + 1) % currentSession.players.length;
-  //   final nextRound = currentSession.round + 1;
-
-  //   const roundsPerPlayer = 3;
-  //   final totalRounds = currentSession.players.length * roundsPerPlayer;
-
-  //   final nextSession = GuessTheDrawingSession(
-  //     id: sessionId,
-  //     players: currentSession.players,
-  //     scores: currentSession.scores,
-  //     round: nextRound,
-  //     currentDrawerIndex: nextIndex,
-  //     word: pickWord(),
-  //     guesses: [],
-  //     isComplete: nextRound >= totalRounds,
-  //     gameStarted: currentSession.gameStarted,
-  //   );
-
-  //   await updateGuessDrawingSession(sessionId, nextSession);
-  // }
 }

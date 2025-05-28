@@ -13,6 +13,7 @@ import 'package:wagus/features/games/domain/guess_the_drawing/chat_message_entry
 import 'package:wagus/features/games/domain/guess_the_drawing/guess_entry.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/router.dart';
+import 'package:wagus/services/socket_service.dart';
 import 'package:wagus/theme/app_palette.dart';
 
 class GuessTheDrawing extends HookWidget {
@@ -33,17 +34,16 @@ class GuessTheDrawing extends HookWidget {
     final alreadyHandledRound = useRef<bool>(false);
 
     final strokes = useState<List<Offset?>>([]);
-    final socket = useRef<IO.Socket>(IO.io(
-      'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com',
-      <String, dynamic>{
-        'transports': ['websocket'],
-        'autoConnect': true,
-        'query': {'wallet': address},
-      },
-    ));
+    final socketService = useRef<SocketService>(SocketService());
 
     final currentRound = session?.round;
     final hasStartedTimer = useRef<bool>(false);
+
+    void showMessage(String message, Color color) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: color),
+      );
+    }
 
     useEffect(() {
       print(
@@ -86,7 +86,7 @@ class GuessTheDrawing extends HookWidget {
           print('⏳ Timer tick: ${timerUiSeconds.value}');
         } else {
           print('⌛ Time expired, emitting round_timeout');
-          socket.value.emit('round_timeout', {
+          socketService.value.socket.emit('round_timeout', {
             'wallet': address,
             'sessionId': sessionId,
           });
@@ -101,141 +101,161 @@ class GuessTheDrawing extends HookWidget {
     }, [currentRound]);
 
     useEffect(() {
-      final s = socket.value;
+      socketService.value.init(
+          wallet: address,
+          sessionId: sessionId,
+          context: context,
+          onMessage: showMessage,
+          onReject: () {
+            if (context.canPop()) {
+              context.pop();
+            }
+          },
+          locationStream: locationControler.stream);
 
-      if (!s.connected) {
-        s.connect();
-      }
+      // if (!s.connected) {
+      //   s.connect();
+      // }
 
       // s.emit('join_game', {'wallet': address, 'sessionId': sessionId});
 
-      s.off('connect');
-      s.off('guess_result');
-      s.off('round_skipped');
-      s.off('player_left');
-      s.off('connect_error');
-      s.off('error');
+      // s.off('connect');
+      // s.off('guess_result');
+      // s.off('round_skipped');
+      // s.off('player_left');
+      // s.off('connect_error');
+      // s.off('error');
 
-      s.onConnect((_) async {
-        print('✅ Socket connected: $address');
-        final sessionRef = FirebaseFirestore.instance
-            .collection('guess_the_drawing_sessions')
-            .doc(sessionId);
-        final doc = await sessionRef.get();
+      // s.onConnect((_) async {
+      //   print('✅ Socket connected: $address');
+      //   final sessionRef = FirebaseFirestore.instance
+      //       .collection('guess_the_drawing_sessions')
+      //       .doc(sessionId);
+      //   final doc = await sessionRef.get();
 
-        if (doc.exists) {
-          s.emit('join_game', {'wallet': address, 'sessionId': sessionId});
-        } else {
-          print('⚠️ Session doc not found client-side, delaying join_game...');
-          await Future.delayed(const Duration(milliseconds: 500));
-          final retry = await sessionRef.get();
-          if (retry.exists) {
-            s.emit('join_game', {'wallet': address, 'sessionId': sessionId});
-          } else {
-            print("❌ Session doc still missing after retry");
-          }
-        }
-      });
+      //   if (doc.exists) {
+      //     s.emit('join_game', {'wallet': address, 'sessionId': sessionId});
+      //   } else {
+      //     print('⚠️ Session doc not found client-side, delaying join_game...');
+      //     await Future.delayed(const Duration(milliseconds: 500));
+      //     final retry = await sessionRef.get();
+      //     if (retry.exists) {
+      //       s.emit('join_game', {'wallet': address, 'sessionId': sessionId});
+      //     } else {
+      //       print("❌ Session doc still missing after retry");
+      //     }
+      //   }
+      // });
 
-      s.on('guess_result', (data) {
-        alreadyHandledRound.value = true;
-        final isCorrect = data['correct'] == true;
-        final guesser = data['guesser'];
-        final message = isCorrect
-            ? '$guesser guessed correctly!'
-            : '$guesser guessed wrong.';
+      // s.on('guess_result', (data) {
+      //   alreadyHandledRound.value = true;
+      //   final isCorrect = data['correct'] == true;
+      //   final guesser = data['guesser'];
+      //   final message = isCorrect
+      //       ? '$guesser guessed correctly!'
+      //       : '$guesser guessed wrong.';
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: isCorrect ? Colors.green : Colors.red,
-          ),
-        );
-      });
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(
+      //       content: Text(message),
+      //       backgroundColor: isCorrect ? Colors.green : Colors.red,
+      //     ),
+      //   );
+      // });
 
-      s.on('round_skipped', (data) {
-        if (alreadyHandledRound.value) return;
-        if (data['reason'] == 'correct')
-          return; // ✅ ignore if it’s due to correct
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('⏳ Time’s up! Moving to next round...'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      });
+      // s.on('round_skipped', (data) {
+      //   if (alreadyHandledRound.value) return;
+      //   if (data['reason'] == 'correct')
+      //     return; // ✅ ignore if it’s due to correct
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     SnackBar(
+      //       content: Text('⏳ Time’s up! Moving to next round...'),
+      //       backgroundColor: Colors.redAccent,
+      //     ),
+      //   );
+      // });
 
-      s.on('player_left', (data) {
-        // data is a list of removed wallet addresses
-        // use this to update the player list UI in real-time
-        print("Players left: $data");
-      });
+      // s.on('player_left', (data) {
+      //   // data is a list of removed wallet addresses
+      //   // use this to update the player list UI in real-time
+      //   print("Players left: $data");
+      // });
 
-      s.on('join_rejected', (data) {
-        final reason = data['reason'] ?? 'Join rejected';
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(reason), backgroundColor: Colors.red),
-          );
-        });
-        s.disconnect();
+      // s.on('join_rejected', (data) {
+      //   final reason = data['reason'] ?? 'Join rejected';
+      //   WidgetsBinding.instance.addPostFrameCallback((_) {
+      //     ScaffoldMessenger.of(context).showSnackBar(
+      //       SnackBar(content: Text(reason), backgroundColor: Colors.red),
+      //     );
+      //   });
+      //   s.disconnect();
 
-        if (context.canPop()) {
-          context.pop();
-        }
-      });
+      //   if (context.canPop()) {
+      //     context.pop();
+      //   }
+      // });
 
-      s.on('round_advanced', (data) {
-        if (alreadyHandledRound.value) return;
+      // // ✅ UPDATED CLIENT PATCH
 
-        final reason = data['reason'];
-        alreadyHandledRound.value = true;
+      // s.on('round_advanced', (data) {
+      //   alreadyHandledRound.value = false; // ✅ always reset to allow next round
 
-        if (reason == 'timeout') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('⏳ Time’s up! Moving to next round...'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        } else if (reason == 'correct_guess') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Correct guess!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else if (reason == 'forfeit') {
-          final winner = data['remainingPlayer'] ?? 'someone';
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('🏆 $winner wins by default — opponent left!'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-      });
+      //   final reason = data['reason'];
+      //   final sessionRef = FirebaseFirestore.instance
+      //       .collection('guess_the_drawing_sessions')
+      //       .doc(sessionId);
 
-      s.onConnectError((err) => print('❌ Socket connect error: $err'));
-      s.onError((err) => print('❌ Socket general error: $err'));
+      //   sessionRef.get().then((doc) {
+      //     if (!doc.exists) return;
 
-      context.read<GameBloc>().add(GameListenGuessDrawingSession(sessionId));
-      context.read<GameBloc>().add(GameListenGuessChatMessages(sessionId));
+      //     final data = doc.data();
+      //     final newDrawer = data?['drawer'] ?? '';
+      //     final roundNum = data?['round'];
 
-      final pingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-        s.emit('ping_alive',
-            {'wallet': address, 'sessionId': sessionId}); // ✅ ADD sessionId
-      });
+      //     final isMe = newDrawer == address;
+      //     final message = reason == 'correct_guess'
+      //         ? '✅ Correct guess! Round $roundNum, ${isMe ? 'you draw' : 'guess'}'
+      //         : reason == 'timeout'
+      //             ? '⏳ Time’s up! Round $roundNum, ${isMe ? 'you draw' : 'guess'}'
+      //             : reason == 'forfeit'
+      //                 ? '🏆 ${data?['remainingPlayer'] ?? 'someone'} wins by default'
+      //                 : null;
 
-      final locationSub = locationControler.stream.listen((route) {
-        if (!route!.startsWith('/guess-the-drawing')) {
-          s.disconnect();
-        }
-      });
+      //     if (message != null) {
+      //       ScaffoldMessenger.of(context).showSnackBar(
+      //         SnackBar(
+      //           content: Text(message),
+      //           backgroundColor: reason == 'forfeit'
+      //               ? Colors.orange
+      //               : reason == 'correct_guess'
+      //                   ? Colors.green
+      //                   : Colors.redAccent,
+      //         ),
+      //       );
+      //     }
+      //   });
+      // });
+
+      // s.onConnectError((err) => print('❌ Socket connect error: $err'));
+      // s.onError((err) => print('❌ Socket general error: $err'));
+
+      // context.read<GameBloc>().add(GameListenGuessDrawingSession(sessionId));
+      // context.read<GameBloc>().add(GameListenGuessChatMessages(sessionId));
+
+      // final pingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      //   s.emit('ping_alive',
+      //       {'wallet': address, 'sessionId': sessionId}); // ✅ ADD sessionId
+      // });
+
+      // final locationSub = locationControler.stream.listen((route) {
+      //   if (!route!.startsWith('/guess-the-drawing')) {
+      //     s.disconnect();
+      //   }
+      // });
 
       return () {
-        pingTimer.cancel();
-        locationSub.cancel();
+        // pingTimer.cancel();
+        // locationSub.cancel();
 
         // only disconnect if the session is complete or null
         final currentSession =
@@ -244,8 +264,8 @@ class GuessTheDrawing extends HookWidget {
             currentSession == null || currentSession.isComplete;
 
         if (isSafeToDisconnect) {
-          s.disconnect();
-          s.dispose();
+          // s.disconnect();
+          // s.dispose();
         } else {
           print('⚠️ Skipping socket disconnect to preserve connection');
         }
@@ -409,9 +429,10 @@ class GuessTheDrawing extends HookWidget {
                               height: drawingHeight,
                               child: isDrawer
                                   ? _DrawingCanvas(
-                                      socket: socket.value, strokes: strokes)
+                                      socket: socketService.value.socket,
+                                      strokes: strokes)
                                   : _DrawingViewer(
-                                      socket: socket.value,
+                                      socket: socketService.value.socket,
                                       strokes: strokes,
                                       round: session.round,
                                     ),
@@ -424,7 +445,8 @@ class GuessTheDrawing extends HookWidget {
                                 children: [
                                   const Expanded(child: ChatMessageList()),
                                   if (!isDrawer)
-                                    _ChatInput(socket: socket.value)
+                                    _ChatInput(
+                                        socket: socketService.value.socket)
                                   else
                                     const Padding(
                                       padding: EdgeInsets.all(8.0),
@@ -717,7 +739,7 @@ class _ChatInput extends HookWidget {
 
       await context
           .read<GameRepository>()
-          .submitGuessToSession(session.id, guessEntry);
+          .submitGuessToSession(session.id, guessEntry, socket);
 
       if (isCorrect) {
         socket.emit('correct_guess', {
