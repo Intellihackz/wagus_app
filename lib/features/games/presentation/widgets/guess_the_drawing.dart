@@ -85,8 +85,15 @@ class GuessTheDrawing extends HookWidget {
           : 0;
 
       final remaining = (60000 - elapsed).clamp(0, 60000);
+      if (remaining <= 0) {
+        print('⏰ Round already expired, skipping timer setup.');
+        alreadyHandledRound.value = true;
+        return null;
+      }
+
       timerSeconds.value = (remaining / 1000).ceil();
       timerUiSeconds.value = timerSeconds.value;
+
       print('⏱ Initial time: ${timerUiSeconds.value}s');
 
       roundTimer.value = Timer.periodic(const Duration(seconds: 1), (_) {

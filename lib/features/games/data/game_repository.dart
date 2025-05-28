@@ -203,7 +203,7 @@ class GameRepository {
         'players': mergedPlayers,
         'gameStarted': true,
         'round': 1,
-        'word': pickWord(),
+        'word': await pickWord(),
         'currentDrawerIndex': 0,
         'scores': {for (var w in mergedPlayers) w: 0},
         'updatedAt': FieldValue.serverTimestamp(),
