@@ -236,8 +236,19 @@ class GuessTheDrawing extends HookWidget {
       return () {
         pingTimer.cancel();
         locationSub.cancel();
-        s.disconnect();
-        s.dispose();
+
+        // only disconnect if the session is complete or null
+        final currentSession =
+            context.read<GameBloc>().state.guessTheDrawingSession;
+        final isSafeToDisconnect =
+            currentSession == null || currentSession.isComplete;
+
+        if (isSafeToDisconnect) {
+          s.disconnect();
+          s.dispose();
+        } else {
+          print('⚠️ Skipping socket disconnect to preserve connection');
+        }
       };
     }, [address]);
 

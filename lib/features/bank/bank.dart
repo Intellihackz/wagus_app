@@ -184,18 +184,16 @@ class Bank extends HookWidget {
 
                                   return Column(
                                     children: [
-                                      DropdownButton<Token>(
-                                        value: selectedToken,
-                                        icon: const Icon(Icons.arrow_drop_down,
-                                            color: Colors.white),
-                                        dropdownColor: Colors.grey[900],
-                                        onChanged: (Token? newToken) {
-                                          if (newToken != null) {
+                                      TokenSwitcher(
+                                          tier: portalState.tierStatus,
+                                          selectedToken: selectedToken,
+                                          allTokens:
+                                              portalState.supportedTokens,
+                                          onTokenSelected: (token) {
                                             context.read<PortalBloc>().add(
                                                   PortalSetSelectedTokenEvent(
-                                                      newToken),
+                                                      token),
                                                 );
-
                                             Future.delayed(
                                                 Duration(milliseconds: 100),
                                                 () {
@@ -208,93 +206,20 @@ class Bank extends HookWidget {
                                               debugPrint(
                                                   '✅ NEW Ticker: ${updatedToken.ticker}');
                                             });
-                                          }
+                                          }),
+                                      buildBankBalance(
+                                        isAdventurer: portalState.tierStatus ==
+                                            TierStatus.adventurer,
+                                        rotationController: rotationController,
+                                        rotationAnimation: rotationAnimation,
+                                        solBalance: holder?.solanaAmount ?? 0.0,
+                                        tokenBalanceText:
+                                            '${(holder?.tokenAmount ?? 0).toCompact()} \$${selectedToken.ticker}',
+                                        onRefresh: () {
+                                          context
+                                              .read<PortalBloc>()
+                                              .add(PortalRefreshEvent());
                                         },
-                                        items: portalState.supportedTokens
-                                            .map((token) =>
-                                                DropdownMenuItem<Token>(
-                                                  value: token,
-                                                  child: Text(
-                                                    token.ticker,
-                                                    style: const TextStyle(
-                                                        color: Colors.white),
-                                                  ),
-                                                ))
-                                            .toList(),
-                                      ),
-                                      Container(
-                                        margin: const EdgeInsets.symmetric(
-                                            vertical: 16),
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[900],
-                                          borderRadius:
-                                              BorderRadius.circular(16),
-                                          border: Border.all(
-                                              color: portalState.tierStatus ==
-                                                      TierStatus.adventurer
-                                                  ? TierStatus.adventurer.color
-                                                      .withOpacity(0.5)
-                                                  : TierStatus.basic.color
-                                                      .withOpacity(0.5)),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                const Text(
-                                                  'Bank Balance',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                RotationTransition(
-                                                  turns: rotationAnimation,
-                                                  child: GestureDetector(
-                                                    onTap: () {
-                                                      context
-                                                          .read<PortalBloc>()
-                                                          .add(
-                                                              PortalRefreshEvent());
-                                                    },
-                                                    child: Icon(Icons.refresh,
-                                                        color: tierStatus ==
-                                                                TierStatus
-                                                                    .adventurer
-                                                            ? TierStatus
-                                                                .adventurer
-                                                                .color
-                                                            : TierStatus
-                                                                .basic.color),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 12),
-                                            Text(
-                                              '${holder?.solanaAmount.toStringAsFixed(5) ?? '0.00000'} SOL',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                            Text(
-                                              '${(holder?.tokenAmount ?? 0).toCompact()} \$${selectedToken.ticker}',
-                                              style: const TextStyle(
-                                                color: Colors.white70,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w400,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
                                       ),
                                     ],
                                   );
@@ -306,7 +231,7 @@ class Bank extends HookWidget {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
-                                    ElevatedButton(
+                                    ElevatedButton.icon(
                                       onPressed: () {
                                         showDialog(
                                           context: context,
@@ -344,38 +269,63 @@ class Bank extends HookWidget {
                                                   }
                                                 },
                                                 builder: (context, state) {
-                                                  return AlertDialog(
-                                                    scrollable: true,
-                                                    title: Text(
-                                                      'Withdraw \$${context.read<PortalBloc>().state.selectedToken.ticker} Tokens',
-                                                      style: TextStyle(
-                                                        color: AppPalette
-                                                            .contrastDark,
-                                                        fontSize: 12,
-                                                      ),
-                                                    ),
-                                                    content: SizedBox(
-                                                      width:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .width *
-                                                              0.8,
-                                                      child:
+                                                  return Dialog(
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        20)),
+                                                    backgroundColor:
+                                                        Colors.grey[900],
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              20.0),
+                                                      child: Column(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          Text(
+                                                            'Withdraw \$${context.read<PortalBloc>().state.selectedToken.ticker} Tokens',
+                                                            style: TextStyle(
+                                                              fontSize: 16,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              color: context
+                                                                  .appColors
+                                                                  .contrastLight,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                              height: 20),
                                                           _buildDialogContent(
-                                                        context,
-                                                        state,
-                                                        amountController,
-                                                        destinationController,
-                                                        isTokenWithdrawal: true,
+                                                            context,
+                                                            state,
+                                                            amountController,
+                                                            destinationController,
+                                                            isTokenWithdrawal:
+                                                                true,
+                                                          ),
+                                                          const SizedBox(
+                                                              height: 24),
+                                                          Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .spaceEvenly,
+                                                            children:
+                                                                _buildDialogActions(
+                                                              context,
+                                                              state,
+                                                              amountController,
+                                                              destinationController,
+                                                              isTokenWithdrawal:
+                                                                  true,
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ),
-                                                    ),
-                                                    actions:
-                                                        _buildDialogActions(
-                                                      context,
-                                                      state,
-                                                      amountController,
-                                                      destinationController,
-                                                      isTokenWithdrawal: true,
                                                     ),
                                                   );
                                                 },
@@ -384,29 +334,33 @@ class Bank extends HookWidget {
                                           },
                                         );
                                       },
-                                      style: ButtonStyle(
-                                        backgroundColor:
-                                            WidgetStateProperty.all(context
-                                                .appColors.contrastLight),
-                                        shape: WidgetStateProperty.all<
-                                            RoundedRectangleBorder>(
-                                          RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8.0),
-                                          ),
-                                        ),
-                                        padding: WidgetStateProperty.all(
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 32.0, vertical: 12.0),
+                                      icon: const Icon(Icons.arrow_outward,
+                                          size: 20, color: Colors.black),
+                                      label: Text(
+                                        'Withdraw \$${context.read<PortalBloc>().state.selectedToken.ticker} Tokens',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black,
                                         ),
                                       ),
-                                      child: Text(
-                                        'Withdraw \$${context.read<PortalBloc>().state.selectedToken.ticker} Tokens',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: context.appColors.contrastDark,
-                                          fontSize: 16,
+                                      style: ElevatedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 16, vertical: 12),
+                                        backgroundColor:
+                                            context.appColors.contrastLight,
+                                        minimumSize: const Size.fromHeight(48),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
+                                        elevation: 4,
+                                        shadowColor: context
+                                            .appColors.contrastLight
+                                            .withOpacity(0.5),
+                                      ).copyWith(
+                                        overlayColor: WidgetStateProperty.all(
+                                            Colors.black.withOpacity(0.1)),
                                       ),
                                     ),
                                     const SizedBox(
@@ -450,39 +404,62 @@ class Bank extends HookWidget {
                                                   }
                                                 },
                                                 builder: (context, state) {
-                                                  return AlertDialog(
-                                                    scrollable: true,
-                                                    title: const Text(
-                                                      'Withdraw SOL',
-                                                      style: TextStyle(
-                                                        color: AppPalette
-                                                            .contrastDark,
-                                                        fontSize: 12,
-                                                      ),
-                                                    ),
-                                                    content: SizedBox(
-                                                      width:
-                                                          MediaQuery.of(context)
-                                                                  .size
-                                                                  .width *
-                                                              0.8,
-                                                      child:
+                                                  return Dialog(
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        20)),
+                                                    backgroundColor:
+                                                        Colors.grey[900],
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              20),
+                                                      child: Column(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          const Text(
+                                                            'Withdraw SOL',
+                                                            style: TextStyle(
+                                                              fontSize: 16,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              color: AppPalette
+                                                                  .contrastLight,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                              height: 20),
                                                           _buildDialogContent(
-                                                        context,
-                                                        state,
-                                                        amountController,
-                                                        destinationController,
-                                                        isTokenWithdrawal:
-                                                            false,
+                                                            context,
+                                                            state,
+                                                            amountController,
+                                                            destinationController,
+                                                            isTokenWithdrawal:
+                                                                false,
+                                                          ),
+                                                          const SizedBox(
+                                                              height: 24),
+                                                          Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .spaceEvenly,
+                                                            children:
+                                                                _buildDialogActions(
+                                                              context,
+                                                              state,
+                                                              amountController,
+                                                              destinationController,
+                                                              isTokenWithdrawal:
+                                                                  false,
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ),
-                                                    ),
-                                                    actions:
-                                                        _buildDialogActions(
-                                                      context,
-                                                      state,
-                                                      amountController,
-                                                      destinationController,
-                                                      isTokenWithdrawal: false,
                                                     ),
                                                   );
                                                 },
@@ -513,6 +490,88 @@ class Bank extends HookWidget {
                 }));
           });
         },
+      ),
+    );
+  }
+
+  Widget buildBankBalance({
+    required bool isAdventurer,
+    required AnimationController rotationController,
+    required Animation<double> rotationAnimation,
+    required double solBalance,
+    required String tokenBalanceText,
+    required VoidCallback onRefresh,
+  }) {
+    final borderColor =
+        isAdventurer ? TierStatus.adventurer.color : TierStatus.basic.color;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Container(
+        padding: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: Colors.grey[900],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0, left: 8.0),
+                  child: const Text(
+                    'Bank Balance',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: onRefresh,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: RotationTransition(
+                      turns: rotationAnimation,
+                      child: Icon(Icons.refresh, color: borderColor),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: Text(
+                '${solBalance.toStringAsFixed(5)} SOL',
+                key: ValueKey(solBalance),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: Text(
+                tokenBalanceText,
+                key: ValueKey(tokenBalanceText),
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -708,5 +767,108 @@ class Bank extends HookWidget {
         child: const Text('Withdraw'),
       ),
     ];
+  }
+}
+
+class TokenSwitcher extends HookWidget {
+  final Token selectedToken;
+  final List<Token> allTokens;
+  final ValueChanged<Token> onTokenSelected;
+  final TierStatus tier;
+
+  const TokenSwitcher({
+    super.key,
+    required this.selectedToken,
+    required this.allTokens,
+    required this.onTokenSelected,
+    required this.tier,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scrollController = useScrollController();
+
+    useEffect(() {
+      final selectedIndex =
+          allTokens.indexWhere((t) => t.ticker == selectedToken.ticker);
+      if (selectedIndex != -1) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final itemWidth = 80 + 12; // token card width + spacing
+          final screenWidth = MediaQuery.of(context).size.width;
+          final offset =
+              (selectedIndex * itemWidth) - (screenWidth - itemWidth) / 2;
+          scrollController.animateTo(
+            offset.clamp(0, scrollController.position.maxScrollExtent),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        });
+      }
+      return null;
+    }, [selectedToken]);
+
+    return SizedBox(
+      height: 100,
+      child: ListView.separated(
+        controller: scrollController,
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        itemCount: allTokens.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final token = allTokens[index];
+          final isSelected = token.ticker == selectedToken.ticker;
+          final imagePath =
+              'assets/cards/${token.ticker.toLowerCase()}_card.png';
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: AnimatedScale(
+              duration: const Duration(milliseconds: 120),
+              scale: isSelected ? 1.08 : 1.0,
+              child: GestureDetector(
+                onTap: () => onTokenSelected(token),
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isSelected
+                          ? tier == TierStatus.adventurer
+                              ? TierStatus.adventurer.color
+                              : TierStatus.basic.color
+                          : Colors.transparent,
+                      width: 2,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: tier == TierStatus.adventurer
+                                  ? TierStatus.adventurer.color.withOpacity(0.5)
+                                  : TierStatus.basic.color.withOpacity(0.5),
+                              blurRadius: 10,
+                              spreadRadius: 1,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : [],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.asset(
+                      imagePath,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }
