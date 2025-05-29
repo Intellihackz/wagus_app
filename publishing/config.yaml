@@ -19,7 +19,7 @@ app:
     - purpose: icon
       uri: ../assets/icon/icon_solana.png
 release:
-  address: FU1k19JFYbAcMFAWNgfAesDnpvyRpud2vPDVxfG5KCUQ
+  address: 54t2v1P2PkpNA3HJfpDJScF2SNGS2reHFqSM7ootHShP
   media:
     - purpose: icon
       uri: ../assets/icon/icon_solana.png
@@ -55,8 +55,8 @@ solana_mobile_dapp_publisher_portal:
     Open the app, connect wallet using Mobile Wallet Adapter, test sending/receiving tokens in chat and funding a project.
   alpha_testers: []
 lastSubmittedVersionOnChain:
-  address: FU1k19JFYbAcMFAWNgfAesDnpvyRpud2vPDVxfG5KCUQ
-  version_code: 37
-  apk_hash: U4h+a11MJ6/cAs9zimueQyM6q7AKRJ+KKZ9yFEcOJpM=
+  address: 54t2v1P2PkpNA3HJfpDJScF2SNGS2reHFqSM7ootHShP
+  version_code: 42
+  apk_hash: 6iBeDjECoQBOKq3FU0+iuTx2YpLkd952DJiAL5z5PYw=
 lastUpdatedVersionOnStore:
-  address: FU1k19JFYbAcMFAWNgfAesDnpvyRpud2vPDVxfG5KCUQ
+  address: 54t2v1P2PkpNA3HJfpDJScF2SNGS2reHFqSM7ootHShP

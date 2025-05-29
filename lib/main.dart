@@ -25,28 +25,41 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    print('🧯 FlutterError: ${details.exception}');
+  };
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
-  await dotenv.load(fileName: ".env");
-  await Firebase.initializeApp();
+  try {
+    await dotenv.load(fileName: ".env");
+    await Firebase.initializeApp();
 
-  final configService = ConfigService();
+    final configService = ConfigService();
 
-  if (await configService.isKillSwitchEnabled()) {
-    runApp(
-        MaterialApp(home: Scaffold(body: Center(child: Text('App disabled')))));
-    return;
+    final killSwitch = await configService.isKillSwitchEnabled();
+    final outdated = await configService.isAppOutdated();
+
+    if (killSwitch) {
+      runApp(MaterialApp(
+          home: Scaffold(body: Center(child: Text('App disabled')))));
+      return;
+    }
+
+    if (outdated) {
+      runApp(UpdateRequiredScreen());
+      return;
+    }
+
+    runApp(App(router: appRouter));
+    _postBootAsync();
+  } catch (e, st) {
+    // Fallback UI to avoid hard crash
+    runApp(MaterialApp(
+        home: Scaffold(body: Center(child: Text('Startup error')))));
+    print('🔥 App crash in main(): $e');
+    print(st);
   }
-
-  if (await configService.isAppOutdated()) {
-    runApp(UpdateRequiredScreen());
-    return;
-  }
-
-  runApp(App(router: appRouter)); // ⬅️ Moved early to ensure UI renders
-
-  // SAFE async ops after UI starts
-  _postBootAsync();
 }
 
 Future<void> _tryRemoveAppBadge() async {
@@ -73,10 +86,16 @@ Future<void> _postBootAsync() async {
       print('Message clicked!: ${message.messageId}');
     });
 
-    final token = await FirebaseMessaging.instance.getToken();
-    print('📲 FCM Token: $token');
+    String? token;
+    try {
+      token = await FirebaseMessaging.instance.getToken();
+      print('📲 FCM Token: $token');
+      await FirebaseMessaging.instance.subscribeToTopic('global_users');
+    } catch (e) {
+      print('⚠️ Failed to get FCM token: $e');
+    }
 
-    await FirebaseMessaging.instance.subscribeToTopic('global_users');
+    print('📲 FCM Token: $token');
 
     final privyUser = await PrivyService().initialize();
     final wallet = privyUser?.embeddedSolanaWallets.firstOrNull?.address;

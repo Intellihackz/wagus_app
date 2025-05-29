@@ -1,5 +1,7 @@
 PODS:
   - Flutter (1.0.0)
+  - flutter_app_badge (2.0.0):
+    - Flutter
   - image_gallery_saver_plus (0.0.1):
     - Flutter
   - printing (1.0.0):
@@ -7,12 +9,15 @@ PODS:
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
+  - flutter_app_badge (from `.symlinks/plugins/flutter_app_badge/ios`)
   - image_gallery_saver_plus (from `.symlinks/plugins/image_gallery_saver_plus/ios`)
   - printing (from `.symlinks/plugins/printing/ios`)
 
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
+  flutter_app_badge:
+    :path: ".symlinks/plugins/flutter_app_badge/ios"
   image_gallery_saver_plus:
     :path: ".symlinks/plugins/image_gallery_saver_plus/ios"
   printing:
@@ -20,6 +25,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  flutter_app_badge: ca742dd659a157c1090ef7cd881cb78f48f3bcdf
   image_gallery_saver_plus: e597bf65a7846979417a3eae0763b71b6dfec6c3
   printing: 54ff03f28fe9ba3aa93358afb80a8595a071dd07
 

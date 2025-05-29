@@ -6,18 +6,47 @@ class ConfigService {
       FirebaseFirestore.instance.collection('app_config').doc('global');
 
   Future<bool> isKillSwitchEnabled() async {
-    final docSnap = await _doc.get();
-    final killSwitch = docSnap.data()?['kill_switch'] == true;
+    try {
+      final docSnap = await _doc.get();
+      final killSwitch = docSnap.data()?['kill_switch'] == true;
 
-    final info = await PackageInfo.fromPlatform();
-    final current = info.version;
-    final killBelow = docSnap.data()?['kill_below_version'];
+      final info = await PackageInfo.fromPlatform();
+      final current = info.version;
+      final killBelow = docSnap.data()?['kill_below_version'];
 
-    if (killBelow != null && _compareVersions(current, killBelow) < 0) {
-      return true;
+      if (killBelow != null && _compareVersions(current, killBelow) < 0) {
+        return true;
+      }
+
+      return killSwitch;
+    } catch (e) {
+      print('❌ Error checking kill switch: $e');
+      return false; // Or true for safety
     }
+  }
 
-    return killSwitch;
+  int _compareVersions(String a, String b) {
+    try {
+      final aParts = _safeSplitVersion(a);
+      final bParts = _safeSplitVersion(b);
+
+      for (int i = 0; i < 3; i++) {
+        final diff = aParts[i] - bParts[i];
+        if (diff != 0) return diff;
+      }
+      return 0;
+    } catch (e) {
+      print('⚠️ Version comparison failed: $e');
+      return -1; // Treat as outdated
+    }
+  }
+
+  List<int> _safeSplitVersion(String version) {
+    final parts = version.split('.');
+    while (parts.length < 3) {
+      parts.add('0'); // Pad short versions (e.g., "1.0")
+    }
+    return parts.take(3).map((e) => int.tryParse(e) ?? 0).toList();
   }
 
   Future<bool> isAppOutdated() async {
@@ -33,21 +62,6 @@ class ConfigService {
     } catch (e) {
       print('❌ Error checking version: $e');
       return false; // Or return true to block app if you want extra safety
-    }
-  }
-
-  int _compareVersions(String a, String b) {
-    try {
-      final aParts = a.split('.').map(int.parse).toList();
-      final bParts = b.split('.').map(int.parse).toList();
-
-      for (int i = 0; i < 3; i++) {
-        final diff = aParts[i] - bParts[i];
-        if (diff != 0) return diff;
-      }
-      return 0;
-    } catch (e) {
-      return -1; // Assume outdated if comparison fails
     }
   }
 }
