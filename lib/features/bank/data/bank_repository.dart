@@ -60,7 +60,7 @@ class BankRepository {
     );
   }
 
-  Future<void> withdrawFunds({
+  Future<String> withdrawFunds({
     required EmbeddedSolanaWallet wallet,
     required int amount,
     required String destinationAddress,
@@ -120,7 +120,7 @@ class BankRepository {
 
     debugPrint('[BankRepository] Transaction prepared.');
 
-    await _signAndSendTransaction(wallet, connection, transaction);
+    return await _signAndSendTransaction(wallet, connection, transaction);
   }
 
   Future<void> withdrawSol({
@@ -306,7 +306,7 @@ class BankRepository {
     return web3.Pubkey.fromBase58(address);
   }
 
-  Future<void> _signAndSendTransaction(
+  Future<String> _signAndSendTransaction(
     EmbeddedSolanaWallet wallet,
     web3.Connection connection,
     web3.Transaction transaction,
@@ -327,6 +327,8 @@ class BankRepository {
         debugPrint('[BankRepository] Sending transaction...');
         final txId = await connection.sendAndConfirmTransaction(transaction);
         debugPrint('[BankRepository] ✅ Transaction confirmed: $txId');
+
+        return txId;
       } catch (e) {
         debugPrint('[BankRepository] ❌ Error during send: $e');
         throw Exception('Failed to send transaction: $e');

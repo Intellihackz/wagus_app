@@ -8,6 +8,7 @@ import 'package:wagus/features/ai/ai_tools/ai_tools.dart';
 import 'package:wagus/features/auth/login_screen.dart';
 import 'package:wagus/features/games/presentation/widgets/guess_the_drawing.dart';
 import 'package:wagus/features/games/presentation/widgets/guess_the_drawing_session_list.dart';
+import 'package:wagus/features/games/presentation/widgets/memory_breach.dart';
 import 'package:wagus/features/games/presentation/widgets/spygus.dart';
 import 'package:wagus/features/incubator/project_interface.dart';
 import 'package:wagus/features/portal/portal.dart';
@@ -19,6 +20,7 @@ const String login = '/login';
 const String portal = '/portal';
 const String home = '/home';
 const String spygus = '/spygus';
+const String memoryBreach = '/memory-breach';
 const String guessTheDrawing = '/guess-the-drawing';
 const String aiImageGeneration = '/ai-image-generation';
 const String aiAnalysisPrediction = '/ai-analysis-prediction';
@@ -90,6 +92,13 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final walletAddress = state.pathParameters['walletAddress']!;
         return GuessTheDrawingSessionList(walletAddress: walletAddress);
+      },
+    ),
+    GoRoute(
+      path: '$memoryBreach/:walletAddress',
+      builder: (context, state) {
+        final walletAddress = state.pathParameters['walletAddress']!;
+        return MemoryBreach(walletAddress: walletAddress);
       },
     ),
     GoRoute(

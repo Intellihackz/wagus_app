@@ -980,7 +980,7 @@ class _ChatInputBar extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        homeState.replyingTo!.text,
+                        '${homeState.replyingTo!.username?.trim().isNotEmpty == true ? homeState.replyingTo!.username : homeState.replyingTo!.sender.substring(0, 4)}: ${homeState.replyingTo!.text}',
                         style: const TextStyle(
                           fontStyle: FontStyle.italic,
                           color: Colors.white54,
@@ -1124,7 +1124,10 @@ class _ChatInputBar extends StatelessWidget {
                             ?.tokenAmount
                             .toInt(),
                         replyToMessageId: homeState.replyingTo?.id,
-                        replyToText: homeState.replyingTo?.text,
+                        replyToText: homeState.replyingTo != null
+                            ? '${(homeState.replyingTo!.username?.trim().isNotEmpty ?? false) ? homeState.replyingTo!.username : homeState.replyingTo!.sender.substring(0, 4)}: ${homeState.replyingTo!.text}'
+                            : null,
+
                         username: username, likedBy: [],
                       );
 
@@ -1342,7 +1345,9 @@ class _ChatInputBar extends StatelessWidget {
                                     ?.tokenAmount
                                     .toInt(),
                                 replyToMessageId: homeState.replyingTo?.id,
-                                replyToText: homeState.replyingTo?.text,
+                                replyToText: homeState.replyingTo != null
+                                    ? '${(homeState.replyingTo!.username?.trim().isNotEmpty ?? false) ? homeState.replyingTo!.username : homeState.replyingTo!.sender.substring(0, 4)}: ${homeState.replyingTo!.text}'
+                                    : null,
                                 likedBy: [],
                               ),
                               currentTokenAddress: context

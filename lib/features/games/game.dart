@@ -44,6 +44,13 @@ class Game extends StatelessWidget {
         'tagline': 'Uncover the origin story of WAGUS.',
         'status': 'coming',
       },
+      {
+        'icon': FontAwesomeIcons.brain,
+        'title': 'Memory Breach',
+        'tagline': 'Break the loop by remembering.',
+        'route': memoryBreach,
+        'status': 'live',
+      },
     ];
 
     return BlocSelector<PortalBloc, PortalState, TierStatus>(
@@ -103,15 +110,14 @@ class Game extends StatelessWidget {
 
                                   if ((game['route'] as String)
                                       .contains(spygus)) {
-                                    context.push(
-                                      '${game['route']}/$wallet',
-                                    );
-                                  }
-
-                                  if ((game['route'] as String)
+                                    context.push('${game['route']}/$wallet');
+                                  } else if ((game['route'] as String)
                                       .contains(guessTheDrawing)) {
                                     context.push(
                                         '/guess-the-drawing/sessions/$wallet');
+                                  } else if ((game['route'] as String)
+                                      .contains(memoryBreach)) {
+                                    context.push('${game['route']}/$wallet');
                                   }
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(

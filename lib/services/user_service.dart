@@ -108,6 +108,18 @@ class UserService {
     }, SetOptions(merge: true));
   }
 
+  Future<void> updateMemoryBreachScore(
+      String walletAddress, int newScore) async {
+    final doc = await usersCollection.doc(walletAddress).get();
+    final existingScore = doc.data()?['memory_breach_score'] ?? 0;
+
+    if (newScore > existingScore) {
+      await usersCollection.doc(walletAddress).set({
+        'memory_breach_score': newScore,
+      }, SetOptions(merge: true));
+    }
+  }
+
   Future<String> getDisplayName(String walletAddress) async {
     final doc = await usersCollection.doc(walletAddress).get();
     final data = doc.data();

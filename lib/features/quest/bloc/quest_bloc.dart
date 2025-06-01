@@ -25,21 +25,10 @@ class QuestBloc extends Bloc<QuestEvent, QuestState> {
         await Future.delayed(const Duration(milliseconds: 300));
       }
 
-      // Fetch server time snapshot
-      await FirebaseFirestore.instance.collection('serverTime').doc('now').set(
-        {'timestamp': FieldValue.serverTimestamp()},
-        SetOptions(merge: true),
-      );
-      final serverNowSnap = await FirebaseFirestore.instance
-          .collection('serverTime')
-          .doc('now')
-          .get();
-      final serverNowData = serverNowSnap.data();
-      if (serverNowData == null || serverNowData['timestamp'] == null) {
+      final serverNow = await getServerTime();
+      if (serverNow == null) {
         print('⚠️ serverNow not available yet, falling back to local time');
       }
-      final serverNow =
-          serverNowData?['timestamp'] as Timestamp? ?? Timestamp.now();
 
       await emit.forEach(
         UserService.getUserStream(event.address),
@@ -47,8 +36,6 @@ class QuestBloc extends Bloc<QuestEvent, QuestState> {
           final claimedDaysList =
               List<int>.from(data.data()?['claimed_days'] ?? []);
           final lastClaimed = (data.data()?['last_claimed'] as Timestamp?);
-
-          print('[Bloc] serverNow = $serverNow, lastClaimed = $lastClaimed');
 
           // ✅ Inject serverNow from outer scope each time
           return state.copyWith(
@@ -97,6 +84,10 @@ class QuestBloc extends Bloc<QuestEvent, QuestState> {
       }
     });
 
+    on<QuestClearFeedbackEvent>((event, emit) {
+      emit(state.copyWith(claimSuccess: false, errorMessage: null));
+    });
+
     on<QuestClaimedDaysSetEvent>((event, emit) {
       emit(state.copyWith(
         claimedDays: event.claimedDays,
@@ -110,16 +101,7 @@ class QuestBloc extends Bloc<QuestEvent, QuestState> {
     final claimedDays = List<int>.from(data?['claimed_days'] ?? []);
     final lastClaimed = (data?['last_claimed'] as Timestamp?)?.toDate();
 
-    // Get server time
-    await FirebaseFirestore.instance.collection('serverTime').doc('now').set(
-      {'timestamp': FieldValue.serverTimestamp()},
-      SetOptions(merge: true),
-    );
-    final serverNowSnap = await FirebaseFirestore.instance
-        .collection('serverTime')
-        .doc('now')
-        .get();
-    final now = (serverNowSnap.data()?['timestamp'] as Timestamp).toDate();
+    final now = (await getServerTime())?.toDate() ?? DateTime.now();
 
     final today = DateTime(now.year, now.month, now.day);
 
@@ -137,5 +119,20 @@ class QuestBloc extends Bloc<QuestEvent, QuestState> {
     }
 
     return false;
+  }
+
+  Timestamp? _cachedServerTime;
+
+  Future<Timestamp?> getServerTime() async {
+    if (_cachedServerTime != null) return _cachedServerTime;
+
+    final docRef =
+        FirebaseFirestore.instance.collection('serverTime').doc('now');
+    await docRef.set(
+        {'timestamp': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+    await Future.delayed(const Duration(milliseconds: 300));
+    final snap = await docRef.get();
+    _cachedServerTime = snap.data()?['timestamp'] as Timestamp?;
+    return _cachedServerTime;
   }
 }

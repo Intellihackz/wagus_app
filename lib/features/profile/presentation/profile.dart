@@ -11,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 import 'package:wagus/features/bank/data/bank_repository.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
+import 'package:wagus/features/profile/presentation/badge_modal.dart';
 import 'package:wagus/router.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/services/user_service.dart';
@@ -64,6 +65,16 @@ class ProfileScreen extends HookWidget {
                   'title': 'How to become red (Adventurer)?',
                   'content':
                       'Pay \$3.50 worth of any token of your choice — select it in the Bank screen.',
+                },
+                {
+                  'title': 'What are the benefits of Adventurer Tier?',
+                  'content':
+                      'Adventurers get a red name, themed UI, meme coin analysis, better \$SOL/\$WAGUS rewards, early feature access, can host giveaways, create rooms, and gain more visibility. Basic users miss out.',
+                },
+                {
+                  'title': 'Why doesn’t the price change constantly?',
+                  'content':
+                      'To keep things simple and stable, we manually set token prices for upgrades. This removes volatility and shows how stablecoin-like systems can work in a real app without needing constant price updates.',
                 },
                 {
                   'title': 'Can I export my keys?',
@@ -417,23 +428,101 @@ class ProfileScreen extends HookWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 16),
-                          child: Container(
-                            width: 64,
-                            height: 64,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              image: DecorationImage(
-                                image: AssetImage(
-                                    'assets/icons/early.png'), // Replace this path
-                                fit: BoxFit.cover,
+                      Row(
+                        children: [
+                          if (isCurrentUser)
+                            FutureBuilder<
+                                DocumentSnapshot<Map<String, dynamic>>>(
+                              future: FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(address)
+                                  .get(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) return const SizedBox();
+
+                                final data = snapshot.data!.data();
+                                final badges =
+                                    (data?['badges'] ?? []) as List<dynamic>;
+                                final hasSugaw =
+                                    badges.contains('oXlvZMsWS58OZkjOHjpE');
+
+                                if (!hasSugaw) return const SizedBox();
+
+                                return FutureBuilder<
+                                    DocumentSnapshot<Map<String, dynamic>>>(
+                                  future: FirebaseFirestore.instance
+                                      .collection('badges')
+                                      .doc('oXlvZMsWS58OZkjOHjpE')
+                                      .get(),
+                                  builder: (context, badgeSnapshot) {
+                                    if (!badgeSnapshot.hasData)
+                                      return const SizedBox();
+
+                                    final badgeData =
+                                        badgeSnapshot.data!.data();
+                                    final imageUrl = badgeData?['imageUrl'];
+                                    if (imageUrl == null || imageUrl.isEmpty)
+                                      return const SizedBox();
+
+                                    return Padding(
+                                      padding: const EdgeInsets.only(left: 16),
+                                      child: Container(
+                                        width: 64,
+                                        height: 64,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          image: DecorationImage(
+                                            image: CachedNetworkImageProvider(
+                                                imageUrl),
+                                            fit: BoxFit.cover,
+                                          ),
+                                          // nice sleek border
+                                          border: Border.all(
+                                            color: const Color.fromARGB(
+                                                255, 56, 10, 10),
+                                            width: 2,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          const SizedBox(width: 12),
+                          if (isCurrentUser)
+                            GestureDetector(
+                              onTap: () {
+                                showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(24)),
+                                    ),
+                                    builder: (_) {
+                                      final portalState =
+                                          context.read<PortalBloc>().state;
+
+                                      return BadgeModal(
+                                        wallet: portalState
+                                            .user!.embeddedSolanaWallets.first,
+                                        mint: portalState.selectedToken.address,
+                                      );
+                                    });
+                              },
+                              child: Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: Colors.deepPurpleAccent,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child:
+                                    const Icon(Icons.add, color: Colors.white),
                               ),
                             ),
-                          ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
@@ -786,6 +875,8 @@ class ProfileScreen extends HookWidget {
         return const Color.fromARGB(255, 241, 176, 24); // Purple
       case 'PAWS':
         return const Color.fromARGB(255, 44, 44, 44); // Green
+      case 'SAMU':
+        return const Color.fromARGB(255, 243, 214, 171); // Red
       default:
         return const Color(0xFF757575); // Grey for unknowns
     }

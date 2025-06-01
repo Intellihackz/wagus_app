@@ -29,8 +29,32 @@ class Wagus extends HookWidget {
     final currentPage = useState<int>(0);
     final lastPage = useState<int>(0);
     final pageController = usePageController();
+    final sugawBadgeId = 'oXlvZMsWS58OZkjOHjpE';
+    final backgroundImgUrl = useState<String?>(null);
 
     useEffect(() {
+      Future.microtask(() async {
+        final address = mainContext
+            .read<PortalBloc>()
+            .state
+            .user!
+            .embeddedSolanaWallets
+            .first
+            .address;
+
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(address)
+            .get();
+        final badges = List<String>.from(doc.data()?['badges'] ?? []);
+        if (badges.contains(sugawBadgeId)) {
+          final badgeDoc = await FirebaseFirestore.instance
+              .collection('badges')
+              .doc(sugawBadgeId)
+              .get();
+          backgroundImgUrl.value = badgeDoc.data()?['backgroundImgUrl'];
+        }
+      });
       final user = mainContext.read<PortalBloc>().state.user;
       final wallet = user?.embeddedSolanaWallets.firstOrNull?.address;
       Timer? ping;
@@ -142,43 +166,52 @@ class Wagus extends HookWidget {
                         Quest(),
                       ],
                     ),
-                    Positioned.fill(
-                      child: Align(
-                        alignment: Alignment.topCenter,
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        decoration: backgroundImgUrl.value != null
+                            ? BoxDecoration(
+                                image: DecorationImage(
+                                  image: CachedNetworkImageProvider(
+                                      backgroundImgUrl.value!),
+                                  fit: BoxFit.cover,
+                                  colorFilter: ColorFilter.mode(
+                                    Colors.black.withOpacity(0.4),
+                                    BlendMode.darken,
+                                  ),
+                                ),
+                              )
+                            : null,
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                left: 16.0,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Holders: ${state.holdersCount}',
-                                    style: TextStyle(
-                                        color: context.appColors.contrastLight,
-                                        fontSize: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Holders: ${state.holdersCount}',
+                                  style: TextStyle(
+                                    color: context.appColors.contrastLight,
+                                    fontSize: 12,
                                   ),
-                                  BlocSelector<HomeBloc, HomeState, int>(
-                                    selector: (state) {
-                                      return state.activeUsersCount;
-                                    },
-                                    builder: (context, userCount) {
-                                      return Text(
-                                        'Active Online: $userCount',
-                                        style: TextStyle(
-                                            color:
-                                                context.appColors.contrastLight,
-                                            fontSize: 12),
-                                      );
-                                    },
-                                  )
-                                ],
-                              ),
+                                ),
+                                BlocSelector<HomeBloc, HomeState, int>(
+                                  selector: (state) => state.activeUsersCount,
+                                  builder: (context, userCount) {
+                                    return Text(
+                                      'Active Online: $userCount',
+                                      style: TextStyle(
+                                        color: context.appColors.contrastLight,
+                                        fontSize: 12,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                             GestureDetector(
                               onTap: () {
@@ -191,11 +224,7 @@ class Wagus extends HookWidget {
                                 }
                               },
                               child: Container(
-                                margin: const EdgeInsets.only(
-                                  right: 16.0,
-                                ),
-                                padding: const EdgeInsets.all(
-                                    2.5), // border thickness
+                                padding: const EdgeInsets.all(2.5),
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
@@ -203,63 +232,63 @@ class Wagus extends HookWidget {
                                             TierStatus.adventurer
                                         ? TierStatus.adventurer.color
                                         : TierStatus.basic.color,
-                                    width: 3, // thick border
+                                    width: 3,
                                   ),
                                 ),
                                 child: Hero(
-                                    tag: 'profile',
-                                    child: FutureBuilder<
-                                        DocumentSnapshot<Map<String, dynamic>>>(
-                                      future: FirebaseFirestore.instance
-                                          .collection('users')
-                                          .doc(context
-                                              .read<PortalBloc>()
-                                              .state
-                                              .user
-                                              ?.embeddedSolanaWallets
-                                              .firstOrNull!
-                                              .address)
-                                          .get(),
-                                      builder: (context, initialSnapshot) {
-                                        final initialData =
-                                            initialSnapshot.data?.data();
+                                  tag: 'profile',
+                                  child: FutureBuilder<
+                                      DocumentSnapshot<Map<String, dynamic>>>(
+                                    future: FirebaseFirestore.instance
+                                        .collection('users')
+                                        .doc(context
+                                            .read<PortalBloc>()
+                                            .state
+                                            .user
+                                            ?.embeddedSolanaWallets
+                                            .firstOrNull
+                                            ?.address)
+                                        .get(),
+                                    builder: (context, initialSnapshot) {
+                                      final initialData =
+                                          initialSnapshot.data?.data();
 
-                                        return StreamBuilder<
-                                            DocumentSnapshot<
-                                                Map<String, dynamic>>>(
-                                          stream: FirebaseFirestore.instance
-                                              .collection('users')
-                                              .doc(context
-                                                  .read<PortalBloc>()
-                                                  .state
-                                                  .user
-                                                  ?.embeddedSolanaWallets
-                                                  .firstOrNull!
-                                                  .address)
-                                              .snapshots(),
-                                          builder: (context, liveSnapshot) {
-                                            final liveData =
-                                                liveSnapshot.data?.data();
-                                            final imageUrl =
-                                                liveData?['image_url'] ??
-                                                    initialData?['image_url'];
+                                      return StreamBuilder<
+                                          DocumentSnapshot<
+                                              Map<String, dynamic>>>(
+                                        stream: FirebaseFirestore.instance
+                                            .collection('users')
+                                            .doc(context
+                                                .read<PortalBloc>()
+                                                .state
+                                                .user
+                                                ?.embeddedSolanaWallets
+                                                .firstOrNull
+                                                ?.address)
+                                            .snapshots(),
+                                        builder: (context, liveSnapshot) {
+                                          final liveData =
+                                              liveSnapshot.data?.data();
+                                          final imageUrl =
+                                              liveData?['image_url'] ??
+                                                  initialData?['image_url'];
 
-                                            return CircleAvatar(
-                                              key: ValueKey(imageUrl),
-                                              radius: 14,
-                                              backgroundImage: imageUrl != null
-                                                  ? CachedNetworkImageProvider(
-                                                      imageUrl)
-                                                  : const AssetImage(
-                                                          'assets/icons/avatar.png')
-                                                      as ImageProvider,
-                                              backgroundColor:
-                                                  Colors.transparent,
-                                            );
-                                          },
-                                        );
-                                      },
-                                    )),
+                                          return CircleAvatar(
+                                            key: ValueKey(imageUrl),
+                                            radius: 14,
+                                            backgroundImage: imageUrl != null
+                                                ? CachedNetworkImageProvider(
+                                                    imageUrl)
+                                                : const AssetImage(
+                                                        'assets/icons/avatar.png')
+                                                    as ImageProvider,
+                                            backgroundColor: Colors.transparent,
+                                          );
+                                        },
+                                      );
+                                    },
+                                  ),
+                                ),
                               ),
                             ),
                           ],

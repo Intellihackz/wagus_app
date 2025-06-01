@@ -55,6 +55,16 @@ class _UpgradeDialogState extends State<UpgradeDialog> {
                     const SizedBox(height: 12),
                     Text('Cost: $tokenText',
                         style: const TextStyle(color: Colors.white70)),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Prices are manually stabilized to ensure consistency.\n'
+                      'No volatility, no confusion — just fair utility.',
+                      style: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 12,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 20),
                     if (failed)
                       const Text("❌ Transaction failed. Please try again.",

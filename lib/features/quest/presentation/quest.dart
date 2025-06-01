@@ -1,3 +1,5 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,7 +12,41 @@ class Quest extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sugawBadgeId = 'oXlvZMsWS58OZkjOHjpE';
+    final hasSugawBadge = useState(false);
+    final backgroundImgUrl = useState<String?>(null);
+    final hasCompletedStep1 = useState(false);
+
     useEffect(() {
+      Future.microtask(() async {
+        final address = context
+            .read<PortalBloc>()
+            .state
+            .user!
+            .embeddedSolanaWallets
+            .first
+            .address;
+
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(address)
+            .get();
+        final data = doc.data();
+        final badges = (data?['badges'] ?? []) as List<dynamic>;
+        final score = data?['memory_breach_score'] ?? 0;
+
+        hasSugawBadge.value = badges.contains(sugawBadgeId);
+        hasCompletedStep1.value = score >= 10;
+
+        if (badges.contains(sugawBadgeId)) {
+          final badgeDoc = await FirebaseFirestore.instance
+              .collection('badges')
+              .doc(sugawBadgeId)
+              .get();
+          backgroundImgUrl.value = badgeDoc.data()?['backgroundImgUrl'];
+        }
+      });
+
       context.read<QuestBloc>().add(
             QuestInitialEvent(
               address: context
@@ -51,6 +87,107 @@ class Quest extends HookWidget {
             _ComingSoonTile(title: 'Daily Tasks'),
             const SizedBox(height: 8),
             _ComingSoonTile(title: 'Weekly Tasks'),
+            if (hasSugawBadge.value) ...[
+              const SizedBox(height: 16),
+              _QuestTile(
+                title: 'Corrupted Entrypoint',
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      backgroundColor: const Color(
+                          0xFF121212), // deep slate instead of true black
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side:
+                            BorderSide(color: Colors.white24), // subtle border
+                      ),
+                      title: const Text(
+                        'Corrupted Entrypoint',
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                      content: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Quest Overview',
+                              style: TextStyle(
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'In the ruins of SUGAW’s fractured memory vaults, remnants of corrupted code pulse beneath the interface. These aren’t just bugs—they’re encrypted fragments of a long-lost AI protocol.\n\nOnly the most precise minds can decipher the patterns.',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Task(s)',
+                              style: TextStyle(
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Icon(
+                                  hasCompletedStep1.value
+                                      ? Icons.check_circle
+                                      : Icons.radio_button_unchecked,
+                                  color: hasCompletedStep1.value
+                                      ? Colors.green
+                                      : Colors.white30,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    hasCompletedStep1.value
+                                        ? 'Achieve a score of 10+ in Memory Breach  ❌'
+                                        : 'Achieve a score of 10+ in Memory Breach',
+                                    style: TextStyle(
+                                      color: hasCompletedStep1.value
+                                          ? Colors.grey
+                                          : Colors.white,
+                                      decoration: hasCompletedStep1.value
+                                          ? TextDecoration.lineThrough
+                                          : null,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Next Step (Locked)',
+                              style: TextStyle(
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Once qualified, the AI Agent of SUGAW will decrypt your credentials and initiate Phase II...\n(Feature coming soon)',
+                              style: TextStyle(color: Colors.white54),
+                            ),
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Close',
+                              style: TextStyle(color: Colors.white70)),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                tierStatus: context.read<PortalBloc>().state.tierStatus,
+                backgroundImgUrl: backgroundImgUrl.value,
+              ),
+            ],
           ],
         ),
       ),
@@ -71,32 +208,50 @@ class Quest extends HookWidget {
 }
 
 class _QuestTile extends StatelessWidget {
-  const _QuestTile(
-      {required this.title, required this.onTap, required this.tierStatus});
+  const _QuestTile({
+    required this.title,
+    required this.onTap,
+    required this.tierStatus,
+    this.backgroundImgUrl,
+  });
+
   final String title;
   final VoidCallback onTap;
   final TierStatus tierStatus;
+  final String? backgroundImgUrl;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      tileColor: tierStatus == TierStatus.adventurer
-          ? TierStatus.adventurer.color.withOpacity(0.1)
-          : TierStatus.basic.color.withOpacity(0.1),
-      onTap: onTap,
-      title: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Text(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: backgroundImgUrl == null
+            ? (tierStatus == TierStatus.adventurer
+                ? TierStatus.adventurer.color.withOpacity(0.1)
+                : TierStatus.basic.color.withOpacity(0.1))
+            : null,
+        image: backgroundImgUrl != null
+            ? DecorationImage(
+                image: CachedNetworkImageProvider(backgroundImgUrl!),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(
+                  Colors.black.withOpacity(0.5),
+                  BlendMode.darken,
+                ),
+              )
+            : null,
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        onTap: onTap,
+        title: Text(
           title,
           style:
               const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-      ),
-      trailing: const Padding(
-        padding: EdgeInsets.only(right: 16.0),
-        child: Icon(Icons.chevron_right, color: Colors.white),
+        trailing: const Icon(Icons.chevron_right, color: Colors.white),
       ),
     );
   }
@@ -131,47 +286,55 @@ class DailyRewardsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocConsumer<QuestBloc, QuestState>(
       listener: (context, state) {
-        if (state.claimSuccess) {
+        if (state.claimSuccess || state.errorMessage != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (context.canPop()) {
               context.pop();
             }
-          });
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Reward Claimed Successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else if (state.errorMessage != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.canPop()) {
-              context.pop();
-            }
-          });
+            // Avoid multiple snackbars
+            final messenger = ScaffoldMessenger.of(context);
+            messenger.clearSnackBars();
 
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            backgroundColor: Colors.red,
-            content: const Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(text: '⚠️ Something went wrong.\n\n'),
-                  TextSpan(
-                    text: 'Check the following:\n',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+            if (state.claimSuccess) {
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Text('✅ Reward Claimed Successfully!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            } else {
+              messenger.showSnackBar(
+                SnackBar(
+                  backgroundColor: Colors.red,
+                  content: const Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(text: '⚠️ Something went wrong.\n\n'),
+                        TextSpan(
+                          text: 'Check the following:\n',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        TextSpan(text: '• Do you hold at least 1 WAGUS?\n'),
+                        TextSpan(
+                            text:
+                                '• Are you on a different account on same IP?\n'),
+                        TextSpan(
+                            text:
+                                '• Have 24 hours passed since your last claim?\n'),
+                        TextSpan(
+                            text: '• Is your internet connection stable?\n'),
+                        TextSpan(text: '• Has your rent been paid already?\n'),
+                      ],
+                    ),
                   ),
-                  TextSpan(text: '• Do you hold at least 1 WAGUS?\n'),
-                  TextSpan(
-                      text: '• Are you on a different account on same IP?\n'),
-                  TextSpan(
-                      text: '• Have 24 hours passed since your last claim?\n'),
-                  TextSpan(text: '• Is your internet connection stable?\n'),
-                  TextSpan(text: '• Has your rent been paid already?\n'),
-                ],
-              ),
-            ),
-          ));
+                ),
+              );
+            }
+
+            // Clear success/error to prevent repeat snackbar
+            context.read<QuestBloc>().add(QuestClearFeedbackEvent());
+          });
         }
       },
       builder: (context, state) {

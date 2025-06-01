@@ -15,6 +15,8 @@ class QuestInitialEvent extends QuestEvent {
   List<Object> get props => [];
 }
 
+class QuestClearFeedbackEvent extends QuestEvent {}
+
 class QuestClaimDailyRewardEvent extends QuestEvent {
   final int day;
   final String userWalletAddress;
