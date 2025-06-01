@@ -193,6 +193,49 @@ export const giveawayNotification = onDocumentCreated(
   }
 );
 
+export const sugawAiResponder = onDocumentCreated(
+  { document: "chat/{messageId}" },
+  async (event) => {
+    const db = getFirestore();
+    const data = event.data?.data();
+    const ref = event.data?.ref;
+
+    if (!data || !ref) return;
+
+    const messageText = data.message || "";
+    const sender = data.sender;
+    const room = data.room || "General";
+
+    if (sender === "System") return;
+
+    const triggers = ["sugaw", "wagus", "project", "how", "what", "?"];
+    const shouldRespond = triggers.some((word) =>
+      messageText.toLowerCase().includes(word)
+    );
+
+    if (!shouldRespond) return;
+
+    const responses = [
+      "SUGAW? That’s classified info, but you’re on the right path.",
+      "WAGUS was built by one dev. You’re witnessing the blueprint.",
+      "Need help? Just type /commands. Or don’t. I’ll survive.",
+      "This project? No fluff. No VC leash. Just proof-of-grind.",
+      "SUGAW sees you. Stay sharp.",
+    ];
+
+    const response =
+      responses[Math.floor(Math.random() * responses.length)];
+
+    await db.collection("chat").add({
+      message: response,
+      sender: "System",
+      tier: "system",
+      room,
+      timestamp: Date.now(),
+    });
+  }
+);
+
 export const pickGiveawayWinner = onSchedule(
   { schedule: "* * * * *", timeZone: "America/New_York" },
   async () => {
