@@ -1344,7 +1344,7 @@ class _ChatInputBar extends StatelessWidget {
                             .add({
                           'message': '/silence',
                           'sender': user!.embeddedSolanaWallets.first.address,
-                          'tier': tier,
+                          'tier': tier.name,
                           'room': selectedRoom,
                           'timestamp': DateTime.now().millisecondsSinceEpoch,
                           'createdAt': FieldValue.serverTimestamp(),

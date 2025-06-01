@@ -93,7 +93,10 @@ export const moderateChatMessage = onDocumentCreated(
     const sender = data.sender;
 
     // ✅ /silence command handling
-    if (messageText.trim().toLowerCase() === "/silence" && sender !== "System") {
+    if (
+      messageText.trim().toLowerCase() === "/silence" &&
+      sender !== "System"
+    ) {
       const chatControlRef = db.collection("app_settings").doc("chat_controls");
 
       await chatControlRef.set(
@@ -144,7 +147,10 @@ export const moderateChatMessage = onDocumentCreated(
     }
 
     // ✅ /unsilence fallback (manual)
-    if (messageText.trim().toLowerCase() === "/unsilence" && sender !== "System") {
+    if (
+      messageText.trim().toLowerCase() === "/unsilence" &&
+      sender !== "System"
+    ) {
       const chatControlRef = db.collection("app_settings").doc("chat_controls");
 
       await chatControlRef.set(
@@ -171,8 +177,12 @@ export const moderateChatMessage = onDocumentCreated(
     }
 
     // ✅ Global chat silence enforcement
-    const chatControlDoc = await db.collection("app_settings").doc("chat_controls").get();
-    const isSilenced = chatControlDoc.exists && chatControlDoc.data()?.isSilenced === true;
+    const chatControlDoc = await db
+      .collection("app_settings")
+      .doc("chat_controls")
+      .get();
+    const isSilenced =
+      chatControlDoc.exists && chatControlDoc.data()?.isSilenced === true;
 
     if (isSilenced && sender !== "System") {
       console.log(`🚫 Chat is silenced. Auto-deleting message from ${sender}`);
@@ -182,7 +192,13 @@ export const moderateChatMessage = onDocumentCreated(
 
     // ✅ Banned phrase filtering
     const bannedPhrases = [
-      "mike", "poor", "idiot", "scam", "scammer", "rug", "dev is poor"
+      "mike",
+      "poor",
+      "idiot",
+      "scam",
+      "scammer",
+      "rug",
+      "dev is poor",
     ];
 
     const containsBanned = bannedPhrases.some((phrase) => {
@@ -191,12 +207,16 @@ export const moderateChatMessage = onDocumentCreated(
     });
 
     if (containsBanned) {
-      console.log(`🔥 Auto-deleting banned message: "${data.message}" from ${sender}`);
+      console.log(
+        `🔥 Auto-deleting banned message: "${data.message}" from ${sender}`
+      );
       await ref.delete();
 
       const strikesRef = db.collection("spam_strikes").doc(sender);
       const strikesSnap = await strikesRef.get();
-      const currentStrikes = strikesSnap.exists ? strikesSnap.data().count || 0 : 0;
+      const currentStrikes = strikesSnap.exists
+        ? strikesSnap.data().count || 0
+        : 0;
 
       await strikesRef.set({ count: currentStrikes + 1 }, { merge: true });
       console.log(`⚠️ Strike ${currentStrikes + 1} for ${sender}`);
@@ -211,7 +231,6 @@ export const moderateChatMessage = onDocumentCreated(
     }
   }
 );
-
 
 export const giveawayNotification = onDocumentCreated(
   { document: "giveaways/{giveawayId}" },
@@ -362,9 +381,23 @@ export const pickGiveawayWinner = onSchedule(
       for (const doc of snapshot.docs) {
         try {
           const data = doc.data();
-          const participants = Array.isArray(data.participants)
+          let participants = Array.isArray(data.participants)
             ? data.participants
             : [];
+
+          const chatControlsDoc = await db
+            .collection("app_settings")
+            .doc("chat_controls")
+            .get();
+          const isSilenced =
+            chatControlsDoc.exists &&
+            chatControlsDoc.data()?.isSilenced === true;
+
+          if (isSilenced) {
+            participants = participants.filter((p) => false); // exclude everyone
+            console.log("🚫 Giveaway voided — chat is silenced.");
+          }
+
           const amount = typeof data.amount === "number" ? data.amount : 0;
           const host = data.host || "system";
           const winner = participants.length

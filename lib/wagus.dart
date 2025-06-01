@@ -166,135 +166,149 @@ class Wagus extends HookWidget {
                         Quest(),
                       ],
                     ),
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        decoration: backgroundImgUrl.value != null
-                            ? BoxDecoration(
-                                image: DecorationImage(
-                                  image: CachedNetworkImageProvider(
-                                      backgroundImgUrl.value!),
-                                  fit: BoxFit.cover,
-                                  colorFilter: ColorFilter.mode(
-                                    Colors.black.withOpacity(0.4),
-                                    BlendMode.darken,
-                                  ),
-                                ),
-                              )
-                            : null,
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Holders: ${state.holdersCount}',
-                                  style: TextStyle(
-                                    color: context.appColors.contrastLight,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                BlocSelector<HomeBloc, HomeState, int>(
-                                  selector: (state) => state.activeUsersCount,
-                                  builder: (context, userCount) {
-                                    return Text(
-                                      'Active Online: $userCount',
-                                      style: TextStyle(
-                                        color: context.appColors.contrastLight,
-                                        fontSize: 12,
+                    ValueListenableBuilder<String?>(
+                        valueListenable: backgroundImgUrl,
+                        builder: (context, url, _) {
+                          return Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              decoration: url != null
+                                  ? BoxDecoration(
+                                      image: DecorationImage(
+                                        image: CachedNetworkImageProvider(
+                                          url,
+                                        ),
+                                        fit: BoxFit.cover,
+                                        colorFilter: ColorFilter.mode(
+                                          Colors.black.withOpacity(0.4),
+                                          BlendMode.darken,
+                                        ),
                                       ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                final user =
-                                    context.read<PortalBloc>().state.user;
-                                final wallet = user?.embeddedSolanaWallets
-                                    .firstOrNull?.address;
-                                if (wallet != null) {
-                                  context.push('/profile/$wallet');
-                                }
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(2.5),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: state.tierStatus ==
-                                            TierStatus.adventurer
-                                        ? TierStatus.adventurer.color
-                                        : TierStatus.basic.color,
-                                    width: 3,
-                                  ),
-                                ),
-                                child: Hero(
-                                  tag: 'profile',
-                                  child: FutureBuilder<
-                                      DocumentSnapshot<Map<String, dynamic>>>(
-                                    future: FirebaseFirestore.instance
-                                        .collection('users')
-                                        .doc(context
-                                            .read<PortalBloc>()
-                                            .state
-                                            .user
-                                            ?.embeddedSolanaWallets
-                                            .firstOrNull
-                                            ?.address)
-                                        .get(),
-                                    builder: (context, initialSnapshot) {
-                                      final initialData =
-                                          initialSnapshot.data?.data();
-
-                                      return StreamBuilder<
-                                          DocumentSnapshot<
-                                              Map<String, dynamic>>>(
-                                        stream: FirebaseFirestore.instance
-                                            .collection('users')
-                                            .doc(context
-                                                .read<PortalBloc>()
-                                                .state
-                                                .user
-                                                ?.embeddedSolanaWallets
-                                                .firstOrNull
-                                                ?.address)
-                                            .snapshots(),
-                                        builder: (context, liveSnapshot) {
-                                          final liveData =
-                                              liveSnapshot.data?.data();
-                                          final imageUrl =
-                                              liveData?['image_url'] ??
-                                                  initialData?['image_url'];
-
-                                          return CircleAvatar(
-                                            key: ValueKey(imageUrl),
-                                            radius: 14,
-                                            backgroundImage: imageUrl != null
-                                                ? CachedNetworkImageProvider(
-                                                    imageUrl)
-                                                : const AssetImage(
-                                                        'assets/icons/avatar.png')
-                                                    as ImageProvider,
-                                            backgroundColor: Colors.transparent,
+                                    )
+                                  : null,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Holders: ${state.holdersCount}',
+                                        style: TextStyle(
+                                          color:
+                                              context.appColors.contrastLight,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      BlocSelector<HomeBloc, HomeState, int>(
+                                        selector: (state) =>
+                                            state.activeUsersCount,
+                                        builder: (context, userCount) {
+                                          return Text(
+                                            'Active Online: $userCount',
+                                            style: TextStyle(
+                                              color: context
+                                                  .appColors.contrastLight,
+                                              fontSize: 12,
+                                            ),
                                           );
                                         },
-                                      );
-                                    },
+                                      ),
+                                    ],
                                   ),
-                                ),
+                                  GestureDetector(
+                                    onTap: () {
+                                      final user =
+                                          context.read<PortalBloc>().state.user;
+                                      final wallet = user?.embeddedSolanaWallets
+                                          .firstOrNull?.address;
+                                      if (wallet != null) {
+                                        context.push('/profile/$wallet');
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(2.5),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: state.tierStatus ==
+                                                  TierStatus.adventurer
+                                              ? TierStatus.adventurer.color
+                                              : TierStatus.basic.color,
+                                          width: 3,
+                                        ),
+                                      ),
+                                      child: Hero(
+                                        tag: 'profile',
+                                        child: FutureBuilder<
+                                            DocumentSnapshot<
+                                                Map<String, dynamic>>>(
+                                          future: FirebaseFirestore.instance
+                                              .collection('users')
+                                              .doc(context
+                                                  .read<PortalBloc>()
+                                                  .state
+                                                  .user
+                                                  ?.embeddedSolanaWallets
+                                                  .firstOrNull
+                                                  ?.address)
+                                              .get(),
+                                          builder: (context, initialSnapshot) {
+                                            final initialData =
+                                                initialSnapshot.data?.data();
+
+                                            return StreamBuilder<
+                                                DocumentSnapshot<
+                                                    Map<String, dynamic>>>(
+                                              stream: FirebaseFirestore.instance
+                                                  .collection('users')
+                                                  .doc(context
+                                                      .read<PortalBloc>()
+                                                      .state
+                                                      .user
+                                                      ?.embeddedSolanaWallets
+                                                      .firstOrNull
+                                                      ?.address)
+                                                  .snapshots(),
+                                              builder: (context, liveSnapshot) {
+                                                final liveData =
+                                                    liveSnapshot.data?.data();
+                                                final imageUrl = liveData?[
+                                                        'image_url'] ??
+                                                    initialData?['image_url'];
+
+                                                return CircleAvatar(
+                                                  key: ValueKey(imageUrl),
+                                                  radius: 14,
+                                                  backgroundImage: imageUrl !=
+                                                          null
+                                                      ? CachedNetworkImageProvider(
+                                                          imageUrl)
+                                                      : const AssetImage(
+                                                              'assets/icons/avatar.png')
+                                                          as ImageProvider,
+                                                  backgroundColor:
+                                                      Colors.transparent,
+                                                );
+                                              },
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
+                          );
+                        }),
                   ],
                 ),
                 bottomNavigationBar: Theme(
