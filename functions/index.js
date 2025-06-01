@@ -80,7 +80,6 @@ export const notifyEligibleRewards = onSchedule(
   }
 );
 
-
 export const moderateChatMessage = onDocumentCreated(
   { document: "chat/{messageId}" },
   async (event) => {
@@ -196,22 +195,32 @@ export const giveawayNotification = onDocumentCreated(
 export const sugawAiResponder = onDocumentCreated(
   { document: "chat/{messageId}" },
   async (event) => {
-    const db = getFirestore();
-    const data = event.data?.data();
-    const ref = event.data?.ref;
+    console.log("✅ Triggered sugawAiResponder");
 
-    if (!data || !ref) return;
+    const snapshot = event.data;
+    if (!snapshot || !snapshot.data) {
+      console.log("⚠️ No snapshot data");
+      return;
+    }
+
+    const data = snapshot.data();
+    console.log("📦 Data:", data);
 
     const messageText = data.message || "";
     const sender = data.sender;
     const room = data.room || "General";
 
-    if (sender === "System") return;
+    if (sender === "System") {
+      console.log("ℹ️ Skipping system sender");
+      return;
+    }
 
     const triggers = ["sugaw", "wagus", "project", "how", "what", "?"];
     const shouldRespond = triggers.some((word) =>
       messageText.toLowerCase().includes(word)
     );
+
+    console.log("🧠 shouldRespond:", shouldRespond);
 
     if (!shouldRespond) return;
 
@@ -223,16 +232,20 @@ export const sugawAiResponder = onDocumentCreated(
       "SUGAW sees you. Stay sharp.",
     ];
 
-    const response =
-      responses[Math.floor(Math.random() * responses.length)];
+    const response = responses[Math.floor(Math.random() * responses.length)];
 
-    await db.collection("chat").add({
+    console.log("💬 Responding with:", response);
+
+    await snapshot.ref.firestore.collection("chat").add({
       message: response,
       sender: "System",
       tier: "system",
       room,
-      timestamp: Date.now(),
+      timestamp: admin.firestore.Timestamp.fromMillis(Date.now()), // ✅ immediate
+      createdAt: FieldValue.serverTimestamp(), // optional audit trail
     });
+
+    console.log("✅ Bot response sent");
   }
 );
 
