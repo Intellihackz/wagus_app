@@ -17,6 +17,7 @@ import 'package:wagus/features/incubator/incubator.dart';
 import 'package:wagus/features/quest/presentation/quest.dart';
 import 'package:wagus/services/user_service.dart';
 import 'package:wagus/theme/app_palette.dart';
+import 'package:wagus/utils.dart';
 
 final StreamController<bool> startupController =
     StreamController<bool>.broadcast();
@@ -29,47 +30,87 @@ class Wagus extends HookWidget {
     final currentPage = useState<int>(0);
     final lastPage = useState<int>(0);
     final pageController = usePageController();
-    final sugawBadgeId = 'oXlvZMsWS58OZkjOHjpE';
     final backgroundImgUrl = useState<String?>(null);
 
-    useEffect(() {
-      Future.microtask(() async {
-        final address = mainContext
-            .read<PortalBloc>()
-            .state
-            .user!
-            .embeddedSolanaWallets
-            .first
-            .address;
+    final user = mainContext.select((PortalBloc bloc) => bloc.state.user);
 
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(address)
-            .get();
-        final badges = List<String>.from(doc.data()?['badges'] ?? []);
-        if (badges.contains(sugawBadgeId)) {
-          final badgeDoc = await FirebaseFirestore.instance
-              .collection('badges')
-              .doc(sugawBadgeId)
+    // ⛔️ Early return if user not ready
+    if (user == null) {
+      startupController.add(true);
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white10,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    )
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    'assets/icon/icon_solana.png',
+                    height: 64,
+                    width: 64,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              SizedBox(height: 24),
+              Text(
+                'Connecting your wallet...',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Please wait a moment',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // ✅ Wallet ready – setup hooks
+    startupController.add(false);
+    final wallet = user.embeddedSolanaWallets.firstOrNull?.address;
+
+    useAsyncEffect(
+        effect: () async {
+          if (wallet == null) return null;
+
+          final doc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(wallet)
               .get();
-          backgroundImgUrl.value = badgeDoc.data()?['backgroundImgUrl'];
-        }
-      });
-      final user = mainContext.read<PortalBloc>().state.user;
-      final wallet = user?.embeddedSolanaWallets.firstOrNull?.address;
-      Timer? ping;
+          final badges = List<String>.from(doc.data()?['badges'] ?? []);
+          if (badges.contains('oXlvZMsWS58OZkjOHjpE')) {
+            final badgeDoc = await FirebaseFirestore.instance
+                .collection('badges')
+                .doc('oXlvZMsWS58OZkjOHjpE')
+                .get();
+            backgroundImgUrl.value = badgeDoc.data()?['backgroundImgUrl'];
+          }
 
-      if (wallet != null) {
-        ping = Timer.periodic(const Duration(seconds: 30), (_) {
-          UserService().setUserOnline(wallet);
-          debugPrint('🟢 Ping: $wallet online status refreshed');
-        });
-      }
+          final ping = Timer.periodic(const Duration(seconds: 30), (_) {
+            UserService().setUserOnline(wallet);
+            debugPrint('🟢 Ping: $wallet online status refreshed');
+          });
 
-      return () {
-        ping?.cancel();
-      };
-    }, []);
+          return () {
+            ping.cancel();
+          };
+        },
+        keys: [wallet]);
 
     return Stack(
       fit: StackFit.expand,
@@ -92,57 +133,6 @@ class Wagus extends HookWidget {
         ),
         BlocBuilder<PortalBloc, PortalState>(
           builder: (context, state) {
-            final user = state.user;
-
-            if (user == null) {
-              startupController.add(true);
-
-              return Scaffold(
-                backgroundColor: Colors.black,
-                body: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Logo
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.white10,
-                              blurRadius: 8,
-                              offset: Offset(0, 4),
-                            )
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image(
-                            image: AssetImage('assets/icon/icon_solana.png'),
-                            height: 64,
-                            width: 64,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 24),
-                      Text(
-                        'Connecting your wallet...',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Please wait a moment',
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            } else {
-              startupController.add(false);
-            }
-
             return SafeArea(
               child: Scaffold(
                 resizeToAvoidBottomInset: false,

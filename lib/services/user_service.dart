@@ -57,6 +57,9 @@ class UserService {
   Future<void> upgradeTier(String walletAddress, String newTier) async {
     await usersCollection.doc(walletAddress).set({
       'tier': newTier,
+      'adventurer_expires': Timestamp.fromDate(
+        DateTime.now().add(const Duration(days: 30)),
+      ),
       'last_login': FieldValue.serverTimestamp(),
       'wallet': walletAddress,
     }, SetOptions(merge: true));
@@ -80,11 +83,10 @@ class UserService {
 
     if (playedAt == null) return false;
 
-    final lastPlayed = DateTime(playedAt.year, playedAt.month, playedAt.day);
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    final difference = now.difference(playedAt).inDays;
 
-    return lastPlayed.isAtSameMomentAs(today);
+    return difference < 7;
   }
 
   Future<void> setUserOnline(String walletAddress) async {
@@ -130,5 +132,23 @@ class UserService {
     }
 
     return '${walletAddress.substring(0, 6)}...';
+  }
+
+  Future<String> getEffectiveTier(String walletAddress) async {
+    final doc = await usersCollection.doc(walletAddress).get();
+    final data = doc.data();
+    if (data == null) return 'basic';
+
+    final tier = (data['tier'] ?? 'basic').toString();
+    final expires = data['adventurer_expires'];
+    DateTime? expiresAt;
+
+    if (expires != null && expires is Timestamp) {
+      expiresAt = expires.toDate();
+    }
+
+    final isExpired = tier == 'Adventurer' &&
+        (expiresAt == null || expiresAt.isBefore(DateTime.now()));
+    return isExpired ? 'basic' : tier;
   }
 }

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:go_router/go_router.dart';
 import 'package:wagus/features/games/bloc/game_bloc.dart';
 import 'package:wagus/features/games/data/game_repository.dart';
-import 'package:wagus/features/games/domain/spygus_game_data.dart';
 import 'package:wagus/features/home/data/home_repository.dart';
 import 'package:wagus/features/home/domain/message.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
@@ -26,10 +27,24 @@ class Spygus extends HookWidget {
         context.select((GameBloc bloc) => bloc.state.spygusGameData);
 
     useEffect(() {
+      // Lock orientation to landscape on enter
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+
       () async {
         final played = await UserService().hasPlayedSpygus(walletAddress);
         if (played && context.mounted) {
-          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("You've already played SPYGUS this week."),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          if (context.canPop()) {
+            context.pop();
+          }
           return;
         }
 
@@ -43,13 +58,19 @@ class Spygus extends HookWidget {
 
         isLoading.value = false;
       }();
-      return null;
+
+      // Unlock orientation on exit
+      return () {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+        ]);
+      };
     }, [spygusData]);
 
-    void handleTap(
-      TapUpDetails details,
-      BuildContext context,
-    ) async {
+    final debugMarker = useState<Offset?>(null);
+
+    void handleTap(TapUpDetails details, BuildContext context) async {
       if (hasPlayed.value ||
           constraintsRef.value == null ||
           spygusData == null) {
@@ -70,10 +91,12 @@ class Spygus extends HookWidget {
 
       hasPlayed.value = true;
 
+      await UserService().setSpygusPlayed(walletAddress);
+
       if (success) {
         final userTier = context.read<PortalBloc>().state.tierStatus;
         final rewardUsd = userTier == TierStatus.adventurer ? 0.25 : 0.05;
-        // Show feedback immediately
+
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -92,8 +115,6 @@ class Spygus extends HookWidget {
           ),
         );
 
-        // Run claim logic in background
-        await UserService().setSpygusPlayed(walletAddress);
         try {
           if (await context
               .read<GameRepository>()
@@ -101,9 +122,6 @@ class Spygus extends HookWidget {
             await context
                 .read<GameRepository>()
                 .claimSpygusReward(walletAddress);
-
-            //final user = context.read<PortalBloc>().state.user;
-            final homeRepo = context.read<HomeRepository>();
 
             final message = Message(
               text:
@@ -114,22 +132,19 @@ class Spygus extends HookWidget {
               likedBy: [],
             );
 
-            await homeRepo.sendMessage(message);
+            await context.read<HomeRepository>().sendMessage(message);
           }
         } catch (e) {
           debugPrint('Spygus claim failed: $e');
-          // Optionally show retry/snackbar here
         }
 
-        // Exit flow
         await Future.delayed(const Duration(seconds: 2));
         if (context.mounted) {
           Navigator.of(context)
-            ..pop() // close dialog
-            ..pop(); // exit Spygus
+            ..pop()
+            ..pop();
         }
       } else {
-        // Loss dialog
         showDialog(
           context: context,
           barrierDismissible: true,
@@ -149,53 +164,73 @@ class Spygus extends HookWidget {
       }
     }
 
-    return BlocSelector<GameBloc, GameState, SpygusGameData?>(
-      selector: (state) => state.spygusGameData,
-      builder: (context, state) {
-        return Scaffold(
-          body: isLoading.value || state == null || imageUrl.value == null
-              ? const Center(child: CircularProgressIndicator())
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    constraintsRef.value = constraints;
-
-                    return GestureDetector(
-                      onTapUp: (details) {
-                        handleTap(details, context);
-                      },
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 80),
-                          Text(
-                            'Spygus',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+    return Scaffold(
+      body: isLoading.value || spygusData == null || imageUrl.value == null
+          ? const Center(child: CircularProgressIndicator())
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                constraintsRef.value = constraints;
+                return GestureDetector(
+                  onTapUp: (details) => handleTap(details, context),
+                  child: Stack(
+                    children: [
+                      if (debugMarker.value != null)
+                        Positioned(
+                          left:
+                              constraints.maxWidth * debugMarker.value!.dx - 10,
+                          top: constraints.maxHeight * debugMarker.value!.dy -
+                              10,
+                          child: Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
                             ),
                           ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(
-                                vertical: 8.0, horizontal: 16.0),
-                            child: Text(
-                                'Find the WAGUS symbol in the image below. You only have one chance!',
-                                textAlign: TextAlign.center,
-                                style: TextStyle()),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Image.network(
-                              imageUrl.value!,
-                              fit: BoxFit.fitWidth,
-                              width: double.infinity,
-                            ),
-                          ),
-                        ],
+                        ),
+                      Positioned.fill(
+                        child: Image.network(
+                          imageUrl.value!,
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    );
-                  },
-                ),
-        );
-      },
+                      Positioned(
+                        top: 20,
+                        left: 0,
+                        right: 0,
+                        child: IgnorePointer(
+                          ignoring: true, // allow touches to pass through
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 10, horizontal: 20),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.6),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'Find the hidden WAGUS symbol 👀 You only get one shot.',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  shadows: [
+                                    Shadow(blurRadius: 4, color: Colors.black)
+                                  ],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
     );
   }
 }

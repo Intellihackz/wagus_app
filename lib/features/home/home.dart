@@ -1239,7 +1239,7 @@ class _ChatInputBar extends StatelessWidget {
                         FocusScope.of(context).unfocus();
 
                         final bankRepo = context.read<BankRepository>();
-                        final double usdTarget = 3.5;
+                        final double usdTarget = 9.99; // $9.99 USD
                         final double usdPerToken =
                             portalState.selectedToken.usdPerToken.toDouble();
                         final amount = (usdTarget / usdPerToken).ceil();
@@ -1336,20 +1336,47 @@ class _ChatInputBar extends StatelessWidget {
                       }
 
                       if (text.trim().toLowerCase() == '/silence') {
-                        final user = context.read<PortalBloc>().state.user;
-                        final tier =
-                            context.read<PortalBloc>().state.tierStatus;
+                        final wallet =
+                            portalState.user?.embeddedSolanaWallets.first;
+                        if (wallet == null) return;
+
+                        final userDoc = await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(wallet.address)
+                            .get();
+                        final badges =
+                            (userDoc.data()?['badges'] ?? []) as List<dynamic>;
+                        final hasSugawBadge =
+                            badges.contains('oXlvZMsWS58OZkjOHjpE');
+
+                        if (!hasSugawBadge) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content:
+                                  Text('Only SUGAW holders can use /silence'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          controller.clear();
+                          FocusScope.of(context).unfocus();
+
+                          return;
+                        }
+
                         await FirebaseFirestore.instance
                             .collection('chat')
                             .add({
                           'message': '/silence',
-                          'sender': user!.embeddedSolanaWallets.first.address,
-                          'tier': tier.name,
+                          'sender': wallet.address,
+                          'tier': portalState.tierStatus.name,
                           'room': selectedRoom,
                           'timestamp': DateTime.now().millisecondsSinceEpoch,
                           'createdAt': FieldValue.serverTimestamp(),
                         });
-                        return; // prevent sending it again
+
+                        controller.clear();
+                        FocusScope.of(context).unfocus();
+                        return;
                       }
 
                       final usernameDoc = await FirebaseFirestore.instance

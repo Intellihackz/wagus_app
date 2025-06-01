@@ -1,4 +1,5 @@
 import 'package:bloc/bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:privy_flutter/privy_flutter.dart';
@@ -9,9 +10,7 @@ import 'package:wagus/services/user_service.dart';
 import 'package:wagus/shared/holder/holder.dart';
 import 'package:wagus/shared/token/token.dart';
 import 'package:wagus/shared/transaction/transaction.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'dart:convert';
 
 part 'portal_event.dart';
 part 'portal_state.dart';
@@ -40,43 +39,6 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     on<PortalClearEvent>(_handleClear);
     on<PortalUpdateTierEvent>(_handleUpdateTier);
     on<PortalFetchHoldersCountEvent>(_handleFetchHoldersCount);
-    // on<PortalListenSupportedTokensEvent>((event, emit) async {
-    //   final tokensStream = portalRepository.getSupportedTokens();
-
-    //   await for (final tokens in tokensStream) {
-    //     final defaultToken = tokens.firstWhere(
-    //       (t) => t.ticker.toUpperCase() == 'WAGUS',
-    //       orElse: () => tokens.first,
-    //     );
-
-    //     final user = state.user;
-
-    //     final walletAddress = user?.embeddedSolanaWallets.first.address;
-
-    //     final holdersMap = <String, Holder>{};
-
-    //     if (walletAddress != null) {
-    //       final entries = <MapEntry<String, Holder>>[];
-    //       for (final token in tokens) {
-    //         final holder =
-    //             await _getSolAndTokenBalances(walletAddress, token.address);
-    //         entries.add(MapEntry(token.ticker, holder));
-    //         await Future.delayed(
-    //             const Duration(milliseconds: 200)); // avoid rate limit
-    //       }
-
-    //       holdersMap.addEntries(entries);
-    //     }
-
-    //     emit(state.copyWith(
-    //       supportedTokens: () => tokens,
-    //       selectedToken: () => defaultToken,
-    //       holdersMap: () => holdersMap,
-    //       holder: () => holdersMap[defaultToken.ticker],
-    //     ));
-    //     break; // stop after first emission
-    //   }
-    // });
     on<PortalListenSupportedTokensEvent>((event, emit) async {
       final user = state.user;
       if (user == null || user.embeddedSolanaWallets.isEmpty) return;
@@ -146,9 +108,19 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
 
     final address = user.embeddedSolanaWallets.first.address;
     final userDoc = await UserService().getUser(address);
-    final tierString = (userDoc.data()?['tier'] ?? 'Basic') as String;
+    final data = userDoc.data() ?? {};
+    final tierString = (data['tier'] ?? 'Basic') as String;
+    final expires = data['adventurer_expires'];
+    final expiresAt =
+        (expires is firestore.Timestamp) ? expires.toDate() : null;
+
+    final isExpired = tierString.toLowerCase() == 'adventurer' &&
+        (expiresAt == null || expiresAt.isBefore(DateTime.now()));
+
+    final effectiveTierString = isExpired ? 'basic' : tierString;
+
     final tierEnum = TierStatus.values.firstWhere(
-      (e) => e.name.toLowerCase() == tierString.toLowerCase(),
+      (e) => e.name.toLowerCase() == effectiveTierString.toLowerCase(),
       orElse: () => TierStatus.basic,
     );
 
@@ -220,7 +192,6 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
         return;
 
       final address = user.embeddedSolanaWallets.first.address;
-      final now = DateTime.now();
       final holdersMap = <String, Holder>{};
 
       for (final token in tokens) {

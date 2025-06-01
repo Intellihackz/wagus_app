@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:wagus/features/bank/data/bank_repository.dart';
+import 'package:wagus/features/home/data/home_repository.dart';
+import 'package:wagus/features/home/domain/message.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/theme/app_palette.dart';
 
@@ -281,6 +283,19 @@ class BadgeModal extends StatelessWidget {
                                                           'Bearer ${dotenv.env['INTERNAL_API_KEY']}',
                                                     }),
                                                   );
+
+                                                  final message = Message(
+                                                    text:
+                                                        '[BADGE] ${wallet.address.substring(0, 4)}...${wallet.address.substring(wallet.address.length - 4)} claimed the "${badge['name']}" badge 🏅',
+                                                    sender: 'System',
+                                                    tier: TierStatus.system,
+                                                    room: 'General',
+                                                    likedBy: [],
+                                                  );
+
+                                                  await context
+                                                      .read<HomeRepository>()
+                                                      .sendMessage(message);
 
                                                   if (context.canPop())
                                                     context.pop();
