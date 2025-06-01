@@ -112,7 +112,7 @@ class QuestRepository {
           await _homeRepository.sendMessage(Message(
             text:
                 '${userWallet.substring(0, 3)}..${userWallet.substring(userWallet.length - 3)} completed all 7 daily rewards! 🎉',
-            sender: userWallet,
+            sender: 'System',
             tier: TierStatus.system,
             room: 'General',
             likedBy: [],
@@ -122,7 +122,7 @@ class QuestRepository {
           await _homeRepository.sendMessage(Message(
             text:
                 '${userWallet.substring(0, 3)}..${userWallet.substring(userWallet.length - 3)} claimed their Day $day reward! 🎁',
-            sender: userWallet,
+            sender: 'System',
             tier: TierStatus.system,
             room: 'General',
             likedBy: [],

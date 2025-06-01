@@ -309,6 +309,34 @@ class Home extends HookWidget {
                                 itemBuilder: (context, index) {
                                   final message = filteredMessages[index];
 
+                                  if (message.sender == 'System') {
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 6),
+                                      child: Align(
+                                        alignment: Alignment.center,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: const Color.fromARGB(
+                                                255, 127, 206, 230),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            message.text,
+                                            style: const TextStyle(
+                                              fontStyle: FontStyle.italic,
+                                              fontSize: 13,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }
+
                                   String getTierPrefix(TierStatus tier) {
                                     if (tier == TierStatus.adventurer)
                                       return '[A]';
@@ -1305,6 +1333,23 @@ class _ChatInputBar extends StatelessWidget {
                         );
 
                         return;
+                      }
+
+                      if (text.trim().toLowerCase() == '/silence') {
+                        final user = context.read<PortalBloc>().state.user;
+                        final tier =
+                            context.read<PortalBloc>().state.tierStatus;
+                        await FirebaseFirestore.instance
+                            .collection('chat')
+                            .add({
+                          'message': '/silence',
+                          'sender': user!.embeddedSolanaWallets.first.address,
+                          'tier': tier,
+                          'room': selectedRoom,
+                          'timestamp': DateTime.now().millisecondsSinceEpoch,
+                          'createdAt': FieldValue.serverTimestamp(),
+                        });
+                        return; // prevent sending it again
                       }
 
                       final usernameDoc = await FirebaseFirestore.instance

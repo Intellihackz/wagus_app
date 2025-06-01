@@ -83,6 +83,7 @@ export const notifyEligibleRewards = onSchedule(
 export const moderateChatMessage = onDocumentCreated(
   { document: "chat/{messageId}" },
   async (event) => {
+    const db = getFirestore();
     const data = event.data?.data();
     const ref = event.data?.ref;
 
@@ -91,21 +92,111 @@ export const moderateChatMessage = onDocumentCreated(
     const messageText = data.message || "";
     const sender = data.sender;
 
+    // ✅ /silence command handling
+    if (messageText.trim().toLowerCase() === "/silence" && sender !== "System") {
+      const chatControlRef = db.collection("app_settings").doc("chat_controls");
+
+      await chatControlRef.set(
+        {
+          isSilenced: true,
+          updatedBy: sender,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      console.log(`🔇 Chat silenced by ${sender}`);
+
+      await db.collection("chat").add({
+        message: "🔇 Chat has been silenced for 10 seconds.",
+        sender: "System",
+        tier: "system",
+        room: data.room || "General",
+        timestamp: admin.firestore.Timestamp.now(),
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      await ref.delete(); // Remove /silence message
+
+      setTimeout(async () => {
+        await chatControlRef.set(
+          {
+            isSilenced: false,
+            updatedBy: "auto",
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+
+        await db.collection("chat").add({
+          message: "🔊 Chat has been automatically unsilenced.",
+          sender: "System",
+          tier: "system",
+          room: data.room || "General",
+          timestamp: admin.firestore.Timestamp.now(),
+          createdAt: FieldValue.serverTimestamp(),
+        });
+
+        console.log(`🔊 Auto-unsilenced after 10s`);
+      }, 10_000); // 10 seconds
+
+      return;
+    }
+
+    // ✅ /unsilence fallback (manual)
+    if (messageText.trim().toLowerCase() === "/unsilence" && sender !== "System") {
+      const chatControlRef = db.collection("app_settings").doc("chat_controls");
+
+      await chatControlRef.set(
+        {
+          isSilenced: false,
+          updatedBy: sender,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      await db.collection("chat").add({
+        message: "🔊 Chat has been manually unsilenced.",
+        sender: "System",
+        tier: "system",
+        room: data.room || "General",
+        timestamp: admin.firestore.Timestamp.now(),
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      console.log(`🔊 Manual unsilence by ${sender}`);
+      await ref.delete(); // Remove command
+      return;
+    }
+
+    // ✅ Global chat silence enforcement
+    const chatControlDoc = await db.collection("app_settings").doc("chat_controls").get();
+    const isSilenced = chatControlDoc.exists && chatControlDoc.data()?.isSilenced === true;
+
+    if (isSilenced && sender !== "System") {
+      console.log(`🚫 Chat is silenced. Auto-deleting message from ${sender}`);
+      await ref.delete();
+      return;
+    }
+
+    // ✅ Banned phrase filtering
+    const bannedPhrases = [
+      "mike", "poor", "idiot", "scam", "scammer", "rug", "dev is poor"
+    ];
+
     const containsBanned = bannedPhrases.some((phrase) => {
       const regex = new RegExp(`\\b${phrase}\\b`, "i");
       return regex.test(messageText);
     });
 
     if (containsBanned) {
-      console.log(`🔥 Auto-deleting message: "${data.message}" from ${sender}`);
+      console.log(`🔥 Auto-deleting banned message: "${data.message}" from ${sender}`);
       await ref.delete();
 
-      // Strike logic
       const strikesRef = db.collection("spam_strikes").doc(sender);
       const strikesSnap = await strikesRef.get();
-      const currentStrikes = strikesSnap.exists
-        ? strikesSnap.data().count || 0
-        : 0;
+      const currentStrikes = strikesSnap.exists ? strikesSnap.data().count || 0 : 0;
 
       await strikesRef.set({ count: currentStrikes + 1 }, { merge: true });
       console.log(`⚠️ Strike ${currentStrikes + 1} for ${sender}`);
@@ -120,6 +211,7 @@ export const moderateChatMessage = onDocumentCreated(
     }
   }
 );
+
 
 export const giveawayNotification = onDocumentCreated(
   { document: "giveaways/{giveawayId}" },
