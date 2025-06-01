@@ -65,7 +65,28 @@ class AITools extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final tool = tools[index];
                   return InkWell(
-                    onTap: () => context.push(tool['route'] as String),
+                    onTap: () {
+                      final tier = context.read<PortalBloc>().state.tierStatus;
+                      final gatedRoutes = [
+                        aiWhitePaperGeneration,
+                        aiRoadmapGeneration,
+                        aiTokenomicsGeneration,
+                      ];
+
+                      final route = tool['route'] as String;
+                      if (gatedRoutes.contains(route) &&
+                          tier != TierStatus.adventurer) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                "Adventurer tier required to access this tool."),
+                            backgroundColor: Colors.redAccent,
+                          ),
+                        );
+                      } else {
+                        context.push(route);
+                      }
+                    },
                     borderRadius: BorderRadius.circular(12),
                     child: BlocSelector<PortalBloc, PortalState, TierStatus>(
                       selector: (state) {
