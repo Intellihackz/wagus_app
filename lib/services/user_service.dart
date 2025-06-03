@@ -151,4 +151,10 @@ class UserService {
         (expiresAt == null || expiresAt.isBefore(DateTime.now()));
     return isExpired ? 'basic' : tier;
   }
+
+  Future<void> markCodeNavigatorFound(String walletAddress) async {
+    await usersCollection.doc(walletAddress).set({
+      'code_navigator_found': true,
+    }, SetOptions(merge: true));
+  }
 }

@@ -51,6 +51,13 @@ class Game extends StatelessWidget {
         'route': memoryBreach,
         'status': 'live',
       },
+      {
+        'icon': FontAwesomeIcons.code,
+        'title': 'Code Navigator',
+        'tagline': 'Navigate through code challenges.',
+        'route': codeNavigator,
+        'status': 'live',
+      },
     ];
 
     return BlocSelector<PortalBloc, PortalState, TierStatus>(
@@ -117,6 +124,9 @@ class Game extends StatelessWidget {
                                         '/guess-the-drawing/sessions/$wallet');
                                   } else if ((game['route'] as String)
                                       .contains(memoryBreach)) {
+                                    context.push('${game['route']}/$wallet');
+                                  } else if ((game['route'] as String)
+                                      .contains(codeNavigator)) {
                                     context.push('${game['route']}/$wallet');
                                   }
                                 } else {

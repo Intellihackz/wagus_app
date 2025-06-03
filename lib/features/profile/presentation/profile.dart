@@ -327,16 +327,65 @@ class ProfileScreen extends HookWidget {
                                           ),
                                         ),
                                         onSubmitted: (value) async {
-                                          final trimmed = value.trim();
+                                          final trimmed =
+                                              value.trim().toLowerCase();
+
+                                          if (trimmed.isEmpty) {
+                                            await FirebaseFirestore.instance
+                                                .collection('users')
+                                                .doc(address)
+                                                .update({
+                                              'username': FieldValue.delete(),
+                                            });
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                  content:
+                                                      Text("Username cleared")),
+                                            );
+                                            return;
+                                          }
+
+                                          final isValid =
+                                              RegExp(r'^[a-z0-9_]{3,8}$')
+                                                  .hasMatch(trimmed);
+                                          if (!isValid) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                  content: Text(
+                                                      "Invalid username format")),
+                                            );
+                                            return;
+                                          }
+
+                                          // Check if username is already taken
+                                          final existing =
+                                              await FirebaseFirestore.instance
+                                                  .collection('users')
+                                                  .where('username',
+                                                      isEqualTo: trimmed)
+                                                  .limit(1)
+                                                  .get();
+
+                                          if (existing.docs.isNotEmpty &&
+                                              existing.docs.first.id !=
+                                                  address) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                  content: Text(
+                                                      "Username already taken")),
+                                            );
+                                            return;
+                                          }
 
                                           try {
                                             await FirebaseFirestore.instance
                                                 .collection('users')
                                                 .doc(address)
                                                 .update({
-                                              'username': trimmed.isEmpty
-                                                  ? FieldValue.delete()
-                                                  : trimmed
+                                              'username': trimmed,
                                             });
 
                                             ScaffoldMessenger.of(context)

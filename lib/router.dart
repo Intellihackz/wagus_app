@@ -6,6 +6,7 @@ import 'package:wagus/features/ai/ai_tools/ai_roadmap.dart';
 import 'package:wagus/features/ai/ai_tools/ai_tokenomics.dart';
 import 'package:wagus/features/ai/ai_tools/ai_tools.dart';
 import 'package:wagus/features/auth/login_screen.dart';
+import 'package:wagus/features/games/presentation/widgets/code_navigator.dart';
 import 'package:wagus/features/games/presentation/widgets/guess_the_drawing.dart';
 import 'package:wagus/features/games/presentation/widgets/guess_the_drawing_session_list.dart';
 import 'package:wagus/features/games/presentation/widgets/memory_breach.dart';
@@ -21,6 +22,7 @@ const String portal = '/portal';
 const String home = '/home';
 const String spygus = '/spygus';
 const String memoryBreach = '/memory-breach';
+const String codeNavigator = '/code-navigator';
 const String guessTheDrawing = '/guess-the-drawing';
 const String aiImageGeneration = '/ai-image-generation';
 const String aiAnalysisPrediction = '/ai-analysis-prediction';
@@ -99,6 +101,16 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final walletAddress = state.pathParameters['walletAddress']!;
         return MemoryBreach(walletAddress: walletAddress);
+      },
+    ),
+    GoRoute(
+      path: '$codeNavigator/:walletAddress',
+      builder: (context, state) {
+        final walletAddress = state.pathParameters['walletAddress'];
+        if (walletAddress == null) {
+          return const Center(child: Text('Wallet address is required'));
+        }
+        return CodeNavigator(walletAddress: walletAddress);
       },
     ),
     GoRoute(

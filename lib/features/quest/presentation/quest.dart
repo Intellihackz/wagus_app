@@ -83,10 +83,6 @@ class Quest extends HookWidget {
               onTap: () => _openDailyRewardsSheet(context),
               tierStatus: context.read<PortalBloc>().state.tierStatus,
             ),
-            const SizedBox(height: 16),
-            _ComingSoonTile(title: 'Daily Tasks'),
-            const SizedBox(height: 8),
-            _ComingSoonTile(title: 'Weekly Tasks'),
             if (hasSugawBadge.value) ...[
               const SizedBox(height: 16),
               _QuestTile(

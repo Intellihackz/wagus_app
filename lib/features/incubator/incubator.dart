@@ -93,6 +93,9 @@ class Incubator extends HookWidget {
                         itemCount: state.projects.length,
                         itemBuilder: (context, index) {
                           final project = state.projects[index];
+                          final isLaunched =
+                              DateTime.now().isAfter(project.launchDate);
+
                           final isLiked =
                               state.likedProjectsIds.contains(project.id);
                           return Container(
@@ -134,13 +137,43 @@ class Incubator extends HookWidget {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Flexible(
-                                    child: Text(
-                                      project.name,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white),
+                                    flex: 1,
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            project.name,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        if (isLaunched)
+                                          Container(
+                                            margin:
+                                                const EdgeInsets.only(left: 8),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.green[700],
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: const Text(
+                                              'Launched',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ),
+                                  const SizedBox(width: 8),
                                   Row(
                                     children: [
                                       Text(
@@ -386,14 +419,34 @@ class Incubator extends HookWidget {
                                   spacing: 12,
                                   runSpacing: 12,
                                   children: [
-                                    _contributionChip(context, project, 1,
-                                        amountController, tierStatus),
-                                    _contributionChip(context, project, 5,
-                                        amountController, tierStatus),
-                                    _contributionChip(context, project, 10,
-                                        amountController, tierStatus),
-                                    _contributionChip(context, project, 25,
-                                        amountController, tierStatus),
+                                    _contributionChip(
+                                        context,
+                                        project,
+                                        1,
+                                        amountController,
+                                        tierStatus,
+                                        isLaunched),
+                                    _contributionChip(
+                                        context,
+                                        project,
+                                        5,
+                                        amountController,
+                                        tierStatus,
+                                        isLaunched),
+                                    _contributionChip(
+                                        context,
+                                        project,
+                                        10,
+                                        amountController,
+                                        tierStatus,
+                                        isLaunched),
+                                    _contributionChip(
+                                        context,
+                                        project,
+                                        25,
+                                        amountController,
+                                        tierStatus,
+                                        isLaunched),
                                   ],
                                 )
                               ],
@@ -412,203 +465,223 @@ class Incubator extends HookWidget {
     );
   }
 
-  Widget _contributionChip(BuildContext context, Project project, int amount,
-      TextEditingController controller, TierStatus tierStatus) {
+  Widget _contributionChip(
+      BuildContext context,
+      Project project,
+      int amount,
+      TextEditingController controller,
+      TierStatus tierStatus,
+      bool isLaunched) {
     return InkWell(
       borderRadius: BorderRadius.circular(8),
-      onTap: () {
-        controller.text = amount.toString();
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (dialogContext) {
-            return BlocProvider.value(
-              value: context.read<IncubatorBloc>(),
-              child: BlocBuilder<IncubatorBloc, IncubatorState>(
-                builder: (context, state) {
-                  if (state.transactionStatus ==
-                      IncubatorTransactionStatus.success) {
-                    Future.delayed(const Duration(milliseconds: 1500), () {
-                      if (context.mounted && Navigator.canPop(context)) {
-                        Navigator.pop(context);
-                        context
-                            .read<IncubatorBloc>()
-                            .add(IncubatorResetTransactionStatusEvent());
-                      }
-                    });
-                  }
+      onTap: isLaunched
+          ? null
+          : () {
+              controller.text = amount.toString();
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (dialogContext) {
+                  return BlocProvider.value(
+                    value: context.read<IncubatorBloc>(),
+                    child: BlocBuilder<IncubatorBloc, IncubatorState>(
+                      builder: (context, state) {
+                        if (state.transactionStatus ==
+                            IncubatorTransactionStatus.success) {
+                          Future.delayed(const Duration(milliseconds: 1500),
+                              () {
+                            if (context.mounted && Navigator.canPop(context)) {
+                              Navigator.pop(context);
+                              context
+                                  .read<IncubatorBloc>()
+                                  .add(IncubatorResetTransactionStatusEvent());
+                            }
+                          });
+                        }
 
-                  if (state.transactionStatus ==
-                      IncubatorTransactionStatus.failure) {
-                    Future.delayed(const Duration(milliseconds: 1500), () {
-                      if (context.mounted && Navigator.canPop(context)) {
-                        Navigator.pop(context);
-                        context
-                            .read<IncubatorBloc>()
-                            .add(IncubatorResetTransactionStatusEvent());
-                      }
-                    });
-                  }
+                        if (state.transactionStatus ==
+                            IncubatorTransactionStatus.failure) {
+                          Future.delayed(const Duration(milliseconds: 1500),
+                              () {
+                            if (context.mounted && Navigator.canPop(context)) {
+                              Navigator.pop(context);
+                              context
+                                  .read<IncubatorBloc>()
+                                  .add(IncubatorResetTransactionStatusEvent());
+                            }
+                          });
+                        }
 
-                  Widget content;
-                  if (state.transactionStatus ==
-                      IncubatorTransactionStatus.submitting) {
-                    content = SizedBox(
-                      height: 80,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            tierStatus == TierStatus.adventurer
-                                ? TierStatus.adventurer.color
-                                : TierStatus.basic.color,
-                          ),
-                        ),
-                      ),
-                    );
-                  } else if (state.transactionStatus ==
-                      IncubatorTransactionStatus.success) {
-                    content = SizedBox(
-                      height: 80,
-                      child: Center(
-                        child: Icon(Icons.check_circle,
-                            color: tierStatus == TierStatus.adventurer
-                                ? TierStatus.adventurer.color
-                                : TierStatus.basic.color,
-                            size: 48),
-                      ),
-                    );
-                  } else if (state.transactionStatus ==
-                      IncubatorTransactionStatus.failure) {
-                    content = const SizedBox(
-                      height: 80,
-                      child: Center(
-                        child: Icon(Icons.cancel,
-                            color: Colors.redAccent, size: 48),
-                      ),
-                    );
-                  } else {
-                    content = TextField(
-                      readOnly: true,
-                      controller: controller,
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: 'Amount',
-                        hintStyle: TextStyle(color: Colors.grey[600]),
-                        enabledBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(
-                                color: tierStatus == TierStatus.adventurer
-                                    ? TierStatus.adventurer.color
-                                    : TierStatus.basic.color)),
-                        focusedBorder: UnderlineInputBorder(
-                            borderSide: BorderSide(
-                                color: tierStatus == TierStatus.adventurer
-                                    ? TierStatus.adventurer.color
-                                    : TierStatus.basic.color)),
-                      ),
-                    );
-                  }
-
-                  return AlertDialog(
-                    backgroundColor: context.appColors.contrastDark,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    title: Text('Contribute to ${project.name}',
-                        style: const TextStyle(color: Colors.white)),
-                    content: content,
-                    actions: (state.transactionStatus ==
-                            IncubatorTransactionStatus.initial)
-                        ? [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Cancel',
-                                  style: TextStyle(color: Colors.redAccent)),
+                        Widget content;
+                        if (state.transactionStatus ==
+                            IncubatorTransactionStatus.submitting) {
+                          content = SizedBox(
+                            height: 80,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  tierStatus == TierStatus.adventurer
+                                      ? TierStatus.adventurer.color
+                                      : TierStatus.basic.color,
+                                ),
+                              ),
                             ),
-                            GestureDetector(
-                              onTap: () async {
-                                if ((project.totalFunded ?? 0) >=
-                                    project.maxAllocation) {
-                                  return;
-                                }
+                          );
+                        } else if (state.transactionStatus ==
+                            IncubatorTransactionStatus.success) {
+                          content = SizedBox(
+                            height: 80,
+                            child: Center(
+                              child: Icon(Icons.check_circle,
+                                  color: tierStatus == TierStatus.adventurer
+                                      ? TierStatus.adventurer.color
+                                      : TierStatus.basic.color,
+                                  size: 48),
+                            ),
+                          );
+                        } else if (state.transactionStatus ==
+                            IncubatorTransactionStatus.failure) {
+                          content = const SizedBox(
+                            height: 80,
+                            child: Center(
+                              child: Icon(Icons.cancel,
+                                  color: Colors.redAccent, size: 48),
+                            ),
+                          );
+                        } else {
+                          content = TextField(
+                            readOnly: true,
+                            controller: controller,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: 'Amount',
+                              hintStyle: TextStyle(color: Colors.grey[600]),
+                              enabledBorder: UnderlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: tierStatus == TierStatus.adventurer
+                                          ? TierStatus.adventurer.color
+                                          : TierStatus.basic.color)),
+                              focusedBorder: UnderlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: tierStatus == TierStatus.adventurer
+                                          ? TierStatus.adventurer.color
+                                          : TierStatus.basic.color)),
+                            ),
+                          );
+                        }
 
-                                final int? parsedAmount =
-                                    int.tryParse(controller.text);
-                                if (parsedAmount != null && parsedAmount > 0) {
-                                  final userId =
-                                      context.read<PortalBloc>().state.user!.id;
+                        return AlertDialog(
+                          backgroundColor: context.appColors.contrastDark,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          title: Text('Contribute to ${project.name}',
+                              style: const TextStyle(color: Colors.white)),
+                          content: content,
+                          actions: (state.transactionStatus ==
+                                  IncubatorTransactionStatus.initial)
+                              ? [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Cancel',
+                                        style:
+                                            TextStyle(color: Colors.redAccent)),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () async {
+                                      if ((project.totalFunded ?? 0) >=
+                                          project.maxAllocation) {
+                                        return;
+                                      }
 
-                                  final currentTotal = project.totalFunded ?? 0;
-                                  final maxCap = project.maxAllocation;
-
-                                  if (currentTotal + parsedAmount > maxCap) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            'This contribution exceeds the max funding cap.'),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                    return;
-                                  }
-
-                                  final targetUsd =
-                                      parsedAmount.toDouble(); // e.g. 60.0
-                                  final tokenTicker = project
-                                      .preferredTokenTicker
-                                      .toLowerCase();
-                                  final usdPerToken = await context
-                                      .read<IncubatorRepository>()
-                                      .getUsdPerToken(tokenTicker);
-
-                                  final adjustedAmountInTokens =
-                                      (targetUsd / usdPerToken).ceil();
-
-                                  context
-                                      .read<IncubatorBloc>()
-                                      .add(IncubatorWithdrawEvent(
-                                        projectId: project.id,
-                                        userId: userId,
-                                        amount: adjustedAmountInTokens,
-                                        wallet: context
+                                      final int? parsedAmount =
+                                          int.tryParse(controller.text);
+                                      if (parsedAmount != null &&
+                                          parsedAmount > 0) {
+                                        final userId = context
                                             .read<PortalBloc>()
                                             .state
                                             .user!
-                                            .embeddedSolanaWallets
-                                            .first,
-                                        tokenAddress:
-                                            project.preferredTokenAddress,
-                                        tokenTicker:
-                                            project.preferredTokenTicker,
-                                      ));
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Enter a valid amount'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              },
-                              child: Text('Contribute',
-                                  style: TextStyle(
-                                      color: tierStatus == TierStatus.adventurer
-                                          ? TierStatus.adventurer.color
-                                          : TierStatus.basic.color,
-                                      fontWeight: FontWeight.bold)),
-                            ),
-                          ]
-                        : [],
+                                            .id;
+
+                                        final currentTotal =
+                                            project.totalFunded ?? 0;
+                                        final maxCap = project.maxAllocation;
+
+                                        if (currentTotal + parsedAmount >
+                                            maxCap) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  'This contribution exceeds the max funding cap.'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        final targetUsd = parsedAmount
+                                            .toDouble(); // e.g. 60.0
+                                        final tokenTicker = project
+                                            .preferredTokenTicker
+                                            .toLowerCase();
+                                        final usdPerToken = await context
+                                            .read<IncubatorRepository>()
+                                            .getUsdPerToken(tokenTicker);
+
+                                        final adjustedAmountInTokens =
+                                            (targetUsd / usdPerToken).ceil();
+
+                                        context
+                                            .read<IncubatorBloc>()
+                                            .add(IncubatorWithdrawEvent(
+                                              projectId: project.id,
+                                              userId: userId,
+                                              amount: adjustedAmountInTokens,
+                                              wallet: context
+                                                  .read<PortalBloc>()
+                                                  .state
+                                                  .user!
+                                                  .embeddedSolanaWallets
+                                                  .first,
+                                              tokenAddress:
+                                                  project.preferredTokenAddress,
+                                              tokenTicker:
+                                                  project.preferredTokenTicker,
+                                            ));
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content:
+                                                Text('Enter a valid amount'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    child: Text('Contribute',
+                                        style: TextStyle(
+                                            color: tierStatus ==
+                                                    TierStatus.adventurer
+                                                ? TierStatus.adventurer.color
+                                                : TierStatus.basic.color,
+                                            fontWeight: FontWeight.bold)),
+                                  ),
+                                ]
+                              : [],
+                        );
+                      },
+                    ),
                   );
                 },
-              ),
-            );
-          },
-        );
-      },
+              );
+            },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.black,
+          color: isLaunched ? Colors.grey[700] : Colors.black,
           border: Border.all(
               color: tierStatus == TierStatus.adventurer
                   ? TierStatus.adventurer.color

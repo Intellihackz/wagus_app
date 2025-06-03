@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wagus/features/games/presentation/widgets/glitch_overlay.dart';
 import 'package:wagus/services/user_service.dart';
+import 'package:wagus/theme/app_palette.dart';
 
 class MemoryBreach extends StatefulWidget {
   final String walletAddress;
@@ -147,8 +148,8 @@ class _MemoryBreachState extends State<MemoryBreach>
 
     return GestureDetector(
       onTap: () => _handleInput(label),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+      child: Container(
+        //duration: const Duration(milliseconds: 200),
         width: 80,
         height: 80,
         margin: const EdgeInsets.all(8),
@@ -207,6 +208,78 @@ class _MemoryBreachState extends State<MemoryBreach>
         backgroundColor: Colors.black,
         body: Stack(
           children: [
+            SafeArea(
+              child: Positioned(
+                top: 16,
+                left: 16,
+                right: 16,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Left button
+                    Align(
+                        alignment: Alignment.topCenter,
+                        child:
+                            BackButton(color: context.appColors.contrastLight)),
+
+                    // Center content
+                    Expanded(
+                      child: Center(
+                        child:
+                            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                          stream: FirebaseFirestore.instance
+                              .collection('users')
+                              .where('memory_breach_score', isGreaterThan: 0)
+                              .orderBy('memory_breach_score', descending: true)
+                              .limit(3)
+                              .snapshots(),
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData) return const SizedBox();
+                            final docs = snapshot.data!.docs;
+                            return Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: docs.map((doc) {
+                                final score = doc.data()['memory_breach_score'];
+                                final username = doc.data()['username'] ??
+                                    '${doc.id.substring(0, 4)}...';
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        username,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.white38,
+                                        ),
+                                      ),
+                                      Text(
+                                        '$score',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.amber,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+
+                    // Placeholder to balance BackButton width
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
@@ -230,16 +303,23 @@ class _MemoryBreachState extends State<MemoryBreach>
                     ),
                   ),
                   const SizedBox(height: 32),
-                  Text(
-                    _message,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                      fontFamily: 'Courier',
+                  SizedBox(
+                    height: 80,
+                    child: Center(
+                      child: Text(
+                        _message,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontFamily: 'Courier',
+                        ),
+                        overflow: TextOverflow.fade,
+                        maxLines: 2,
+                      ),
                     ),
                   ),
-                  const Spacer(),
+                  Spacer(),
                   Wrap(
                     alignment: WrapAlignment.center,
                     children: _availableInputs.map(_buildButton).toList(),
