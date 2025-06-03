@@ -2,6 +2,7 @@ import 'package:cryptofont/cryptofont.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:wagus/features/ai/ai_tools/reporting_tool.dart';
 import 'package:wagus/features/ai/bloc/ai_bloc.dart';
 import 'package:wagus/features/ai/data/ai_repository.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
@@ -21,6 +22,11 @@ class AIAnalysisPrediction extends HookWidget {
     return BlocBuilder<AiBloc, AiState>(
       builder: (context, state) {
         return Scaffold(
+          floatingActionButton: ReportFloatingButton(
+            aiGeneratedText: state.response,
+            aiState: state,
+          ),
+          resizeToAvoidBottomInset: false,
           body: SizedBox.expand(
             child: Stack(
               fit: StackFit.expand,

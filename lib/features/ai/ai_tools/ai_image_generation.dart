@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:wagus/features/ai/ai_tools/reporting_tool.dart';
 import 'package:wagus/features/ai/bloc/ai_bloc.dart';
 import 'package:wagus/features/ai/data/ai_repository.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
@@ -44,6 +45,10 @@ class AIImageGeneration extends HookWidget {
                 });
               },
               child: Scaffold(
+                floatingActionButton: ReportFloatingButton(
+                  aiGeneratedText: state.imageUrl ?? '',
+                  aiState: state,
+                ),
                 resizeToAvoidBottomInset: true,
                 body: Padding(
                   padding: const EdgeInsets.symmetric(

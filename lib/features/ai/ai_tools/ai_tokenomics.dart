@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:wagus/features/ai/ai_tools/reporting_tool.dart';
 import 'package:wagus/features/ai/bloc/ai_bloc.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/theme/app_palette.dart';
@@ -26,6 +27,14 @@ class AiTokenomicsGenerator extends HookWidget {
       },
       builder: (context, tierStatus) {
         return Scaffold(
+          floatingActionButton: BlocBuilder<AiBloc, AiState>(
+            builder: (context, state) {
+              return ReportFloatingButton(
+                aiGeneratedText: state.tokenomics ?? '',
+                aiState: state,
+              );
+            },
+          ),
           resizeToAvoidBottomInset: true,
           body: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32),
@@ -212,7 +221,6 @@ class AiTokenomicsGenerator extends HookWidget {
                 TextButton(
                   onPressed: () {
                     Navigator.of(dialogContext).pop();
-                    context.read<AiBloc>().add(AIResetStateEvent());
                   },
                   child: const Text('Close',
                       style: TextStyle(color: Colors.white)),
