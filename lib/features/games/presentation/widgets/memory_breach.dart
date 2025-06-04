@@ -109,7 +109,7 @@ class _MemoryBreachState extends State<MemoryBreach>
     Future.delayed(const Duration(seconds: 2), _startGame);
   }
 
-  void _handleInput(String input) {
+  Future<void> _handleInput(String input) async {
     if (_isShowingSequence || _isWaitingToStartInput) return;
 
     setState(() {
@@ -134,7 +134,8 @@ class _MemoryBreachState extends State<MemoryBreach>
       });
 
       // 🔥 Save high score to Firebase
-      _userService.updateMemoryBreachScore(widget.walletAddress, _score);
+      await _userService.updateMemoryBreachScore(widget.walletAddress, _score);
+      await _userService.checkAndMarkMemoryBreachQuest(widget.walletAddress);
 
       Future.delayed(const Duration(milliseconds: 1500), () {
         _addNextInSequence();

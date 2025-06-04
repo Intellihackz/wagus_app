@@ -73,7 +73,7 @@ class _CodeNavigatorState extends State<CodeNavigator>
     setState(() {});
   }
 
-  void _move(Point<int> delta) {
+  Future<void> _move(Point<int> delta) async {
     if (_isGameOver) return;
     final newPos = Point(_playerPos.x + delta.x, _playerPos.y + delta.y);
     if (!_inBounds(newPos)) return;
@@ -86,8 +86,10 @@ class _CodeNavigatorState extends State<CodeNavigator>
       if (_lives <= 0) return _gameOver('All lives lost');
     } else if (_goal == newPos) {
       _message = 'Signal locked!';
-      UserService()
+      await UserService()
           .markCodeNavigatorFound(widget.walletAddress); // 👈 Mark as found
+      await UserService().checkAndMarkMemoryBreachQuest(
+          widget.walletAddress); // 👈 Check quest progress
       _level++;
       Future.delayed(const Duration(seconds: 2), _startLevel);
     } else if (_decoys.contains(newPos)) {

@@ -490,49 +490,58 @@ class ProfileScreen extends HookWidget {
                                 if (!snapshot.hasData) return const SizedBox();
 
                                 final data = snapshot.data!.data();
-                                final badges =
+                                final badgeIds =
                                     (data?['badges'] ?? []) as List<dynamic>;
-                                final hasSugaw =
-                                    badges.contains('oXlvZMsWS58OZkjOHjpE');
-
-                                if (!hasSugaw) return const SizedBox();
+                                if (badgeIds.isEmpty) return const SizedBox();
 
                                 return FutureBuilder<
-                                    DocumentSnapshot<Map<String, dynamic>>>(
-                                  future: FirebaseFirestore.instance
-                                      .collection('badges')
-                                      .doc('oXlvZMsWS58OZkjOHjpE')
-                                      .get(),
+                                    List<
+                                        DocumentSnapshot<
+                                            Map<String, dynamic>>>>(
+                                  future: Future.wait(
+                                    badgeIds.map((id) => FirebaseFirestore
+                                        .instance
+                                        .collection('badges')
+                                        .doc(id)
+                                        .get()),
+                                  ),
                                   builder: (context, badgeSnapshot) {
                                     if (!badgeSnapshot.hasData)
                                       return const SizedBox();
 
-                                    final badgeData =
-                                        badgeSnapshot.data!.data();
-                                    final imageUrl = badgeData?['imageUrl'];
-                                    if (imageUrl == null || imageUrl.isEmpty)
-                                      return const SizedBox();
+                                    final badgeDocs = badgeSnapshot.data!;
+                                    final badgeImages = badgeDocs
+                                        .map((doc) =>
+                                            doc.data()?['imageUrl'] as String?)
+                                        .where((url) =>
+                                            url != null && url.isNotEmpty)
+                                        .toList();
 
-                                    return Padding(
-                                      padding: const EdgeInsets.only(left: 16),
-                                      child: Container(
-                                        width: 64,
-                                        height: 64,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          image: DecorationImage(
-                                            image: CachedNetworkImageProvider(
-                                                imageUrl),
-                                            fit: BoxFit.cover,
+                                    return Row(
+                                      children: badgeImages.map((imageUrl) {
+                                        return Padding(
+                                          padding:
+                                              const EdgeInsets.only(left: 8),
+                                          child: Container(
+                                            width: 48,
+                                            height: 48,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              image: DecorationImage(
+                                                image:
+                                                    CachedNetworkImageProvider(
+                                                        imageUrl!),
+                                                fit: BoxFit.cover,
+                                              ),
+                                              border: Border.all(
+                                                color: const Color.fromARGB(
+                                                    255, 56, 10, 10),
+                                                width: 2,
+                                              ),
+                                            ),
                                           ),
-                                          // nice sleek border
-                                          border: Border.all(
-                                            color: const Color.fromARGB(
-                                                255, 56, 10, 10),
-                                            width: 2,
-                                          ),
-                                        ),
-                                      ),
+                                        );
+                                      }).toList(),
                                     );
                                   },
                                 );

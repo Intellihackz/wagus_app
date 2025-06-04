@@ -1,5 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:android_id/android_id.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -24,6 +29,43 @@ class BadgeModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Future<void> checkEarlyAccess(String walletAddress, int wagusAmount) async {
+      final deviceInfo = DeviceInfoPlugin();
+      String deviceId; // declare once
+
+      if (Platform.isAndroid) {
+        const androidIdPlugin = AndroidId();
+        deviceId = await androidIdPlugin.getId() ?? '';
+
+        if (deviceId.isEmpty) {
+          throw Exception('Failed to retrieve Android device ID');
+        }
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        deviceId = iosInfo.identifierForVendor ?? '';
+      } else {
+        deviceId = 'unsupported';
+      }
+
+      final response = await Dio().post(
+        'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com/early-access',
+        data: {
+          'walletAddress': walletAddress,
+          'deviceId': deviceId,
+          'wagusAmount': wagusAmount,
+        },
+      );
+
+      final result =
+          response.data is String ? jsonDecode(response.data) : response.data;
+
+      if (response.statusCode == 200) {
+        // eligible
+      } else {
+        throw Exception(result['error'] ?? 'Unknown error');
+      }
+    }
+
     Future<List<String>> fetchClaimedBadgeIds(String wallet) async {
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
@@ -171,7 +213,9 @@ class BadgeModal extends StatelessWidget {
                                       ),
                                     const SizedBox(height: 12),
                                     Text(
-                                      '\$${badge['priceUSD'].toString()}',
+                                      badge['priceUSD'] != null
+                                          ? '\$${badge['priceUSD'].toString()}'
+                                          : 'Free',
                                       style: const TextStyle(
                                         fontSize: 15,
                                         color: Colors.white,
@@ -205,6 +249,8 @@ class BadgeModal extends StatelessWidget {
                                         onPressed: isSoldOut
                                             ? null
                                             : () async {
+                                                print(
+                                                    'testing! is claimed: $isClaimed');
                                                 if (isClaimed) {
                                                   if (context.canPop())
                                                     context.pop();
@@ -220,15 +266,60 @@ class BadgeModal extends StatelessWidget {
                                                   );
                                                   return;
                                                 }
+
                                                 final portalState = context
                                                     .read<PortalBloc>()
                                                     .state;
-                                                final usdTarget = double.parse(
-                                                    badge['priceUSD']
-                                                        .toString());
+                                                final usdTarget =
+                                                    double.tryParse(badge[
+                                                                    'priceUSD']
+                                                                ?.toString() ??
+                                                            '') ??
+                                                        0.0;
+
                                                 final usdPerToken = portalState
                                                     .selectedToken.usdPerToken
                                                     .toDouble();
+
+                                                if (badgeId ==
+                                                    'PoHkntyQUX2fKnAJbPvO') {
+                                                  final wagusBalance =
+                                                      portalState.holder
+                                                              ?.tokenAmount ??
+                                                          0;
+
+                                                  try {
+                                                    if (portalState
+                                                            .selectedToken
+                                                            .ticker !=
+                                                        'WAGUS') {
+                                                      throw Exception(
+                                                          'You must select WAGUS to claim this badge.');
+                                                    }
+                                                    await checkEarlyAccess(
+                                                        wallet.address,
+                                                        wagusBalance.toInt());
+                                                  } catch (e) {
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          e
+                                                              .toString()
+                                                              .replaceAll(
+                                                                  'Exception: ',
+                                                                  ''),
+                                                          style:
+                                                              const TextStyle(
+                                                                  color: Colors
+                                                                      .red),
+                                                        ),
+                                                      ),
+                                                    );
+                                                    return; // prevent claim
+                                                  }
+                                                }
                                                 final tokenAmount =
                                                     (usdTarget / usdPerToken)
                                                         .ceil();
@@ -247,42 +338,63 @@ class BadgeModal extends StatelessWidget {
                                                           .state
                                                           .selectedToken
                                                           .address;
-                                                  final amount = double.parse(
-                                                      badge['priceUSD']
-                                                          .toString());
+                                                  final amount = double.tryParse(
+                                                          badge['priceUSD']
+                                                                  ?.toString() ??
+                                                              '0') ??
+                                                      0.0;
+
                                                   final decimals = context
                                                       .read<PortalBloc>()
                                                       .state
                                                       .selectedToken
                                                       .decimals;
 
-                                                  final txId = await context
-                                                      .read<BankRepository>()
-                                                      .withdrawFunds(
-                                                        wallet: wallet,
-                                                        amount: tokenAmount,
-                                                        destinationAddress:
-                                                            treasuryWallet,
-                                                        wagusMint:
-                                                            currentTokenAddress,
-                                                        decimals: decimals,
-                                                      );
+                                                  if (usdTarget > 0) {
+                                                    final txId = await context
+                                                        .read<BankRepository>()
+                                                        .withdrawFunds(
+                                                          wallet: wallet,
+                                                          amount: tokenAmount,
+                                                          destinationAddress:
+                                                              treasuryWallet,
+                                                          wagusMint:
+                                                              currentTokenAddress,
+                                                          decimals: decimals,
+                                                        );
 
-                                                  await Dio().post(
-                                                    'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com/claim-badge',
-                                                    data: {
-                                                      'userWallet':
-                                                          wallet.address,
-                                                      'amount': amount,
-                                                      'badgeId':
-                                                          'oXlvZMsWS58OZkjOHjpE',
-                                                      'txSignature': txId,
-                                                    },
-                                                    options: Options(headers: {
-                                                      'Authorization':
-                                                          'Bearer ${dotenv.env['INTERNAL_API_KEY']}',
-                                                    }),
-                                                  );
+                                                    await Dio().post(
+                                                      'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com/claim-badge',
+                                                      data: {
+                                                        'userWallet':
+                                                            wallet.address,
+                                                        'amount': amount,
+                                                        'badgeId': badgeId,
+                                                        'txSignature': txId,
+                                                      },
+                                                      options:
+                                                          Options(headers: {
+                                                        'Authorization':
+                                                            'Bearer ${dotenv.env['INTERNAL_API_KEY']}',
+                                                      }),
+                                                    );
+                                                  } else {
+                                                    await Dio().post(
+                                                      'https://wagus-claim-silnt-a3ca9e3fbf49.herokuapp.com/claim-badge',
+                                                      data: {
+                                                        'userWallet':
+                                                            wallet.address,
+                                                        'amount': amount,
+                                                        'badgeId': badgeId,
+                                                        'txSignature': 'Free'
+                                                      },
+                                                      options:
+                                                          Options(headers: {
+                                                        'Authorization':
+                                                            'Bearer ${dotenv.env['INTERNAL_API_KEY']}',
+                                                      }),
+                                                    );
+                                                  }
 
                                                   final message = Message(
                                                     text:
@@ -307,7 +419,8 @@ class BadgeModal extends StatelessWidget {
                                                       .showSnackBar(
                                                     SnackBar(
                                                       content: Text(
-                                                        'Failed to purchase badge: $e',
+                                                        badge['requirements'] ??
+                                                            'Failed to purchase badge: $e',
                                                         style: const TextStyle(
                                                             color: Colors.red),
                                                       ),
@@ -326,7 +439,9 @@ class BadgeModal extends StatelessWidget {
                                               ? 'Claimed'
                                               : isSoldOut
                                                   ? 'Sold Out'
-                                                  : 'Buy Badge',
+                                                  : badge['priceUSD'] != null
+                                                      ? 'Buy Badge'
+                                                      : 'Claim for Free',
                                           style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w600,
