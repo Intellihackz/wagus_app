@@ -393,7 +393,7 @@ class Incubator extends HookWidget {
                                           color: Colors.white54, fontSize: 12),
                                     ),
                                     Text(
-                                      '${((project.totalFunded ?? 0) / 60 * 100).clamp(0, 100).toInt()}% funded',
+                                      '${((project.totalFunded ?? 0) / project.maxAllocation * 100).clamp(0, 100).toInt()}% funded',
                                       style: TextStyle(
                                           color: tierStatus ==
                                                   TierStatus.adventurer
