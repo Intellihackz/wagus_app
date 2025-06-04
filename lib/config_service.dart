@@ -55,13 +55,25 @@ class ConfigService {
       final current = info.version;
 
       final docSnap = await _doc.get();
-      final minVersion = docSnap.data()?['min_supported_version'];
+      final data = docSnap.data();
+      if (data == null) {
+        print('⚠️ Config doc missing or null');
+        return false;
+      }
 
-      if (minVersion == null) return false;
-      return _compareVersions(current, minVersion) < 0;
+      final minVersion = data['min_supported_version'];
+      if (minVersion == null) {
+        print('⚠️ No min_supported_version set');
+        return false;
+      }
+
+      final result = _compareVersions(current, minVersion);
+      print(
+          '🔍 Version check: current=$current vs required=$minVersion → result=$result');
+      return result < 0;
     } catch (e) {
       print('❌ Error checking version: $e');
-      return false; // Or return true to block app if you want extra safety
+      return false;
     }
   }
 }
