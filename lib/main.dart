@@ -4,16 +4,14 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app_badge/flutter_app_badge.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:wagus/app.dart';
-import 'package:wagus/config_service.dart';
-import 'package:wagus/lifecycle_handler.dart';
-import 'package:wagus/observer.dart';
-import 'package:wagus/router.dart';
+import 'package:wagus/core/config/config_service.dart';
+import 'package:wagus/core/lifecycle/lifecycle_handler.dart';
+import 'package:wagus/routing/router.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/services/user_service.dart';
-import 'package:wagus/update_required_screen.dart';
+import 'package:wagus/presentation/update_required_screen.dart';
 
 /// Top-level function to handle background messages
 @pragma('vm:entry-point')

@@ -4,7 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wagus/features/games/bloc/game_bloc.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
-import 'package:wagus/router.dart';
+import 'package:wagus/routing/router.dart';
 
 class Game extends StatelessWidget {
   const Game({super.key});

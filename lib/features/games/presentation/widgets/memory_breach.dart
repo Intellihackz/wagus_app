@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wagus/features/games/presentation/widgets/glitch_overlay.dart';
 import 'package:wagus/services/user_service.dart';
-import 'package:wagus/theme/app_palette.dart';
+import 'package:wagus/core/theme/app_palette.dart';
 
 class MemoryBreach extends StatefulWidget {
   final String walletAddress;

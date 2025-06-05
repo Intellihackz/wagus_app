@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
-import 'package:wagus/theme/app_palette.dart';
+import 'package:wagus/core/theme/app_palette.dart';
 
 class GuessTheDrawingSessionList extends StatelessWidget {
   final String walletAddress;

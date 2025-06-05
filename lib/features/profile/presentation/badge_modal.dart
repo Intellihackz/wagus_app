@@ -16,7 +16,7 @@ import 'package:wagus/features/bank/data/bank_repository.dart';
 import 'package:wagus/features/home/data/home_repository.dart';
 import 'package:wagus/features/home/domain/message.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
-import 'package:wagus/theme/app_palette.dart';
+import 'package:wagus/core/theme/app_palette.dart';
 
 class BadgeModal extends StatelessWidget {
   const BadgeModal({

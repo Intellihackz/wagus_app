@@ -12,10 +12,10 @@ import 'package:privy_flutter/privy_flutter.dart';
 import 'package:wagus/features/bank/data/bank_repository.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/profile/presentation/badge_modal.dart';
-import 'package:wagus/router.dart';
+import 'package:wagus/routing/router.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/services/user_service.dart';
-import 'package:wagus/theme/app_palette.dart';
+import 'package:wagus/core/theme/app_palette.dart';
 
 class ProfileScreen extends HookWidget {
   final String address;

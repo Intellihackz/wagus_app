@@ -10,7 +10,7 @@ import 'package:privy_flutter/privy_flutter.dart';
 import 'package:wagus/features/incubator/bloc/incubator_bloc.dart';
 import 'package:wagus/features/incubator/domain/project.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
-import 'package:wagus/theme/app_palette.dart';
+import 'package:wagus/core/theme/app_palette.dart';
 import 'package:uuid/uuid.dart';
 
 class ProjectInterface extends HookWidget {

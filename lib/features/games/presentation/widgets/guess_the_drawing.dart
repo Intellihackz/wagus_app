@@ -12,10 +12,10 @@ import 'package:wagus/features/games/data/game_repository.dart';
 import 'package:wagus/features/games/domain/guess_the_drawing/chat_message_entry.dart';
 import 'package:wagus/features/games/domain/guess_the_drawing/guess_entry.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
-import 'package:wagus/router.dart';
+import 'package:wagus/routing/router.dart';
 import 'package:wagus/services/socket_service.dart';
 import 'package:wagus/services/user_service.dart';
-import 'package:wagus/theme/app_palette.dart';
+import 'package:wagus/core/theme/app_palette.dart';
 
 class GuessTheDrawing extends HookWidget {
   const GuessTheDrawing(

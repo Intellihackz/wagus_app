@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
-import 'package:wagus/router.dart';
+import 'package:wagus/routing/router.dart';
 
 class AITools extends StatelessWidget {
   const AITools({super.key});

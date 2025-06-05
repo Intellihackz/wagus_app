@@ -4,7 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
-import 'package:wagus/router.dart';
+import 'package:wagus/routing/router.dart';
 
 class PrivyService {
   static final PrivyService _instance = PrivyService._internal();

@@ -402,26 +402,6 @@ class _QuestTile extends StatelessWidget {
   }
 }
 
-class _ComingSoonTile extends StatelessWidget {
-  const _ComingSoonTile({required this.title});
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return ExpansionTile(
-      collapsedIconColor: Colors.white,
-      iconColor: Colors.white,
-      title: Text(title, style: const TextStyle(color: Colors.white)),
-      children: const [
-        Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text('Coming Soon', style: TextStyle(color: Colors.grey)),
-        ),
-      ],
-    );
-  }
-}
-
 class DailyRewardsSheet extends StatelessWidget {
   const DailyRewardsSheet({super.key, required this.sheetContext});
 

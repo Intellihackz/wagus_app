@@ -10,8 +10,8 @@ import 'package:solana/base58.dart';
 import 'package:solana/solana.dart' as solana;
 import 'package:solana_web3/programs.dart';
 import 'package:solana_web3/solana_web3.dart' as web3;
-import 'package:wagus/constants.dart';
-import 'package:wagus/extensions.dart';
+import 'package:wagus/core/constants/constants.dart';
+import 'package:wagus/core/extensions/extensions.dart';
 import 'package:wagus/features/incubator/domain/project.dart';
 
 class IncubatorRepository {

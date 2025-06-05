@@ -11,7 +11,7 @@ import 'package:privy_flutter/src/models/embedded_solana_wallet/embedded_solana_
 import 'package:solana/solana.dart' as solana;
 import 'package:solana_web3/programs.dart';
 import 'package:solana_web3/solana_web3.dart' as web3;
-import 'package:wagus/extensions.dart';
+import 'package:wagus/core/extensions/extensions.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/shared/holder/holder.dart';
 import 'package:wagus/shared/token/token.dart';

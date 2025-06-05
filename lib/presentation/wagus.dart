@@ -16,8 +16,8 @@ import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/incubator/incubator.dart';
 import 'package:wagus/features/quest/presentation/quest.dart';
 import 'package:wagus/services/user_service.dart';
-import 'package:wagus/theme/app_palette.dart';
-import 'package:wagus/utils.dart';
+import 'package:wagus/core/theme/app_palette.dart';
+import 'package:wagus/core/utils/utils.dart';
 
 final StreamController<bool> startupController =
     StreamController<bool>.broadcast();

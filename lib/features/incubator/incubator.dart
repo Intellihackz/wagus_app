@@ -11,10 +11,10 @@ import 'package:wagus/features/incubator/bloc/incubator_bloc.dart';
 import 'package:wagus/features/incubator/data/incubator_repository.dart';
 import 'package:wagus/features/incubator/domain/project.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
-import 'package:wagus/router.dart';
+import 'package:wagus/routing/router.dart';
 import 'package:date_format/date_format.dart';
-import 'package:wagus/theme/app_palette.dart';
-import 'package:wagus/utils.dart';
+import 'package:wagus/core/theme/app_palette.dart';
+import 'package:wagus/core/utils/utils.dart';
 
 class Incubator extends HookWidget {
   const Incubator({super.key});

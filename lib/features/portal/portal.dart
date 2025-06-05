@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
-import 'package:wagus/features/portal/data/portal_repository.dart';
-import 'package:wagus/router.dart';
+import 'package:wagus/routing/router.dart';
 import 'package:wagus/services/user_service.dart';
-import 'package:wagus/theme/app_palette.dart';
+import 'package:wagus/core/theme/app_palette.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 class Portal extends HookWidget {
@@ -82,41 +81,6 @@ class Portal extends HookWidget {
                                       .read<PortalBloc>()
                                       .add(PortalAuthorizeEvent(context));
                                 },
-                          // onTap: isLoading.value
-                          //     ? null
-                          //     : () async {
-                          //         try {
-                          //           isLoading.value = true;
-                          //           errorMessage.value = null;
-
-                          //           context
-                          //               .read<PortalBloc>()
-                          //               .add(PortalAuthorizeEvent(context));
-
-                          //           final portalBlocState =
-                          //               context.read<PortalBloc>().state;
-                          //           final user = portalBlocState.user;
-                          //           final hasWallets = user
-                          //                   ?.embeddedSolanaWallets
-                          //                   .isNotEmpty ??
-                          //               false;
-
-                          //           if (user != null && hasWallets) {
-                          //             await UserService().setUserOnline(user
-                          //                 .embeddedSolanaWallets
-                          //                 .first
-                          //                 .address);
-                          //             if (context.mounted) {
-                          //               context.go(home);
-                          //             }
-                          //           } else {
-                          //             errorMessage.value =
-                          //                 'Please create a wallet first.';
-                          //           }
-                          //         } finally {
-                          //           isLoading.value = false;
-                          //         }
-                          //       },
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 24, vertical: 14),

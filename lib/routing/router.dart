@@ -14,8 +14,8 @@ import 'package:wagus/features/games/presentation/widgets/spygus.dart';
 import 'package:wagus/features/incubator/project_interface.dart';
 import 'package:wagus/features/portal/portal.dart';
 import 'package:wagus/features/profile/presentation/profile.dart';
-import 'package:wagus/splash_screen.dart';
-import 'package:wagus/wagus.dart';
+import 'package:wagus/presentation/splash_screen.dart';
+import 'package:wagus/presentation/wagus.dart';
 
 const String login = '/login';
 const String portal = '/portal';

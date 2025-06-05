@@ -18,10 +18,10 @@ import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/features/quest/bloc/quest_bloc.dart';
 import 'package:wagus/features/quest/data/quest_repository.dart';
-import 'package:wagus/router.dart';
+import 'package:wagus/routing/router.dart';
 import 'package:wagus/services/privy_service.dart';
-import 'package:wagus/theme/app_palette.dart';
-import 'package:wagus/wagus.dart';
+import 'package:wagus/core/theme/app_palette.dart';
+import 'package:wagus/presentation/wagus.dart';
 
 class App extends HookWidget {
   final GoRouter router;

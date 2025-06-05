@@ -6,7 +6,7 @@ import 'package:wagus/features/ai/ai_tools/reporting_tool.dart';
 import 'package:wagus/features/ai/bloc/ai_bloc.dart';
 import 'package:wagus/features/ai/data/ai_repository.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
-import 'package:wagus/theme/app_palette.dart';
+import 'package:wagus/core/theme/app_palette.dart';
 
 class AIAnalysisPrediction extends HookWidget {
   const AIAnalysisPrediction({super.key});

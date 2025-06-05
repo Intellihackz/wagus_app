@@ -6,11 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:wagus/features/bank/bloc/bank_bloc.dart';
 
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
-import 'package:wagus/router.dart';
+import 'package:wagus/routing/router.dart';
 import 'package:wagus/shared/token/token.dart';
-import 'package:wagus/theme/app_palette.dart';
-import 'package:wagus/utils.dart';
-import 'package:wagus/wagus.dart';
+import 'package:wagus/core/theme/app_palette.dart';
+import 'package:wagus/core/utils/utils.dart';
+import 'package:wagus/presentation/wagus.dart';
 
 class Bank extends HookWidget {
   const Bank({super.key, required this.previousLocation});
