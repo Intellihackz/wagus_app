@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
+import 'package:wagus/features/auth/domain/blocked_domains.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/routing/router.dart';
 import 'package:wagus/services/privy_service.dart';
@@ -138,14 +139,6 @@ class LoginScreen extends HookWidget {
                                 }
 
                                 final domain = email.split('@').last;
-                                const blocked = [
-                                  'tempmail.com',
-                                  'mailinator.com',
-                                  'guerrillamail.com',
-                                  '10minutemail.com',
-                                  'harinv.com',
-                                  'idoidraw.com',
-                                ];
 
                                 if (blocked.contains(domain)) {
                                   errorMessage.value =

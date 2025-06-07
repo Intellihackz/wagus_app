@@ -109,8 +109,11 @@ class _MemoryBreachState extends State<MemoryBreach>
     Future.delayed(const Duration(seconds: 2), _startGame);
   }
 
+  bool isProcessingNextRound = false;
+
   Future<void> _handleInput(String input) async {
-    if (_isShowingSequence || _isWaitingToStartInput) return;
+    if (_isShowingSequence || _isWaitingToStartInput || isProcessingNextRound)
+      return;
 
     setState(() {
       _message = _fragments[input] ?? '';
@@ -119,28 +122,32 @@ class _MemoryBreachState extends State<MemoryBreach>
     _userInput.add(input);
     final currentIndex = _userInput.length - 1;
 
+    // ❌ If the input is incorrect, reset
     if (_userInput[currentIndex] != _sequence[currentIndex]) {
       setState(() {
         _message = 'Memory corrupted. Reinitializing...';
       });
-      Future.delayed(const Duration(seconds: 2), _startGame);
+      await Future.delayed(const Duration(seconds: 2));
+      _startGame();
       return;
     }
 
+    // ✅ Only if all inputs were correct
     if (_userInput.length == _sequence.length) {
+      isProcessingNextRound = true;
+
       setState(() {
         _score++;
         _message = 'Memory injection successful. Round $_score';
       });
 
-      // 🔥 Save high score to Firebase
+      await Future.delayed(const Duration(milliseconds: 1000));
       await _userService.updateMemoryBreachScore(widget.walletAddress, _score);
-      await _userService.checkAndMarkMemoryBreachQuest(widget.walletAddress);
 
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        _addNextInSequence();
-        _playSequence();
-      });
+      _addNextInSequence();
+      await _playSequence();
+
+      isProcessingNextRound = false;
     }
   }
 
@@ -209,11 +216,11 @@ class _MemoryBreachState extends State<MemoryBreach>
         backgroundColor: Colors.black,
         body: Stack(
           children: [
-            SafeArea(
-              child: Positioned(
-                top: 16,
-                left: 16,
-                right: 16,
+            Positioned(
+              top: 16,
+              left: 16,
+              right: 16,
+              child: SafeArea(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

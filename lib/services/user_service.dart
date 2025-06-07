@@ -157,23 +157,4 @@ class UserService {
       'code_navigator_found': true,
     }, SetOptions(merge: true));
   }
-
-  Future<void> checkAndMarkMemoryBreachQuest(String walletAddress) async {
-    final doc = await usersCollection.doc(walletAddress).get();
-    final data = doc.data();
-    if (data == null) return;
-
-    final score = data['memory_breach_score'] ?? 0;
-    final questProgress = (data['questProgress'] ?? {}) as Map<String, dynamic>;
-    final sugawProgress =
-        (questProgress['sugaw'] ?? {}) as Map<String, dynamic>;
-
-    if (score >= 10 && sugawProgress['step1'] != true) {
-      await usersCollection.doc(walletAddress).set({
-        'questProgress': {
-          'sugaw': {'step1': true},
-        },
-      }, SetOptions(merge: true));
-    }
-  }
 }

@@ -86,10 +86,7 @@ class _CodeNavigatorState extends State<CodeNavigator>
       if (_lives <= 0) return _gameOver('All lives lost');
     } else if (_goal == newPos) {
       _message = 'Signal locked!';
-      await UserService()
-          .markCodeNavigatorFound(widget.walletAddress); // 👈 Mark as found
-      await UserService().checkAndMarkMemoryBreachQuest(
-          widget.walletAddress); // 👈 Check quest progress
+      await UserService().markCodeNavigatorFound(widget.walletAddress);
       _level++;
       Future.delayed(const Duration(seconds: 2), _startLevel);
     } else if (_decoys.contains(newPos)) {

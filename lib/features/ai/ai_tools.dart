@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:wagus/features/ai/domain/tools.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/routing/router.dart';
 
@@ -9,39 +10,6 @@ class AITools extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tools = [
-      {
-        'icon': Icons.analytics,
-        'title': 'AI Analysis Prediction',
-        'tagline': 'Forecast trends and market behavior.',
-        'route': aiAnalysisPrediction,
-      },
-      {
-        'icon': Icons.image,
-        'title': 'AI Image Generation',
-        'tagline': 'Turn text into stunning visuals.',
-        'route': aiImageGeneration,
-      },
-      {
-        'icon': Icons.description,
-        'title': 'AI White Paper Generator',
-        'tagline': 'Craft polished whitepapers in seconds.',
-        'route': aiWhitePaperGeneration,
-      },
-      {
-        'icon': Icons.map,
-        'title': 'AI Roadmap Generator',
-        'tagline': 'Strategically plan your project milestones.',
-        'route': aiRoadmapGeneration,
-      },
-      {
-        'icon': Icons.pie_chart,
-        'title': 'AI Tokenomics Generator',
-        'tagline': 'Design sustainable crypto economies.',
-        'route': aiTokenomicsGeneration,
-      },
-    ];
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: Padding(
