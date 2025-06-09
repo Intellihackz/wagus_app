@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:privy_flutter/privy_flutter.dart';
 import 'package:solana_web3/solana_web3.dart' as web3;
+import 'package:wagus/core/extensions/extensions.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/services/user_service.dart';
@@ -35,7 +36,6 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     on<PortalInitialEvent>(_handleInitial);
     on<PortalAuthorizeEvent>(_handleAuthorize);
     on<PortalRefreshEvent>(_handleRefresh);
-    on<PortalListenTokenAddressEvent>(_handleTokenAddress);
     on<PortalClearEvent>(_handleClear);
     on<PortalUpdateTierEvent>(_handleUpdateTier);
     on<PortalFetchHoldersCountEvent>(_handleFetchHoldersCount);
@@ -44,34 +44,35 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
       if (user == null || user.embeddedSolanaWallets.isEmpty) return;
 
       final walletAddress = user.embeddedSolanaWallets.first.address;
+      final stream = portalRepository.getSupportedTokens();
 
-      final tokensStream = portalRepository.getSupportedTokens();
+      await emitFromAsyncStream<List<Token>, PortalState>(
+        stream: stream,
+        emit: emit,
+        onData: (tokens) async {
+          final defaultToken = tokens.firstWhere(
+            (t) => t.ticker.toUpperCase() == 'WAGUS',
+            orElse: () => tokens.first,
+          );
 
-      await for (final tokens in tokensStream) {
-        final defaultToken = tokens.firstWhere(
-          (t) => t.ticker.toUpperCase() == 'WAGUS',
-          orElse: () => tokens.first,
-        );
+          final holdersMap = <String, Holder>{};
 
-        final holdersMap = <String, Holder>{};
+          for (final token in tokens) {
+            final holder =
+                await _getSolAndTokenBalances(walletAddress, token.address);
+            holdersMap[token.ticker] = holder;
+            await Future.delayed(
+                const Duration(milliseconds: 200)); // to avoid API rate limits
+          }
 
-        for (final token in tokens) {
-          final holder =
-              await _getSolAndTokenBalances(walletAddress, token.address);
-          holdersMap[token.ticker] = holder;
-          await Future.delayed(
-              const Duration(milliseconds: 200)); // avoid rate limit
-        }
-
-        emit(state.copyWith(
-          supportedTokens: () => tokens,
-          selectedToken: () => defaultToken,
-          holdersMap: () => holdersMap,
-          holder: () => holdersMap[defaultToken.ticker],
-        ));
-
-        break; // only handle first snapshot
-      }
+          return state.copyWith(
+            supportedTokens: () => tokens,
+            selectedToken: () => defaultToken,
+            holdersMap: () => holdersMap,
+            holder: () => holdersMap[defaultToken.ticker],
+          );
+        },
+      );
     });
 
     on<PortalSetSelectedTokenEvent>((event, emit) async {
@@ -172,12 +173,9 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
     final wallet = user.embeddedSolanaWallets.first.address;
     await UserService().updateUserLogin(wallet);
 
-    add(PortalListenSupportedTokensEvent());
-
     if (PrivyService().isAuthenticated()) {
       if (user.embeddedSolanaWallets.isNotEmpty) {
         add(PortalInitialEvent());
-        add(PortalListenSupportedTokensEvent());
       }
     }
   }
@@ -273,9 +271,6 @@ class PortalBloc extends Bloc<PortalEvent, PortalState> {
 
     return holder;
   }
-
-  Future<void> _handleTokenAddress(
-      PortalListenTokenAddressEvent event, Emitter<PortalState> emit) async {}
 
   Future<void> _handleClear(
       PortalClearEvent event, Emitter<PortalState> emit) async {

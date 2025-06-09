@@ -27,6 +27,20 @@ const faqItems = <Map<String, String>>[
         'Adventurers get a red name, themed UI, meme coin analysis, better \$SOL/\$WAGUS rewards, early feature access, can host giveaways, create rooms, and gain more visibility. Basic users miss out.',
   },
   {
+    'title': 'How to get the Early Member badge?',
+    'content': '- Hold at least 100,000 WAGUS in your wallet\n'
+        '- Only 1 claim allowed per device and IP address\n'
+        '- Must claim before the total supply reaches 100',
+  },
+  {
+    'title': 'What is AFK training?',
+    'content': '- Type /afk <skill> in chat (e.g. /afk str)\n'
+        '- You’ll passively gain XP every minute for that skill\n'
+        '- Max 500 XP per session, then you must claim again\n'
+        '- Claim using the button or when you reopen the app\n'
+        '- Great way to train while idle or offline',
+  },
+  {
     'title': 'Why doesn’t the price change constantly?',
     'content':
         'To keep things simple and stable, we manually set token prices for upgrades. This removes volatility and shows how stablecoin-like systems can work in a real app without needing constant price updates.',

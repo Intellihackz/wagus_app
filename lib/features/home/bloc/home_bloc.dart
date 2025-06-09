@@ -10,8 +10,11 @@ import 'package:wagus/features/bank/data/bank_repository.dart';
 import 'package:wagus/features/home/data/home_repository.dart';
 import 'package:wagus/features/home/domain/chat_command.dart';
 import 'package:wagus/features/home/domain/chat_command_parser.dart';
+import 'package:wagus/features/home/domain/help_message.dart';
 import 'package:wagus/features/home/domain/message.dart';
 import 'package:wagus/features/portal/bloc/portal_bloc.dart';
+import 'package:wagus/features/rpg/domain/afk_training_service.dart';
+import 'package:wagus/features/rpg/domain/skill_registry.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/services/user_service.dart';
 
@@ -43,7 +46,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
   final HomeRepository homeRepository;
   final BankRepository bankRepository;
-  HomeBloc({required this.homeRepository, required this.bankRepository})
+  final AfkTrainingService afkService;
+  HomeBloc(
+      {required this.homeRepository,
+      required this.bankRepository,
+      required this.afkService})
       : super(HomeState(messages: [], announcedGiveawayIds: {})) {
     on<HomeListenToGiveawayEvent>((event, emit) async {
       await emit.forEach(
@@ -247,25 +254,38 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
         case '/help':
           return original.copyWith(
-            text: '''[HELP] 🧠 WAGUS Chat Commands
-
-/send <amount> <wallet> – Send tokens to a wallet address. Example: /send 100 abc123...xyz
-
-/flex – Show off your wallet balance. Let them know you’re loaded 💼
-
-/upgrade – Upgrade your tier to Adventurer 🧙‍♂️ and unlock exclusive perks
-
-/burn <amount> – Burn your tokens forever. Prove you're built different 🔥
-
-/giveaway <amount> -keyword <word> -duration <seconds>
-Start a giveaway. Example: /giveaway 200 -keyword lucky -duration 60
-
-/create <room_name> – Create a new chat room. Example: /create MyRoom
-
-Type any command to try it out.''',
+            text: helpOutput,
             sender: 'System',
             tier: TierStatus.system,
           );
+
+        case '/afk':
+          final skill = cmd.args.firstOrNull;
+          if (skill == null || !SkillRegistry.isValid(skill)) {
+            return original.copyWith(
+              text: '[AFK] Invalid skill. Try: /afk str',
+              sender: 'System',
+              tier: TierStatus.system,
+            );
+          }
+
+          try {
+            await afkService.startTraining(original.sender, skill);
+            final skillName = SkillRegistry.getById(skill)?.name ?? skill;
+
+            return original.copyWith(
+              text:
+                  '[AFK] Started training $skillName. Come back later to see your gains 💤',
+              sender: 'System',
+              tier: TierStatus.system,
+            );
+          } catch (e) {
+            return original.copyWith(
+              text: '[AFK] ❌ Failed to start training: $e',
+              sender: 'System',
+              tier: TierStatus.system,
+            );
+          }
 
         default:
           return original.copyWith(
@@ -513,44 +533,18 @@ Type any command to try it out.''',
 
       final parsed = ChatCommandParser.parse(event.message.text);
 
-      if (parsed != null && event.message.text.trim().startsWith('/')) {
-        if (parsed.action == '/create' && parsed.args.isNotEmpty) {
-          if (event.message.tier != TierStatus.adventurer) {
-            final deniedMsg = event.message.copyWith(
-              text: '[CREATE] Only Adventurer tier can create rooms.',
-              sender: 'System',
-              tier: TierStatus.system,
-              room: event.message.room,
-            );
-            await homeRepository.sendMessage(deniedMsg);
-            return;
-          }
-
-          final newRoom = parsed.args[0].trim();
-
-          // Prevent duplicates or blank
-          if (newRoom.isEmpty || state.rooms.contains(newRoom)) return;
-
-          // Save to Firestore
-          await FirebaseFirestore.instance
-              .collection('rooms')
-              .doc(newRoom)
-              .set({
-            'name': newRoom,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-
-          final confirmation = event.message.copyWith(
-            text: '[CREATE] Created new room: $newRoom',
+      final xp = await afkService.claimTrainingXP(event.message.sender);
+      if (xp > 0) {
+        await homeRepository.sendMessage(
+          event.message.copyWith(
+            text: '[AFK] You gained $xp XP from your training session! 🏆',
             sender: 'System',
             tier: TierStatus.system,
-            room: 'General',
-          );
+          ),
+        );
+      }
 
-          await homeRepository.sendMessage(confirmation);
-          return;
-        }
-
+      if (parsed != null && event.message.text.trim().startsWith('/')) {
         // Debug log to confirm the state update after sending a message
         log('[BLOC] Sending regular message: ${event.message.text}');
 

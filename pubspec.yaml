@@ -2,7 +2,7 @@ name: wagus
 description: "WAGUS is a coin that is tied to the WAGUS App, and offers exclusive benefits to its holders."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.45+46
+version: 1.0.46+47
 
 environment:
   sdk: ^3.5.4

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:wagus/features/rpg/domain/skill_registry.dart';
 
 class UserService {
   final usersCollection = FirebaseFirestore.instance.collection('users');
@@ -20,10 +21,42 @@ class UserService {
   }
 
   Future<void> updateUserLogin(String walletAddress) async {
-    await usersCollection.doc(walletAddress).set({
+    final userRef = usersCollection.doc(walletAddress);
+    final doc = await userRef.get();
+    final data = doc.data() ?? {};
+
+    final isXpMissing = data['xp'] is! Map;
+
+    final Map<String, dynamic> updatePayload = {
       'wallet': walletAddress,
       'last_login': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    };
+
+    if (isXpMissing) {
+      updatePayload['xp'] = {
+        for (final skill in SkillRegistry.all()) skill.id: 0,
+      };
+    }
+
+    await userRef.set(updatePayload, SetOptions(merge: true));
+  }
+
+  Future<void> ensureXpMapInitialized(String wallet) async {
+    final userRef = FirebaseFirestore.instance.collection('users').doc(wallet);
+    final snapshot = await userRef.get();
+
+    final data = snapshot.data();
+    final xpMap = data?['xpMap'] as Map<String, dynamic>?;
+
+    if (xpMap != null && xpMap.isNotEmpty) {
+      return; // ✅ Already initialized
+    }
+
+    final defaultXpMap = {
+      for (final skill in SkillRegistry.all()) skill.id: 0,
+    };
+
+    await userRef.set({'xpMap': defaultXpMap}, SetOptions(merge: true));
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>> getUser(String walletAddress) {

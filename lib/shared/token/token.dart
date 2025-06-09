@@ -5,7 +5,7 @@ class Token extends Equatable {
   final String ticker;
   final String address;
   final int decimals;
-  final double usdPerToken;
+  final num usdPerToken;
 
   const Token({
     required this.name,

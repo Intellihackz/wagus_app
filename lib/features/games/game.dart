@@ -20,18 +20,6 @@ class Game extends StatelessWidget {
         'status': 'live',
       },
       {
-        'icon': FontAwesomeIcons.skull,
-        'title': 'Zombie Apocalypse',
-        'tagline': 'Survive waves of the undead.',
-        'status': 'coming',
-      },
-      {
-        'icon': FontAwesomeIcons.robot,
-        'title': 'Battle Bots',
-        'tagline': 'Program your bot and battle others.',
-        'status': 'coming',
-      },
-      {
         'icon': FontAwesomeIcons.puzzlePiece,
         'title': 'Guess the Drawing',
         'tagline': 'Draw and guess with friends.',

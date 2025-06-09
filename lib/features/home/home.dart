@@ -93,6 +93,17 @@ class Home extends HookWidget {
         },
         keys: [context.read<PortalBloc>().state]);
 
+    final user = context.select((PortalBloc bloc) => bloc.state.user);
+    final hasRun = useRef(false);
+
+    useEffect(() {
+      if (user != null && !hasRun.value) {
+        context.read<PortalBloc>().add(PortalListenSupportedTokensEvent());
+        hasRun.value = true;
+      }
+      return null;
+    }, [user]);
+
     return BlocBuilder<PortalBloc, PortalState>(
       builder: (context, portalState) {
         return BlocConsumer<HomeBloc, HomeState>(

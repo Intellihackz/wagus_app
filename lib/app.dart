@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -18,6 +19,7 @@ import 'package:wagus/features/portal/bloc/portal_bloc.dart';
 import 'package:wagus/features/portal/data/portal_repository.dart';
 import 'package:wagus/features/quest/bloc/quest_bloc.dart';
 import 'package:wagus/features/quest/data/quest_repository.dart';
+import 'package:wagus/features/rpg/domain/afk_training_service.dart';
 import 'package:wagus/routing/router.dart';
 import 'package:wagus/services/privy_service.dart';
 import 'package:wagus/core/theme/app_palette.dart';
@@ -71,6 +73,8 @@ class App extends HookWidget {
                   create: (_) => HomeBloc(
                         homeRepository: context.read<HomeRepository>(),
                         bankRepository: context.read<BankRepository>(),
+                        afkService:
+                            AfkTrainingService(FirebaseFirestore.instance),
                       )
                         ..add(HomeSetRoomEvent('General'))
                         ..add(HomeWatchOnlineUsersEvent())
@@ -82,8 +86,6 @@ class App extends HookWidget {
                       portalRepository: context.read<PortalRepository>());
                   if (PrivyService().isAuthenticated()) {
                     bloc.add(PortalInitialEvent());
-                    bloc.add(PortalListenSupportedTokensEvent());
-                    bloc.add(PortalListenTokenAddressEvent());
                   }
                   return bloc;
                 },

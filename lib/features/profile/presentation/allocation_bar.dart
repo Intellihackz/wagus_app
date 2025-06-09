@@ -34,11 +34,6 @@ class AllocationBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final holdersMap = context.read<PortalBloc>().state.holdersMap ?? {};
 
-    if (isCurrentUser &&
-        (context.read<PortalBloc>().state.holdersMap?.isEmpty ?? true)) {
-      context.read<PortalBloc>().add(PortalListenSupportedTokensEvent());
-    }
-
     if (holdersMap.isEmpty) return const SizedBox();
 
     final allocations = holdersMap.entries.map((e) {

@@ -212,168 +212,172 @@ class _MemoryBreachState extends State<MemoryBreach>
               ),
         ),
       ),
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: Stack(
-          children: [
-            Positioned(
-              top: 16,
-              left: 16,
-              right: 16,
-              child: SafeArea(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Left button
-                    Align(
-                        alignment: Alignment.topCenter,
-                        child:
-                            BackButton(color: context.appColors.contrastLight)),
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: Stack(
+            children: [
+              Positioned(
+                top: 16,
+                left: 16,
+                right: 16,
+                child: SafeArea(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Left button
+                      Align(
+                          alignment: Alignment.topCenter,
+                          child: BackButton(
+                              color: context.appColors.contrastLight)),
 
-                    // Center content
-                    Expanded(
-                      child: Center(
-                        child:
-                            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                          stream: FirebaseFirestore.instance
-                              .collection('users')
-                              .where('memory_breach_score', isGreaterThan: 0)
-                              .orderBy('memory_breach_score', descending: true)
-                              .limit(3)
-                              .snapshots(),
-                          builder: (context, snapshot) {
-                            if (!snapshot.hasData) return const SizedBox();
-                            final docs = snapshot.data!.docs;
-                            return Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: docs.map((doc) {
-                                final score = doc.data()['memory_breach_score'];
-                                final username = doc.data()['username'] ??
-                                    '${doc.id.substring(0, 4)}...';
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 4.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        username,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.white38,
+                      // Center content
+                      Expanded(
+                        child: Center(
+                          child: StreamBuilder<
+                              QuerySnapshot<Map<String, dynamic>>>(
+                            stream: FirebaseFirestore.instance
+                                .collection('users')
+                                .where('memory_breach_score', isGreaterThan: 0)
+                                .orderBy('memory_breach_score',
+                                    descending: true)
+                                .limit(3)
+                                .snapshots(),
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData) return const SizedBox();
+                              final docs = snapshot.data!.docs;
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: docs.map((doc) {
+                                  final score =
+                                      doc.data()['memory_breach_score'];
+                                  final username = doc.data()['username'] ??
+                                      '${doc.id.substring(0, 4)}...';
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 4.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          username,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.white38,
+                                          ),
                                         ),
-                                      ),
-                                      Text(
-                                        '$score',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.amber,
+                                        Text(
+                                          '$score',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.amber,
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                            );
-                          },
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              );
+                            },
+                          ),
                         ),
                       ),
-                    ),
 
-                    // Placeholder to balance BackButton width
-                    const SizedBox(width: 48),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                children: [
-                  const SizedBox(height: 48),
-                  Text(
-                    'MEMORY BREACH',
-                    style: TextStyle(
-                      fontSize: 24,
-                      color: Colors.pinkAccent.shade100,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 4,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Wallet: ${widget.walletAddress}',
-                    style: const TextStyle(
-                      color: Colors.white24,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    height: 80,
-                    child: Center(
-                      child: Text(
-                        _message,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
-                          fontFamily: 'Courier',
-                        ),
-                        overflow: TextOverflow.fade,
-                        maxLines: 2,
-                      ),
-                    ),
-                  ),
-                  Spacer(),
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    children: _availableInputs.map(_buildButton).toList(),
-                  ),
-                  const Spacer(),
-                  Text(
-                    'Sequence Length: ${_sequence.length}',
-                    style: const TextStyle(color: Colors.white54),
-                  ),
-                  const SizedBox(height: 24),
-                  FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                    future: _userService.getUser(widget.walletAddress),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const SizedBox();
-                      final highScore =
-                          snapshot.data!.data()?['memory_breach_score'] ?? 1;
-                      return Text(
-                        'High Score: $highScore',
-                        style: const TextStyle(color: Colors.white54),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const GlitchOverlay(),
-            if (_isWaitingToStartInput && _countdown > 0)
-              Center(
-                child: Text(
-                  '$_countdown',
-                  style: TextStyle(
-                    fontSize: 96,
-                    color: Colors.pinkAccent.withOpacity(0.6),
-                    fontFamily: 'Courier',
-                    fontWeight: FontWeight.bold,
-                    shadows: [
-                      Shadow(
-                        blurRadius: 24,
-                        color: Colors.pinkAccent.withOpacity(0.8),
-                        offset: const Offset(0, 0),
-                      ),
+                      // Placeholder to balance BackButton width
+                      const SizedBox(width: 48),
                     ],
                   ),
                 ),
               ),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 48),
+                    Text(
+                      'MEMORY BREACH',
+                      style: TextStyle(
+                        fontSize: 24,
+                        color: Colors.pinkAccent.shade100,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 4,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Wallet: ${widget.walletAddress}',
+                      style: const TextStyle(
+                        color: Colors.white24,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      height: 80,
+                      child: Center(
+                        child: Text(
+                          _message,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                            fontFamily: 'Courier',
+                          ),
+                          overflow: TextOverflow.fade,
+                          maxLines: 2,
+                        ),
+                      ),
+                    ),
+                    Spacer(),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      children: _availableInputs.map(_buildButton).toList(),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Sequence Length: ${_sequence.length}',
+                      style: const TextStyle(color: Colors.white54),
+                    ),
+                    const SizedBox(height: 24),
+                    FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                      future: _userService.getUser(widget.walletAddress),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) return const SizedBox();
+                        final highScore =
+                            snapshot.data!.data()?['memory_breach_score'] ?? 1;
+                        return Text(
+                          'High Score: $highScore',
+                          style: const TextStyle(color: Colors.white54),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const GlitchOverlay(),
+              if (_isWaitingToStartInput && _countdown > 0)
+                Center(
+                  child: Text(
+                    '$_countdown',
+                    style: TextStyle(
+                      fontSize: 96,
+                      color: Colors.pinkAccent.withOpacity(0.6),
+                      fontFamily: 'Courier',
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(
+                          blurRadius: 24,
+                          color: Colors.pinkAccent.withOpacity(0.8),
+                          offset: const Offset(0, 0),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -88,6 +88,8 @@ class Wagus extends HookWidget {
         effect: () async {
           if (wallet == null) return null;
 
+          await UserService().ensureXpMapInitialized(wallet);
+
           final doc = await FirebaseFirestore.instance
               .collection('users')
               .doc(wallet)
